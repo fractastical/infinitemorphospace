@@ -7,7 +7,7 @@ N = 200  # Grid dimensions (N x N); larger N gives finer resolution but is compu
 du, dv = 0.2, 0.1  # Diffusion rates: du for U (inhibitor, should be larger than dv for pattern formation), dv for V (activator)
 f, k = 0.055, 0.062  # Feed rate (f) adds U over time; kill rate (k) removes V; specific values produce spots (try f=0.035, k=0.065 for stripes)
 dt = 1.0  # Time step size for numerical stability (too large may cause instability)
-steps = 10000  # Total number of simulation steps; more steps allow patterns to fully develop
+steps = 5000  # Total number of simulation steps; more steps allow patterns to fully develop
 
 # Initialize grids with random noise to break symmetry and initiate patterns
 U = np.ones((N, N))  # U starts as uniform 1 (inhibitor everywhere)
