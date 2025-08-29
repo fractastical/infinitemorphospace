@@ -1,4 +1,4 @@
-# Infinitemorpho
+# Infinite Morphospace
 
 This repository is a collection of Python scripts for simulating and visualizing concepts in morphogenesis and theoretical biology. The scripts explore reaction-diffusion systems, procedural shape generation, and classic models from the field.
 
