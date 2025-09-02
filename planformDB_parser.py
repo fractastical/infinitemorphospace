@@ -59,13 +59,16 @@ def load_time_series(db_path: str) -> pd.DataFrame:
         df = full_years.merge(df, on="Year", how="left").fillna(0)
         for c in ["Experiments", "Publications", "MorphologiesObserved"]:
             df[c] = df[c].astype(int)
+        # cumulative total of distinct morphologies seen up to each year
+        df["CumulativeMorphologies"] = df["MorphologiesObserved"].cumsum()
     return df
 
-def plot_time_series(df: pd.DataFrame, title: str = "PlanformDB Timeline: Experiments, Publications, Morphologies per Year"):
+def plot_time_series(df: pd.DataFrame, title: str = "Innovation Timeline: Experiments, Publications, and Total Morphologies"):
     plt.figure(figsize=(12, 6))
-    plt.plot(df["Year"], df["Experiments"], label="Experiments per year")
-    plt.plot(df["Year"], df["Publications"], label="Publications per year")
-    plt.plot(df["Year"], df["MorphologiesObserved"], label="Distinct morphologies observed per year")
+    plt.plot(df["Year"], df["Experiments"], label="Experiments per year", color="#f4a261")
+    plt.plot(df["Year"], df["Publications"], label="Publications per year", color="#e9c46a")
+    plt.plot(df["Year"], df.get("CumulativeMorphologies", df["MorphologiesObserved"].cumsum()),
+             label="Cumulative morphologies", color="#e63946")
     plt.title(title)
     plt.xlabel("Year")
     plt.ylabel("Count")
