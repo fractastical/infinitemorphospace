@@ -1,0 +1,95 @@
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix ns1: <https://example.org/levin-kg/> .
+@prefix ns2: <http://www.nanopub.org/nschema#> .
+@prefix ns3: <https://w3id.org/levin-kg/> .
+@prefix ns4: <http://purl.org/spar/cito/> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+ns1:np-LEV1999-C1-10.1242_dev.126.21.4703-pubinfo {
+    ns1:assessment-LEV1999-C1 a ns1:BayesianAssessment ;
+        dcterms:description "Combined assuming independence across evidence items; thresholds used where only p-bounds were reported." ;
+        ns1:bayesFactorCombined 63.814544 ;
+        ns1:calibrationMethod "Vovk–Sellke p-value calibration (Sellke, Bayarri & Berger, 2001)" ;
+        ns1:weightOfEvidence_deciban 18.049197 .
+
+    ns1:np-LEV1999-C1-10.1242_dev.126.21.4703 dcterms:bibliographicCitation "Michael Levin; Mark Mercola (1999). Gap junction-mediated transfer of left-right patterning signals in the early chick blastoderm is upstream of Shh asymmetry in the node. https://doi.org/10.1242/dev.126.21.4703" ;
+        dcterms:created "2025-10-01"^^xsd:date ;
+        dcterms:creator ns1:generator ;
+        dcterms:identifier "10518488" ;
+        dcterms:source <https://doi.org/10.1242/dev.126.21.4703> .
+
+    ns1:generator a prov:SoftwareAgent ;
+        dcterms:description "Constructs nanopublications with Bayesian weight-of-evidence estimates via Vovk–Sellke calibration." ;
+        dcterms:license "CC0-1.0" ;
+        dcterms:title "Levin-KG generator (wave O)" .
+}
+
+<https://example.org/levin-kg/np-LEV1999-C1-10.1242_dev.126.21.4703#Head> {
+    ns1:np-LEV1999-C1-10.1242_dev.126.21.4703 a ns2:Nanopublication ;
+        ns2:hasAssertion ns1:np-LEV1999-C1-10.1242_dev.126.21.4703-assertion ;
+        ns2:hasProvenance ns1:np-LEV1999-C1-10.1242_dev.126.21.4703-provenance ;
+        ns2:hasPublicationInfo ns1:np-LEV1999-C1-10.1242_dev.126.21.4703-pubinfo .
+}
+
+ns1:np-OVI2007-C1-10.1242_dev.006635-pubinfo {
+    ns1:assessment-OVI2007-C1 a ns1:BayesianAssessment ;
+        dcterms:description "Combined assuming independence across evidence items; thresholds used where only p-bounds were reported." ;
+        ns1:bayesFactorCombined 425.430291 ;
+        ns1:calibrationMethod "Vovk–Sellke p-value calibration (Sellke, Bayarri & Berger, 2001)" ;
+        ns1:weightOfEvidence_deciban 26.288284 .
+
+    ns1:np-OVI2007-C1-10.1242_dev.006635 dcterms:bibliographicCitation "Néstor J. Oviedo; Michael Levin (2007). smedinx-11 is a planarian stem cell gap junction gene required for regeneration and homeostasis. https://doi.org/10.1242/dev.006635" ;
+        dcterms:created "2025-10-01"^^xsd:date ;
+        dcterms:creator ns1:generator ;
+        dcterms:identifier "17670787" ;
+        dcterms:source <https://doi.org/10.1242/dev.006635> .
+
+    ns1:generator a prov:SoftwareAgent ;
+        dcterms:description "Constructs nanopublications with Bayesian weight-of-evidence estimates via Vovk–Sellke calibration." ;
+        dcterms:license "CC0-1.0" ;
+        dcterms:title "Levin-KG generator (wave O)" .
+}
+
+<https://example.org/levin-kg/np-OVI2007-C1-10.1242_dev.006635#Head> {
+    ns1:np-OVI2007-C1-10.1242_dev.006635 a ns2:Nanopublication ;
+        ns2:hasAssertion ns1:np-OVI2007-C1-10.1242_dev.006635-assertion ;
+        ns2:hasProvenance ns1:np-OVI2007-C1-10.1242_dev.006635-provenance ;
+        ns2:hasPublicationInfo ns1:np-OVI2007-C1-10.1242_dev.006635-pubinfo .
+}
+
+ns1:np-OVI2007-C1-10.1242_dev.006635-provenance {
+    ns1:np-OVI2007-C1-10.1242_dev.006635-assertion prov:wasDerivedFrom <https://doi.org/10.1242/dev.006635> .
+}
+
+ns1:np-OVI2007-C1-10.1242_dev.006635-assertion {
+    ns1:claim-OVI2007-C1 a ns1:Assertion ;
+        dcterms:description "Innexin gap-junction gene smedinx-11 is required for planarian regeneration and homeostasis; RNAi reduces regenerative capacity and disrupts stem-cell maintenance." ;
+        ns4:citesAsEvidence <https://doi.org/10.1242/dev.006635> ;
+        ns1:context "Schmidtea mediterranea; RNAi knockdown of smedinx-11; regeneration success, homeostasis markers." ;
+        ns1:hasAssessment ns1:assessment-OVI2007-C1 ;
+        ns3:hasEvidence ns1:evidence-OVI2007-C1-E1,
+            ns1:evidence-OVI2007-C1-E2 .
+}
+
+ns1:np-LEV1999-C1-10.1242_dev.126.21.4703-assertion {
+    ns1:claim-LEV1999-C1 a ns1:Assertion ;
+        dcterms:description "Gap-junctional communication is required early in chick embryos to establish left-sided Shh/Nodal asymmetry; blocking Cx43-mediated coupling causes bilateral/symmetrical expression, indicating a pathway upstream of nodal flow/cilia." ;
+        ns4:citesAsEvidence <https://doi.org/10.1242/dev.126.21.4703> ;
+        ns1:context "Gallus gallus; pharmacologic blockade (lindane), Cx43 antisense/antibody; Shh/Nodal expression sidedness at HH stage 2–3." ;
+        ns1:hasAssessment ns1:assessment-LEV1999-C1 ;
+        ns3:hasEvidence ns1:evidence-LEV1999-C1-E1,
+            ns1:evidence-LEV1999-C1-E2 .
+}
+
+ns1:np-LEV1999-C1-10.1242_dev.126.21.4703-provenance {
+    ns1:np-LEV1999-C1-10.1242_dev.126.21.4703-assertion prov:wasDerivedFrom <https://doi.org/10.1242/dev.126.21.4703> .
+}
+
+<N35d3e421d30f405db966c0fe914fc226#Head> {
+    <N35d3e421d30f405db966c0fe914fc226> a ns2:Nanopublication ;
+        ns2:hasAssertion <N35d3e421d30f405db966c0fe914fc226-assertion> ;
+        ns2:hasProvenance <N35d3e421d30f405db966c0fe914fc226-provenance> ;
+        ns2:hasPublicationInfo <N35d3e421d30f405db966c0fe914fc226-pubinfo> .
+}
+

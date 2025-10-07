@@ -1,0 +1,97 @@
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix ns1: <https://example.org/levin-kg/> .
+@prefix ns2: <http://www.nanopub.org/nschema#> .
+@prefix ns3: <https://w3id.org/levin-kg/> .
+@prefix ns4: <http://purl.org/spar/cito/> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+ns1:np-AML2007-C1-10.1242_dev.02812-pubinfo {
+    ns1:assessment-AML2007-C1 a ns1:BayesianAssessment ;
+        dcterms:description "Combined assuming independence across evidence items; p-bounds used conservatively where only thresholds were reported." ;
+        ns1:bayesFactorCombined 100588.890510 ;
+        ns1:calibrationMethod "Vovk–Sellke p-value calibration (Sellke, Bayarri & Berger, 2001)" ;
+        ns1:weightOfEvidence_deciban 50.025500 .
+
+    ns1:np-AML2007-C1-10.1242_dev.02812 dcterms:bibliographicCitation "Dany S. Adams; Alessio Masi; Michael Levin (2007). H+ pump-dependent changes in membrane voltage are an early mechanism necessary and sufficient to induce Xenopus tail regeneration. https://doi.org/10.1242/dev.02812" ;
+        dcterms:created "2025-09-30"^^xsd:date ;
+        dcterms:creator ns1:generator ;
+        dcterms:identifier "17329365" ;
+        dcterms:source <https://doi.org/10.1242/dev.02812> .
+
+    ns1:generator a prov:SoftwareAgent ;
+        dcterms:description "Constructs nanopublications with Bayesian weight-of-evidence estimates via Vovk–Sellke calibration." ;
+        dcterms:license "CC0-1.0" ;
+        dcterms:title "Levin-KG generator (wave B, parsed from main text)" .
+}
+
+ns1:np-CL2013-C1-10.1242_dmm.010835-pubinfo {
+    ns1:assessment-CL2013-C1 a ns1:BayesianAssessment ;
+        dcterms:description "Combined assuming independence across evidence items; p-bounds used conservatively where only thresholds were reported." ;
+        ns1:bayesFactorCombined 19.619699 ;
+        ns1:calibrationMethod "Vovk–Sellke p-value calibration (Sellke, Bayarri & Berger, 2001)" ;
+        ns1:weightOfEvidence_deciban 12.926923 .
+
+    ns1:np-CL2013-C1-10.1242_dmm.010835 dcterms:bibliographicCitation "Brook T. Chernet; Michael Levin (2013). Transmembrane voltage potential is an essential cellular parameter for the detection and control of tumor development in a Xenopus model. https://doi.org/10.1242/dmm.010835" ;
+        dcterms:created "2025-09-30"^^xsd:date ;
+        dcterms:creator ns1:generator ;
+        dcterms:identifier "23471912" ;
+        dcterms:source <https://doi.org/10.1242/dmm.010835> .
+
+    ns1:generator a prov:SoftwareAgent ;
+        dcterms:description "Constructs nanopublications with Bayesian weight-of-evidence estimates via Vovk–Sellke calibration." ;
+        dcterms:license "CC0-1.0" ;
+        dcterms:title "Levin-KG generator (wave B, parsed from main text)" .
+}
+
+<https://example.org/levin-kg/np-CL2013-C1-10.1242_dmm.010835#Head> {
+    ns1:np-CL2013-C1-10.1242_dmm.010835 a ns2:Nanopublication ;
+        ns2:hasAssertion ns1:np-CL2013-C1-10.1242_dmm.010835-assertion ;
+        ns2:hasProvenance ns1:np-CL2013-C1-10.1242_dmm.010835-provenance ;
+        ns2:hasPublicationInfo ns1:np-CL2013-C1-10.1242_dmm.010835-pubinfo .
+}
+
+ns1:np-CL2013-C1-10.1242_dmm.010835-assertion {
+    ns1:claim-CL2013-C1 a ns1:Assertion ;
+        dcterms:description "Hyperpolarization of oncogene-bearing cells suppresses tumor-like structures (ITLS), while further depolarization increases ITLS incidence." ;
+        ns4:citesAsEvidence <https://doi.org/10.1242/dmm.010835> ;
+        ns1:context "Xenopus laevis embryos; oncogene Xrel3; Kir4.1 (K+) and GlyRF99A (Cl-) hyperpolarizing channels; ivermectin depolarization; ITLS count at stage 35." ;
+        ns1:hasAssessment ns1:assessment-CL2013-C1 ;
+        ns3:hasEvidence ns1:evidence-CL2013-C1-E1,
+            ns1:evidence-CL2013-C1-E2 .
+}
+
+ns1:np-CL2013-C1-10.1242_dmm.010835-provenance {
+    ns1:np-CL2013-C1-10.1242_dmm.010835-assertion prov:wasDerivedFrom <https://doi.org/10.1242/dmm.010835> .
+}
+
+<N0ed76214ee7847edad4f5f8f819ad6c4#Head> {
+    <N0ed76214ee7847edad4f5f8f819ad6c4> a ns2:Nanopublication ;
+        ns2:hasAssertion <N0ed76214ee7847edad4f5f8f819ad6c4-assertion> ;
+        ns2:hasProvenance <N0ed76214ee7847edad4f5f8f819ad6c4-provenance> ;
+        ns2:hasPublicationInfo <N0ed76214ee7847edad4f5f8f819ad6c4-pubinfo> .
+}
+
+<https://example.org/levin-kg/np-AML2007-C1-10.1242_dev.02812#Head> {
+    ns1:np-AML2007-C1-10.1242_dev.02812 a ns2:Nanopublication ;
+        ns2:hasAssertion ns1:np-AML2007-C1-10.1242_dev.02812-assertion ;
+        ns2:hasProvenance ns1:np-AML2007-C1-10.1242_dev.02812-provenance ;
+        ns2:hasPublicationInfo ns1:np-AML2007-C1-10.1242_dev.02812-pubinfo .
+}
+
+ns1:np-AML2007-C1-10.1242_dev.02812-assertion {
+    ns1:claim-AML2007-C1 a ns1:Assertion ;
+        dcterms:description "V-ATPase-driven H+ flux is necessary for tail regeneration, and a concanamycin-insensitive H+ pump (PMA) is sufficient to rescue regeneration under V-ATPase inhibition." ;
+        ns4:citesAsEvidence <https://doi.org/10.1242/dev.02812> ;
+        ns1:context "Xenopus laevis tadpole; amputation at stage 41; V-ATPase inhibition (concanamycin) and dominant-negative E-subunit; PMA H+ pump rescue; regeneration index (RI) at 7 dpa." ;
+        ns1:hasAssessment ns1:assessment-AML2007-C1 ;
+        ns3:hasEvidence ns1:evidence-AML2007-C1-E1,
+            ns1:evidence-AML2007-C1-E2,
+            ns1:evidence-AML2007-C1-E3,
+            ns1:evidence-AML2007-C1-E4 .
+}
+
+ns1:np-AML2007-C1-10.1242_dev.02812-provenance {
+    ns1:np-AML2007-C1-10.1242_dev.02812-assertion prov:wasDerivedFrom <https://doi.org/10.1242/dev.02812> .
+}
+

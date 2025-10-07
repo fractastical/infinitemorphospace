@@ -1,0 +1,95 @@
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix ns1: <https://example.org/levin-kg/> .
+@prefix ns2: <https://w3id.org/levin-kg/> .
+@prefix ns3: <http://purl.org/spar/cito/> .
+@prefix ns4: <http://www.nanopub.org/nschema#> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+ns1:np-MURUGAN2022-C1-10.1126_sciadv.abj2164-provenance {
+    ns1:np-MURUGAN2022-C1-10.1126_sciadv.abj2164-assertion prov:wasDerivedFrom <https://doi.org/10.1126/sciadv.abj2164> .
+}
+
+ns1:np-MURUGAN2022-C1-10.1126_sciadv.abj2164-assertion {
+    ns1:claim-MURUGAN2022-C1 a ns1:Assertion ;
+        dcterms:description "A single 24-hour exposure to a five-drug 'morphoceutical' cocktail delivered by a wearable bioreactor initiates an 18-month regenerative program that restores multi-tissue structure and function in adult Xenopus hindlimb." ;
+        ns3:citesAsEvidence <https://doi.org/10.1126/sciadv.abj2164> ;
+        ns1:context "Adult Xenopus laevis; BioDome; 5-drug cocktail; 24h exposure; long-term morphometric, radiographic, electrophysiological, and behavior outcomes." ;
+        ns1:hasAssessment ns1:assessment-MURUGAN2022-C1 ;
+        ns2:hasEvidence ns1:evidence-MURUGAN2022-C1-E1,
+            ns1:evidence-MURUGAN2022-C1-E2 .
+}
+
+ns1:np-HR2018-C1-10.1016_j.celrep.2018.10.010-provenance {
+    ns1:np-HR2018-C1-10.1016_j.celrep.2018.10.010-assertion prov:wasDerivedFrom <https://doi.org/10.1016/j.celrep.2018.10.010> .
+}
+
+ns1:np-HR2018-C1-10.1016_j.celrep.2018.10.010-assertion {
+    ns1:claim-HR2018-C1 a ns1:Assertion ;
+        dcterms:description "A 24-hour local progesterone treatment delivered by a wearable bioreactor ('BioDome') immediately post-amputation triggers months-long regenerative growth and improved patterning/innervation in adult Xenopus hindlimb." ;
+        ns3:citesAsEvidence <https://doi.org/10.1016/j.celrep.2018.10.010> ;
+        ns1:context "Adult Xenopus laevis; wearable bioreactor (silk hydrogel + progesterone); 24h exposure; morphological, histological, gene-expression, and behavior assays over months." ;
+        ns1:hasAssessment ns1:assessment-HR2018-C1 ;
+        ns2:hasEvidence ns1:evidence-HR2018-C1-E1,
+            ns1:evidence-HR2018-C1-E2 .
+}
+
+<https://example.org/levin-kg/np-MURUGAN2022-C1-10.1126_sciadv.abj2164#Head> {
+    ns1:np-MURUGAN2022-C1-10.1126_sciadv.abj2164 a ns4:Nanopublication ;
+        ns4:hasAssertion ns1:np-MURUGAN2022-C1-10.1126_sciadv.abj2164-assertion ;
+        ns4:hasProvenance ns1:np-MURUGAN2022-C1-10.1126_sciadv.abj2164-provenance ;
+        ns4:hasPublicationInfo ns1:np-MURUGAN2022-C1-10.1126_sciadv.abj2164-pubinfo .
+}
+
+ns1:np-MURUGAN2022-C1-10.1126_sciadv.abj2164-pubinfo {
+    ns1:assessment-MURUGAN2022-C1 a ns1:BayesianAssessment ;
+        dcterms:description "Combined assuming independence across evidence items; thresholds used where only p-bounds were reported." ;
+        ns1:bayesFactorCombined 425.430291 ;
+        ns1:calibrationMethod "Vovk–Sellke p-value calibration (Sellke, Bayarri & Berger, 2001)" ;
+        ns1:weightOfEvidence_deciban 26.288284 .
+
+    ns1:generator a prov:SoftwareAgent ;
+        dcterms:description "Constructs nanopublications with Bayesian weight-of-evidence estimates via Vovk–Sellke calibration." ;
+        dcterms:license "CC0-1.0" ;
+        dcterms:title "Levin-KG generator (wave R)" .
+
+    ns1:np-MURUGAN2022-C1-10.1126_sciadv.abj2164 dcterms:bibliographicCitation "Nirosha J. Murugan; Hannah J. Vigran; Kelsie A. Miller; Annie Golding; Quang L. Pham; Megan M. Sperry; Cody Rasmussen-Ivey; Anna W. Kane; David L. Kaplan; Michael Levin (2022). Acute multidrug delivery via a wearable bioreactor facilitates long-term limb regeneration and functional recovery in adult Xenopus laevis. https://doi.org/10.1126/sciadv.abj2164" ;
+        dcterms:created "2025-10-01"^^xsd:date ;
+        dcterms:creator ns1:generator ;
+        dcterms:identifier "35080969" ;
+        dcterms:source <https://doi.org/10.1126/sciadv.abj2164> .
+}
+
+<N2c5c38be7cdb42a98aece4bdc2aa9a8c#Head> {
+    <N2c5c38be7cdb42a98aece4bdc2aa9a8c> a ns4:Nanopublication ;
+        ns4:hasAssertion <N2c5c38be7cdb42a98aece4bdc2aa9a8c-assertion> ;
+        ns4:hasProvenance <N2c5c38be7cdb42a98aece4bdc2aa9a8c-provenance> ;
+        ns4:hasPublicationInfo <N2c5c38be7cdb42a98aece4bdc2aa9a8c-pubinfo> .
+}
+
+<https://example.org/levin-kg/np-HR2018-C1-10.1016_j.celrep.2018.10.010#Head> {
+    ns1:np-HR2018-C1-10.1016_j.celrep.2018.10.010 a ns4:Nanopublication ;
+        ns4:hasAssertion ns1:np-HR2018-C1-10.1016_j.celrep.2018.10.010-assertion ;
+        ns4:hasProvenance ns1:np-HR2018-C1-10.1016_j.celrep.2018.10.010-provenance ;
+        ns4:hasPublicationInfo ns1:np-HR2018-C1-10.1016_j.celrep.2018.10.010-pubinfo .
+}
+
+ns1:np-HR2018-C1-10.1016_j.celrep.2018.10.010-pubinfo {
+    ns1:assessment-HR2018-C1 a ns1:BayesianAssessment ;
+        dcterms:description "Combined assuming independence across evidence items; thresholds used where only p-bounds were reported." ;
+        ns1:bayesFactorCombined 19.619699 ;
+        ns1:calibrationMethod "Vovk–Sellke p-value calibration (Sellke, Bayarri & Berger, 2001)" ;
+        ns1:weightOfEvidence_deciban 12.926923 .
+
+    ns1:np-HR2018-C1-10.1016_j.celrep.2018.10.010 dcterms:bibliographicCitation "Celia Herrera-Rincon; Annie S. Golding; Kelly M. Moran; Christopher Harrison; Christopher J. Martyniuk; Jesse A. Guay; Jonathan Zaltsman; Hannah Carabello; David L. Kaplan; Michael Levin (2018). Brief Local Application of Progesterone via a Wearable Bioreactor Induces Long-Term Regenerative Response in Adult Xenopus Hindlimb. https://doi.org/10.1016/j.celrep.2018.10.010" ;
+        dcterms:created "2025-10-01"^^xsd:date ;
+        dcterms:creator ns1:generator ;
+        dcterms:identifier "30404012" ;
+        dcterms:source <https://doi.org/10.1016/j.celrep.2018.10.010> .
+
+    ns1:generator a prov:SoftwareAgent ;
+        dcterms:description "Constructs nanopublications with Bayesian weight-of-evidence estimates via Vovk–Sellke calibration." ;
+        dcterms:license "CC0-1.0" ;
+        dcterms:title "Levin-KG generator (wave R)" .
+}
+

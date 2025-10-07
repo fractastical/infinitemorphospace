@@ -1,0 +1,9 @@
+@prefix ns1: <http://www.nanopub.org/nschema#> .
+
+<N2c74ea92e2604244a850ee18ac9eb8e5#Head> {
+    <N2c74ea92e2604244a850ee18ac9eb8e5> a ns1:Nanopublication ;
+        ns1:hasAssertion <N2c74ea92e2604244a850ee18ac9eb8e5-assertion> ;
+        ns1:hasProvenance <N2c74ea92e2604244a850ee18ac9eb8e5-provenance> ;
+        ns1:hasPublicationInfo <N2c74ea92e2604244a850ee18ac9eb8e5-pubinfo> .
+}
+

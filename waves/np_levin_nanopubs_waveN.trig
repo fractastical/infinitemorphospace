@@ -1,0 +1,95 @@
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix ns1: <https://example.org/levin-kg/> .
+@prefix ns2: <http://purl.org/spar/cito/> .
+@prefix ns3: <https://w3id.org/levin-kg/> .
+@prefix ns4: <http://www.nanopub.org/nschema#> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+ns1:np-K2020-C1-10.1073_pnas.1910837117-provenance {
+    ns1:np-K2020-C1-10.1073_pnas.1910837117-assertion prov:wasDerivedFrom <https://doi.org/10.1073/pnas.1910837117> .
+}
+
+ns1:np-K2021-C1-10.1073_pnas.2112672118-assertion {
+    ns1:claim-K2021-C1 a ns1:Assertion ;
+        dcterms:description "Xenobots can replicate kinematically by sweeping loose cells into functional copies; specific geometries (e.g., C-shaped/semitoroid) markedly increase replication rounds relative to spheroids." ;
+        ns2:citesAsEvidence <https://doi.org/10.1073/pnas.2112672118> ;
+        ns1:context "Xenopus-derived multicellular assemblies; reaggregation assays; automated shape search; replication counts/rounds; offspring viability." ;
+        ns1:hasAssessment ns1:assessment-K2021-C1 ;
+        ns3:hasEvidence ns1:evidence-K2021-C1-E1,
+            ns1:evidence-K2021-C1-E2 .
+}
+
+<Nf630249905ee4cbeb00b89441812cc67#Head> {
+    <Nf630249905ee4cbeb00b89441812cc67> a ns4:Nanopublication ;
+        ns4:hasAssertion <Nf630249905ee4cbeb00b89441812cc67-assertion> ;
+        ns4:hasProvenance <Nf630249905ee4cbeb00b89441812cc67-provenance> ;
+        ns4:hasPublicationInfo <Nf630249905ee4cbeb00b89441812cc67-pubinfo> .
+}
+
+ns1:np-K2021-C1-10.1073_pnas.2112672118-provenance {
+    ns1:np-K2021-C1-10.1073_pnas.2112672118-assertion prov:wasDerivedFrom <https://doi.org/10.1073/pnas.2112672118> .
+}
+
+ns1:np-K2020-C1-10.1073_pnas.1910837117-pubinfo {
+    ns1:assessment-K2020-C1 a ns1:BayesianAssessment ;
+        dcterms:description "Combined assuming independence across evidence items; thresholds used where only p-bounds were reported." ;
+        ns1:bayesFactorCombined 19.619699 ;
+        ns1:calibrationMethod "Vovk–Sellke p-value calibration (Sellke, Bayarri & Berger, 2001)" ;
+        ns1:weightOfEvidence_deciban 12.926923 .
+
+    ns1:np-K2020-C1-10.1073_pnas.1910837117 dcterms:bibliographicCitation "Sam Kriegman; Douglas Blackiston; Michael Levin; Josh Bongard (2020). A scalable pipeline for designing reconfigurable organisms. https://doi.org/10.1073/pnas.1910837117" ;
+        dcterms:created "2025-09-30"^^xsd:date ;
+        dcterms:creator ns1:generator ;
+        dcterms:identifier "31932426" ;
+        dcterms:source <https://doi.org/10.1073/pnas.1910837117> .
+
+    ns1:generator a prov:SoftwareAgent ;
+        dcterms:description "Constructs nanopublications with Bayesian weight-of-evidence estimates via Vovk–Sellke calibration." ;
+        dcterms:license "CC0-1.0" ;
+        dcterms:title "Levin-KG generator (wave N)" .
+}
+
+ns1:np-K2020-C1-10.1073_pnas.1910837117-assertion {
+    ns1:claim-K2020-C1 a ns1:Assertion ;
+        dcterms:description "AI-designed reconfigurable organisms (“xenobots”) built from frog cells exhibit predicted locomotion/behaviors in vitro, demonstrating design→function transfer without genetic modification." ;
+        ns2:citesAsEvidence <https://doi.org/10.1073/pnas.1910837117> ;
+        ns1:context "De novo constructs from Xenopus laevis cells; evolutionary search in silico; physical builds; displacement/trajectory metrics; task demonstrations." ;
+        ns1:hasAssessment ns1:assessment-K2020-C1 ;
+        ns3:hasEvidence ns1:evidence-K2020-C1-E1,
+            ns1:evidence-K2020-C1-E2 .
+}
+
+ns1:np-K2021-C1-10.1073_pnas.2112672118-pubinfo {
+    ns1:np-K2021-C1-10.1073_pnas.2112672118 dcterms:bibliographicCitation "Sam Kriegman; Douglas Blackiston; Michael Levin; Josh Bongard (2021). Kinematic self-replication in reconfigurable organisms. https://doi.org/10.1073/pnas.2112672118" ;
+        dcterms:created "2025-09-30"^^xsd:date ;
+        dcterms:creator ns1:generator ;
+        dcterms:identifier "34845026" ;
+        dcterms:source <https://doi.org/10.1073/pnas.2112672118> .
+
+    ns1:assessment-K2021-C1 a ns1:BayesianAssessment ;
+        dcterms:description "Combined assuming independence across evidence items; thresholds used where only p-bounds were reported." ;
+        ns1:bayesFactorCombined 19.619699 ;
+        ns1:calibrationMethod "Vovk–Sellke p-value calibration (Sellke, Bayarri & Berger, 2001)" ;
+        ns1:weightOfEvidence_deciban 12.926923 .
+
+    ns1:generator a prov:SoftwareAgent ;
+        dcterms:description "Constructs nanopublications with Bayesian weight-of-evidence estimates via Vovk–Sellke calibration." ;
+        dcterms:license "CC0-1.0" ;
+        dcterms:title "Levin-KG generator (wave N)" .
+}
+
+<https://example.org/levin-kg/np-K2021-C1-10.1073_pnas.2112672118#Head> {
+    ns1:np-K2021-C1-10.1073_pnas.2112672118 a ns4:Nanopublication ;
+        ns4:hasAssertion ns1:np-K2021-C1-10.1073_pnas.2112672118-assertion ;
+        ns4:hasProvenance ns1:np-K2021-C1-10.1073_pnas.2112672118-provenance ;
+        ns4:hasPublicationInfo ns1:np-K2021-C1-10.1073_pnas.2112672118-pubinfo .
+}
+
+<https://example.org/levin-kg/np-K2020-C1-10.1073_pnas.1910837117#Head> {
+    ns1:np-K2020-C1-10.1073_pnas.1910837117 a ns4:Nanopublication ;
+        ns4:hasAssertion ns1:np-K2020-C1-10.1073_pnas.1910837117-assertion ;
+        ns4:hasProvenance ns1:np-K2020-C1-10.1073_pnas.1910837117-provenance ;
+        ns4:hasPublicationInfo ns1:np-K2020-C1-10.1073_pnas.1910837117-pubinfo .
+}
+

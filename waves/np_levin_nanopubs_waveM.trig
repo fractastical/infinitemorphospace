@@ -1,0 +1,95 @@
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix ns1: <https://example.org/levin-kg/> .
+@prefix ns2: <http://www.nanopub.org/nschema#> .
+@prefix ns3: <http://purl.org/spar/cito/> .
+@prefix ns4: <https://w3id.org/levin-kg/> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+ns1:np-V2011-C2-10.1371_journal.pone.0023306-pubinfo {
+    ns1:assessment-V2011-C2 a ns1:BayesianAssessment ;
+        dcterms:description "Combined assuming independence across evidence items; thresholds used where only p-bounds were reported. Non-significant controls are recorded as BF=1 (0 dB)." ;
+        ns1:bayesFactorCombined 53.256004 ;
+        ns1:calibrationMethod "Vovk–Sellke p-value calibration (Sellke, Bayarri & Berger, 2001)" ;
+        ns1:weightOfEvidence_deciban 17.263686 .
+
+    ns1:np-V2011-C2-10.1371_journal.pone.0023306 dcterms:bibliographicCitation "Laura N. Vandenberg; Brian W. Pennarola; Michael Levin (2011). Low Frequency Vibrations Disrupt Left-Right Patterning in the Xenopus Embryo. https://doi.org/10.1371/journal.pone.0023306" ;
+        dcterms:created "2025-09-30"^^xsd:date ;
+        dcterms:creator ns1:generator ;
+        dcterms:identifier "21826245" ;
+        dcterms:source <https://doi.org/10.1371/journal.pone.0023306> .
+
+    ns1:generator a prov:SoftwareAgent ;
+        dcterms:description "Constructs nanopublications with Bayesian weight-of-evidence estimates via Vovk–Sellke calibration." ;
+        dcterms:license "CC0-1.0" ;
+        dcterms:title "Levin-KG generator (wave M)" .
+}
+
+ns1:np-MONDIA2011-C1-10.1371_journal.pone.0024953-pubinfo {
+    ns1:assessment-MONDIA2011-C1 a ns1:BayesianAssessment ;
+        dcterms:description "Combined assuming independence across evidence items; thresholds used where only p-bounds were reported. Non-significant controls are recorded as BF=1 (0 dB)." ;
+        ns1:bayesFactorCombined 19.619699 ;
+        ns1:calibrationMethod "Vovk–Sellke p-value calibration (Sellke, Bayarri & Berger, 2001)" ;
+        ns1:weightOfEvidence_deciban 12.926923 .
+
+    ns1:np-MONDIA2011-C1-10.1371_journal.pone.0024953 dcterms:bibliographicCitation "John P. Mondia; Michael Levin; Fiorenzo G. Omenetto; Aaron J. Orendorff; Mary R. Branch; Daniel S. Adams (2011). Long-Distance Signals Are Required for Morphogenesis of the Regenerating Xenopus Tadpole Tail, as Shown by Femtosecond-Laser Ablation. https://doi.org/10.1371/journal.pone.0024953" ;
+        dcterms:created "2025-09-30"^^xsd:date ;
+        dcterms:creator ns1:generator ;
+        dcterms:identifier "21931758" ;
+        dcterms:source <https://doi.org/10.1371/journal.pone.0024953> .
+
+    ns1:generator a prov:SoftwareAgent ;
+        dcterms:description "Constructs nanopublications with Bayesian weight-of-evidence estimates via Vovk–Sellke calibration." ;
+        dcterms:license "CC0-1.0" ;
+        dcterms:title "Levin-KG generator (wave M)" .
+}
+
+ns1:np-V2011-C2-10.1371_journal.pone.0023306-provenance {
+    ns1:np-V2011-C2-10.1371_journal.pone.0023306-assertion prov:wasDerivedFrom <https://doi.org/10.1371/journal.pone.0023306> .
+}
+
+<N305558f853f34e1ebd0b835c4fb6836d#Head> {
+    <N305558f853f34e1ebd0b835c4fb6836d> a ns2:Nanopublication ;
+        ns2:hasAssertion <N305558f853f34e1ebd0b835c4fb6836d-assertion> ;
+        ns2:hasProvenance <N305558f853f34e1ebd0b835c4fb6836d-provenance> ;
+        ns2:hasPublicationInfo <N305558f853f34e1ebd0b835c4fb6836d-pubinfo> .
+}
+
+ns1:np-MONDIA2011-C1-10.1371_journal.pone.0024953-provenance {
+    ns1:np-MONDIA2011-C1-10.1371_journal.pone.0024953-assertion prov:wasDerivedFrom <https://doi.org/10.1371/journal.pone.0024953> .
+}
+
+<https://example.org/levin-kg/np-MONDIA2011-C1-10.1371_journal.pone.0024953#Head> {
+    ns1:np-MONDIA2011-C1-10.1371_journal.pone.0024953 a ns2:Nanopublication ;
+        ns2:hasAssertion ns1:np-MONDIA2011-C1-10.1371_journal.pone.0024953-assertion ;
+        ns2:hasProvenance ns1:np-MONDIA2011-C1-10.1371_journal.pone.0024953-provenance ;
+        ns2:hasPublicationInfo ns1:np-MONDIA2011-C1-10.1371_journal.pone.0024953-pubinfo .
+}
+
+ns1:np-V2011-C2-10.1371_journal.pone.0023306-assertion {
+    ns1:claim-V2011-C2 a ns1:Assertion ;
+        dcterms:description "Early 7 Hz vibration disrupts left-sided Xnr-1 asymmetry (absent/bilateral/right-sided patterns increase), while starts at stage 8 do not produce significant Xnr-1 changes." ;
+        ns3:citesAsEvidence <https://doi.org/10.1371/journal.pone.0023306> ;
+        ns1:context "Xenopus laevis embryos; 7 Hz vibration; Xnr-1 expression sidedness at stage 22; start at 1–4-cell vs stage 8." ;
+        ns1:hasAssessment ns1:assessment-V2011-C2 ;
+        ns4:hasEvidence ns1:evidence-V2011-C2-E1,
+            ns1:evidence-V2011-C2-E2 .
+}
+
+ns1:np-MONDIA2011-C1-10.1371_journal.pone.0024953-assertion {
+    ns1:claim-MONDIA2011-C1 a ns1:Assertion ;
+        dcterms:description "Precise femtosecond-laser ablation of anterior spinal-cord regions increases tail regenerate shape deviation; dual-site insults produce distinct morphologies, indicating long-distance instructive cues." ;
+        ns3:citesAsEvidence <https://doi.org/10.1371/journal.pone.0024953> ;
+        ns1:context "Xenopus laevis tadpoles; tail amputation; femtosecond-laser ablation at anterior/shoulder SC; Procrustes distance and CVA statistics." ;
+        ns1:hasAssessment ns1:assessment-MONDIA2011-C1 ;
+        ns4:hasEvidence ns1:evidence-MONDIA2011-C1-E1,
+            ns1:evidence-MONDIA2011-C1-E2 .
+}
+
+<https://example.org/levin-kg/np-V2011-C2-10.1371_journal.pone.0023306#Head> {
+    ns1:np-V2011-C2-10.1371_journal.pone.0023306 a ns2:Nanopublication ;
+        ns2:hasAssertion ns1:np-V2011-C2-10.1371_journal.pone.0023306-assertion ;
+        ns2:hasProvenance ns1:np-V2011-C2-10.1371_journal.pone.0023306-provenance ;
+        ns2:hasPublicationInfo ns1:np-V2011-C2-10.1371_journal.pone.0023306-pubinfo .
+}
+

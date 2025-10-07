@@ -1,0 +1,96 @@
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix ns1: <https://example.org/levin-kg/> .
+@prefix ns2: <http://purl.org/spar/cito/> .
+@prefix ns3: <https://w3id.org/levin-kg/> .
+@prefix ns4: <http://www.nanopub.org/nschema#> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+ns1:np-T2011-C1-10.1371_journal.pone.0026382-provenance {
+    ns1:np-T2011-C1-10.1371_journal.pone.0026382-assertion prov:wasDerivedFrom <https://doi.org/10.1371/journal.pone.0026382> .
+}
+
+ns1:np-T2011-C1-10.1371_journal.pone.0026382-pubinfo {
+    ns1:assessment-T2011-C1 a ns1:BayesianAssessment ;
+        dcterms:description "Combined assuming independence across evidence items; thresholds used where only p-bounds were reported." ;
+        ns1:bayesFactorCombined 22656.717160 ;
+        ns1:calibrationMethod "Vovk–Sellke p-value calibration (Sellke, Bayarri & Berger, 2001)" ;
+        ns1:weightOfEvidence_deciban 43.551970 .
+
+    ns1:np-T2011-C1-10.1371_journal.pone.0026382 dcterms:bibliographicCitation "Ai-Sun Tseng; Kátia Carneiro; Joan M. Lemire; Michael Levin (2011). HDAC Activity Is Required during Xenopus Tail Regeneration. https://doi.org/10.1371/journal.pone.0026382" ;
+        dcterms:created "2025-09-30"^^xsd:date ;
+        dcterms:creator ns1:generator ;
+        dcterms:identifier "22022609" ;
+        dcterms:source <https://doi.org/10.1371/journal.pone.0026382> .
+
+    ns1:generator a prov:SoftwareAgent ;
+        dcterms:description "Constructs nanopublications with Bayesian weight-of-evidence estimates via Vovk–Sellke calibration." ;
+        dcterms:license "CC0-1.0" ;
+        dcterms:title "Levin-KG generator (wave C)" .
+}
+
+ns1:np-P2012-C1-10.1242_dev.073759-provenance {
+    ns1:np-P2012-C1-10.1242_dev.073759-assertion prov:wasDerivedFrom <https://doi.org/10.1242/dev.073759> .
+}
+
+ns1:np-T2011-C1-10.1371_journal.pone.0026382-assertion {
+    ns1:claim-T2011-C1 a ns1:Assertion ;
+        dcterms:description "HDAC activity is required during early stages of Xenopus tail regeneration; pharmacological inhibition (TSA/VPA) blocks regeneration and the sensitive window is 0–2 dpa." ;
+        ns2:citesAsEvidence <https://doi.org/10.1371/journal.pone.0026382> ;
+        ns1:context "Xenopus laevis tadpoles; tail amputation at stage ~40; TSA (25 nM), VPA (500 μM); regeneration index (RI) at 7 dpa; temporal windows 0–2 dpa vs 2–7 dpa." ;
+        ns1:hasAssessment ns1:assessment-T2011-C1 ;
+        ns3:hasEvidence ns1:evidence-T2011-C1-E1,
+            ns1:evidence-T2011-C1-E2,
+            ns1:evidence-T2011-C1-E3 .
+}
+
+<N3d4d640ca26143c597185acc1b4f2e5f#Head> {
+    <N3d4d640ca26143c597185acc1b4f2e5f> a ns4:Nanopublication ;
+        ns4:hasAssertion <N3d4d640ca26143c597185acc1b4f2e5f-assertion> ;
+        ns4:hasProvenance <N3d4d640ca26143c597185acc1b4f2e5f-provenance> ;
+        ns4:hasPublicationInfo <N3d4d640ca26143c597185acc1b4f2e5f-pubinfo> .
+}
+
+ns1:np-P2012-C1-10.1242_dev.073759-assertion {
+    ns1:claim-P2012-C1 a ns1:Assertion ;
+        dcterms:description "A bilateral cluster of hyperpolarized cells appears in the anterior neural field prior to eye primordia formation; perturbing Vmem in dorsal lineages disrupts eye development." ;
+        ns2:citesAsEvidence <https://doi.org/10.1242/dev.073759> ;
+        ns1:context "Xenopus laevis embryos; CC2-DMPE voltage dye; electrophysiology; 4-cell stage injections; stages 18–42." ;
+        ns1:hasAssessment ns1:assessment-P2012-C1 ;
+        ns3:hasEvidence ns1:evidence-P2012-C1-E1,
+            ns1:evidence-P2012-C1-E2 .
+}
+
+ns1:np-P2012-C1-10.1242_dev.073759-pubinfo {
+    ns1:np-P2012-C1-10.1242_dev.073759 dcterms:bibliographicCitation "Vaibhav P. Pai; Sherry Aw; Tal Shomrat; Joan M. Lemire; Michael Levin (2012). Transmembrane voltage potential controls embryonic eye patterning in Xenopus laevis. https://doi.org/10.1242/dev.073759" ;
+        dcterms:created "2025-09-30"^^xsd:date ;
+        dcterms:creator ns1:generator ;
+        dcterms:identifier "22159581" ;
+        dcterms:source <https://doi.org/10.1242/dev.073759> .
+
+    ns1:assessment-P2012-C1 a ns1:BayesianAssessment ;
+        dcterms:description "Combined assuming independence across evidence items; thresholds used where only p-bounds were reported." ;
+        ns1:bayesFactorCombined 1725.197650 ;
+        ns1:calibrationMethod "Vovk–Sellke p-value calibration (Sellke, Bayarri & Berger, 2001)" ;
+        ns1:weightOfEvidence_deciban 32.368389 .
+
+    ns1:generator a prov:SoftwareAgent ;
+        dcterms:description "Constructs nanopublications with Bayesian weight-of-evidence estimates via Vovk–Sellke calibration." ;
+        dcterms:license "CC0-1.0" ;
+        dcterms:title "Levin-KG generator (wave C)" .
+}
+
+<https://example.org/levin-kg/np-P2012-C1-10.1242_dev.073759#Head> {
+    ns1:np-P2012-C1-10.1242_dev.073759 a ns4:Nanopublication ;
+        ns4:hasAssertion ns1:np-P2012-C1-10.1242_dev.073759-assertion ;
+        ns4:hasProvenance ns1:np-P2012-C1-10.1242_dev.073759-provenance ;
+        ns4:hasPublicationInfo ns1:np-P2012-C1-10.1242_dev.073759-pubinfo .
+}
+
+<https://example.org/levin-kg/np-T2011-C1-10.1371_journal.pone.0026382#Head> {
+    ns1:np-T2011-C1-10.1371_journal.pone.0026382 a ns4:Nanopublication ;
+        ns4:hasAssertion ns1:np-T2011-C1-10.1371_journal.pone.0026382-assertion ;
+        ns4:hasProvenance ns1:np-T2011-C1-10.1371_journal.pone.0026382-provenance ;
+        ns4:hasPublicationInfo ns1:np-T2011-C1-10.1371_journal.pone.0026382-pubinfo .
+}
+

@@ -1,0 +1,95 @@
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix ns1: <https://example.org/levin-kg/> .
+@prefix ns2: <http://purl.org/spar/cito/> .
+@prefix ns3: <https://w3id.org/levin-kg/> .
+@prefix ns4: <http://www.nanopub.org/nschema#> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+ns1:np-JEWHURST2014-C1-10.4137_JCD.S18368-pubinfo {
+    ns1:assessment-JEWHURST2014-C1 a ns1:BayesianAssessment ;
+        dcterms:description "Combined assuming independence across evidence items; thresholds used where only p-bounds were reported." ;
+        ns1:bayesFactorCombined 425.430291 ;
+        ns1:calibrationMethod "Vovk–Sellke p-value calibration (Sellke, Bayarri & Berger, 2001)" ;
+        ns1:weightOfEvidence_deciban 26.288284 .
+
+    ns1:np-JEWHURST2014-C1-10.4137_JCD.S18368 dcterms:bibliographicCitation "Robert L. Jewhurst; Michael Levin; Katherine A. McLaughlin (2014). Optogenetic control of apoptosis in targeted tissues of Xenopus embryos. https://doi.org/10.4137/JCD.S18368" ;
+        dcterms:created "2025-09-30"^^xsd:date ;
+        dcterms:creator ns1:generator ;
+        dcterms:identifier "" ;
+        dcterms:source <https://doi.org/10.4137/JCD.S18368> .
+
+    ns1:generator a prov:SoftwareAgent ;
+        dcterms:description "Constructs nanopublications with Bayesian weight-of-evidence estimates via Vovk–Sellke calibration." ;
+        dcterms:license "CC0-1.0" ;
+        dcterms:title "Levin-KG generator (wave K)" .
+}
+
+ns1:np-ADAMS2013-C1-10.1242_bio.20133665-pubinfo {
+    ns1:assessment-ADAMS2013-C1 a ns1:BayesianAssessment ;
+        dcterms:description "Combined assuming independence across evidence items; thresholds used where only p-bounds were reported." ;
+        ns1:bayesFactorCombined 425.430291 ;
+        ns1:calibrationMethod "Vovk–Sellke p-value calibration (Sellke, Bayarri & Berger, 2001)" ;
+        ns1:weightOfEvidence_deciban 26.288284 .
+
+    ns1:np-ADAMS2013-C1-10.1242_bio.20133665 dcterms:bibliographicCitation "Dany S. Adams; Ai-Sun Tseng; Michael Levin (2013). Light-activated archaerhodopsin reverses age-dependent loss of vertebrate regeneration via hyperpolarization. https://doi.org/10.1242/bio.20133665" ;
+        dcterms:created "2025-09-30"^^xsd:date ;
+        dcterms:creator ns1:generator ;
+        dcterms:identifier "" ;
+        dcterms:source <https://doi.org/10.1242/bio.20133665> .
+
+    ns1:generator a prov:SoftwareAgent ;
+        dcterms:description "Constructs nanopublications with Bayesian weight-of-evidence estimates via Vovk–Sellke calibration." ;
+        dcterms:license "CC0-1.0" ;
+        dcterms:title "Levin-KG generator (wave K)" .
+}
+
+ns1:np-JEWHURST2014-C1-10.4137_JCD.S18368-assertion {
+    ns1:claim-JEWHURST2014-C1 a ns1:Assertion ;
+        dcterms:description "Light-gated apoptotic effectors enable spatially targeted apoptosis, producing predictable morphological phenotypes; off-target tissues remain unaffected." ;
+        ns2:citesAsEvidence <https://doi.org/10.4137/JCD.S18368> ;
+        ns1:context "Xenopus embryos; light-activatable pro-apoptotic constructs; targeted illumination; phenotype incidence and TUNEL/Caspase assays." ;
+        ns1:hasAssessment ns1:assessment-JEWHURST2014-C1 ;
+        ns3:hasEvidence ns1:evidence-JEWHURST2014-C1-E1,
+            ns1:evidence-JEWHURST2014-C1-E2 .
+}
+
+<N01babccb312843ec8a5cba4307bca7df#Head> {
+    <N01babccb312843ec8a5cba4307bca7df> a ns4:Nanopublication ;
+        ns4:hasAssertion <N01babccb312843ec8a5cba4307bca7df-assertion> ;
+        ns4:hasProvenance <N01babccb312843ec8a5cba4307bca7df-provenance> ;
+        ns4:hasPublicationInfo <N01babccb312843ec8a5cba4307bca7df-pubinfo> .
+}
+
+<https://example.org/levin-kg/np-JEWHURST2014-C1-10.4137_JCD.S18368#Head> {
+    ns1:np-JEWHURST2014-C1-10.4137_JCD.S18368 a ns4:Nanopublication ;
+        ns4:hasAssertion ns1:np-JEWHURST2014-C1-10.4137_JCD.S18368-assertion ;
+        ns4:hasProvenance ns1:np-JEWHURST2014-C1-10.4137_JCD.S18368-provenance ;
+        ns4:hasPublicationInfo ns1:np-JEWHURST2014-C1-10.4137_JCD.S18368-pubinfo .
+}
+
+ns1:np-ADAMS2013-C1-10.1242_bio.20133665-provenance {
+    ns1:np-ADAMS2013-C1-10.1242_bio.20133665-assertion prov:wasDerivedFrom <https://doi.org/10.1242/bio.20133665> .
+}
+
+<https://example.org/levin-kg/np-ADAMS2013-C1-10.1242_bio.20133665#Head> {
+    ns1:np-ADAMS2013-C1-10.1242_bio.20133665 a ns4:Nanopublication ;
+        ns4:hasAssertion ns1:np-ADAMS2013-C1-10.1242_bio.20133665-assertion ;
+        ns4:hasProvenance ns1:np-ADAMS2013-C1-10.1242_bio.20133665-provenance ;
+        ns4:hasPublicationInfo ns1:np-ADAMS2013-C1-10.1242_bio.20133665-pubinfo .
+}
+
+ns1:np-ADAMS2013-C1-10.1242_bio.20133665-assertion {
+    ns1:claim-ADAMS2013-C1 a ns1:Assertion ;
+        dcterms:description "Optogenetic hyperpolarization (Arch activation) rescues tail regeneration during the refractory period and after non-regenerative wound epithelium formation." ;
+        ns2:citesAsEvidence <https://doi.org/10.1242/bio.20133665> ;
+        ns1:context "Xenopus laevis tadpoles; archaerhodopsin (Arch) expression; green light activation; refractory window; regeneration index (RI)." ;
+        ns1:hasAssessment ns1:assessment-ADAMS2013-C1 ;
+        ns3:hasEvidence ns1:evidence-ADAMS2013-C1-E1,
+            ns1:evidence-ADAMS2013-C1-E2 .
+}
+
+ns1:np-JEWHURST2014-C1-10.4137_JCD.S18368-provenance {
+    ns1:np-JEWHURST2014-C1-10.4137_JCD.S18368-assertion prov:wasDerivedFrom <https://doi.org/10.4137/JCD.S18368> .
+}
+

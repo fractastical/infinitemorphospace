@@ -1,0 +1,95 @@
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix ns1: <http://www.nanopub.org/nschema#> .
+@prefix ns2: <https://w3id.org/levin-kg/> .
+@prefix ns3: <https://example.org/levin-kg/> .
+@prefix ns4: <http://purl.org/spar/cito/> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+ns3:np-LOBIKIN2012-C1-10.1073_pnas.1202659109-provenance {
+    ns3:np-LOBIKIN2012-C1-10.1073_pnas.1202659109-assertion prov:wasDerivedFrom <https://doi.org/10.1073/pnas.1202659109> .
+}
+
+<N0bdfe3e0545947e5a18a82f8e81f568a#Head> {
+    <N0bdfe3e0545947e5a18a82f8e81f568a> a ns1:Nanopublication ;
+        ns1:hasAssertion <N0bdfe3e0545947e5a18a82f8e81f568a-assertion> ;
+        ns1:hasProvenance <N0bdfe3e0545947e5a18a82f8e81f568a-provenance> ;
+        ns1:hasPublicationInfo <N0bdfe3e0545947e5a18a82f8e81f568a-pubinfo> .
+}
+
+ns3:np-PAI2017-C1-10.1242_bio.025957-assertion {
+    ns3:claim-PAI2017-C1 a ns3:Assertion ;
+        dcterms:description "HCN4 channel function is required for very early (pre-nodal) events establishing LR patterning; perturbing HCN4 disrupts situs and LR gene expression independently of the Nodal/Lefty cascade." ;
+        ns4:citesAsEvidence <https://doi.org/10.1242/bio.025957> ;
+        ns3:context "Xenopus laevis embryos; HCN4 morpholino/antagonists; situs scoring and LR gene expression (Xnr-1/Pitx2); pre-cilia stages." ;
+        ns3:hasAssessment ns3:assessment-PAI2017-C1 ;
+        ns2:hasEvidence ns3:evidence-PAI2017-C1-E1,
+            ns3:evidence-PAI2017-C1-E2 .
+}
+
+<https://example.org/levin-kg/np-PAI2017-C1-10.1242_bio.025957#Head> {
+    ns3:np-PAI2017-C1-10.1242_bio.025957 a ns1:Nanopublication ;
+        ns1:hasAssertion ns3:np-PAI2017-C1-10.1242_bio.025957-assertion ;
+        ns1:hasProvenance ns3:np-PAI2017-C1-10.1242_bio.025957-provenance ;
+        ns1:hasPublicationInfo ns3:np-PAI2017-C1-10.1242_bio.025957-pubinfo .
+}
+
+ns3:np-LOBIKIN2012-C1-10.1073_pnas.1202659109-pubinfo {
+    ns3:assessment-LOBIKIN2012-C1 a ns3:BayesianAssessment ;
+        dcterms:description "Combined assuming independence across evidence items; thresholds used where only p-bounds were reported." ;
+        ns3:bayesFactorCombined 425.430291 ;
+        ns3:calibrationMethod "Vovk–Sellke p-value calibration (Sellke, Bayarri & Berger, 2001)" ;
+        ns3:weightOfEvidence_deciban 26.288284 .
+
+    ns3:np-LOBIKIN2012-C1-10.1073_pnas.1202659109 dcterms:bibliographicCitation "Maria Lobikin; Tal Shomrat; Junji Morokuma; Ruth Gavin; George L. Christensen; Dayong S. Tran; Andre Levchenko; Michael Levin (2012). Early, non-ciliary role for microtubule proteins in left-right patterning is conserved across kingdoms. https://doi.org/10.1073/pnas.1202659109" ;
+        dcterms:created "2025-09-30"^^xsd:date ;
+        dcterms:creator ns3:generator ;
+        dcterms:identifier "22711820" ;
+        dcterms:source <https://doi.org/10.1073/pnas.1202659109> .
+
+    ns3:generator a prov:SoftwareAgent ;
+        dcterms:description "Constructs nanopublications with Bayesian weight-of-evidence estimates via Vovk–Sellke calibration." ;
+        dcterms:license "CC0-1.0" ;
+        dcterms:title "Levin-KG generator (wave J)" .
+}
+
+ns3:np-LOBIKIN2012-C1-10.1073_pnas.1202659109-assertion {
+    ns3:claim-LOBIKIN2012-C1 a ns3:Assertion ;
+        dcterms:description "Microtubule proteins act very early and upstream of cilia in LR patterning; microtubule perturbations randomize organ situs and LR gene expression in multiple taxa." ;
+        ns4:citesAsEvidence <https://doi.org/10.1073/pnas.1202659109> ;
+        ns3:context "Xenopus and other taxa; nocodazole/taxol and tubulin perturbations; situs and LR gene expression; pre-cilia stages." ;
+        ns3:hasAssessment ns3:assessment-LOBIKIN2012-C1 ;
+        ns2:hasEvidence ns3:evidence-LOBIKIN2012-C1-E1,
+            ns3:evidence-LOBIKIN2012-C1-E2 .
+}
+
+ns3:np-PAI2017-C1-10.1242_bio.025957-provenance {
+    ns3:np-PAI2017-C1-10.1242_bio.025957-assertion prov:wasDerivedFrom <https://doi.org/10.1242/bio.025957> .
+}
+
+ns3:np-PAI2017-C1-10.1242_bio.025957-pubinfo {
+    ns3:assessment-PAI2017-C1 a ns3:BayesianAssessment ;
+        dcterms:description "Combined assuming independence across evidence items; thresholds used where only p-bounds were reported." ;
+        ns3:bayesFactorCombined 425.430291 ;
+        ns3:calibrationMethod "Vovk–Sellke p-value calibration (Sellke, Bayarri & Berger, 2001)" ;
+        ns3:weightOfEvidence_deciban 26.288284 .
+
+    ns3:np-PAI2017-C1-10.1242_bio.025957 dcterms:bibliographicCitation "Vaibhav P. Pai; Daniel C. Lemire; Ying Chen; Gufa Lin; Michael Levin (2017). HCN4 is required for early events that establish left-right patterning in Xenopus laevis. https://doi.org/10.1242/bio.025957" ;
+        dcterms:created "2025-09-30"^^xsd:date ;
+        dcterms:creator ns3:generator ;
+        dcterms:identifier "28615340" ;
+        dcterms:source <https://doi.org/10.1242/bio.025957> .
+
+    ns3:generator a prov:SoftwareAgent ;
+        dcterms:description "Constructs nanopublications with Bayesian weight-of-evidence estimates via Vovk–Sellke calibration." ;
+        dcterms:license "CC0-1.0" ;
+        dcterms:title "Levin-KG generator (wave J)" .
+}
+
+<https://example.org/levin-kg/np-LOBIKIN2012-C1-10.1073_pnas.1202659109#Head> {
+    ns3:np-LOBIKIN2012-C1-10.1073_pnas.1202659109 a ns1:Nanopublication ;
+        ns1:hasAssertion ns3:np-LOBIKIN2012-C1-10.1073_pnas.1202659109-assertion ;
+        ns1:hasProvenance ns3:np-LOBIKIN2012-C1-10.1073_pnas.1202659109-provenance ;
+        ns1:hasPublicationInfo ns3:np-LOBIKIN2012-C1-10.1073_pnas.1202659109-pubinfo .
+}
+
