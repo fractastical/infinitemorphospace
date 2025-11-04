@@ -1,0 +1,51 @@
+@prefix cito: <http://purl.org/spar/cito/> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix ex: <https://w3id.org/levin-kg/> .
+@prefix np: <http://www.nanopub.org/nschema#> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+<https://w3id.org/levin-kg/np/np-OVI2007-C1-10.1242_dev.006635/pubinfo> {
+    ex:assessment-OVI2007-C1 a ex:BayesianAssessment ;
+        dcterms:description "Combined assuming independence across evidence items; thresholds used where only p-bounds were reported." ;
+        ex:bayesFactorCombined 425.430291 ;
+        ex:calibrationMethod "Vovk–Sellke p-value calibration (Sellke, Bayarri & Berger, 2001)" ;
+        ex:weightOfEvidence_deciban 26.288284 .
+
+    ex:np-OVI2007-C1-10.1242_dev.006635 dcterms:bibliographicCitation "Néstor J. Oviedo; Michael Levin (2007). smedinx-11 is a planarian stem cell gap junction gene required for regeneration and homeostasis. https://doi.org/10.1242/dev.006635" ;
+        dcterms:created "2025-10-01"^^xsd:date ;
+        dcterms:creator ex:generator ;
+        dcterms:identifier "17670787" ;
+        dcterms:source <https://doi.org/10.1242/dev.006635> .
+
+    <https://w3id.org/levin-kg/np/np-OVI2007-C1-10.1242_dev.006635/> dcterms:created "2025-11-04"^^xsd:date ;
+        dcterms:source <https://doi.org/10.1242/dev.006635> .
+
+    ex:generator a prov:SoftwareAgent ;
+        dcterms:description "Constructs nanopublications with Bayesian weight-of-evidence estimates via Vovk–Sellke calibration." ;
+        dcterms:license "CC0-1.0" ;
+        dcterms:title "Levin-KG generator (wave O)" .
+}
+
+<https://w3id.org/levin-kg/np/np-OVI2007-C1-10.1242_dev.006635/provenance> {
+    <https://w3id.org/levin-kg/np/np-OVI2007-C1-10.1242_dev.006635/assertion> prov:wasDerivedFrom <https://doi.org/10.1242/dev.006635> .
+}
+
+<https://w3id.org/levin-kg/np/np-OVI2007-C1-10.1242_dev.006635/Head> {
+    <https://w3id.org/levin-kg/np/np-OVI2007-C1-10.1242_dev.006635/> a np:Nanopublication ;
+        dcterms:conformsTo <https://w3id.org/morphopkg/spc/1.0> ;
+        np:hasAssertion <https://w3id.org/levin-kg/np/np-OVI2007-C1-10.1242_dev.006635/assertion> ;
+        np:hasProvenance <https://w3id.org/levin-kg/np/np-OVI2007-C1-10.1242_dev.006635/provenance> ;
+        np:hasPublicationInfo <https://w3id.org/levin-kg/np/np-OVI2007-C1-10.1242_dev.006635/pubinfo> .
+}
+
+<https://w3id.org/levin-kg/np/np-OVI2007-C1-10.1242_dev.006635/assertion> {
+    ex:claim-OVI2007-C1 a ex:Assertion ;
+        dcterms:description "Innexin gap-junction gene smedinx-11 is required for planarian regeneration and homeostasis; RNAi reduces regenerative capacity and disrupts stem-cell maintenance." ;
+        cito:citesAsEvidence <https://doi.org/10.1242/dev.006635> ;
+        ex:context "Schmidtea mediterranea; RNAi knockdown of smedinx-11; regeneration success, homeostasis markers." ;
+        ex:hasAssessment ex:assessment-OVI2007-C1 ;
+        ex:hasEvidence ex:evidence-OVI2007-C1-E1,
+            ex:evidence-OVI2007-C1-E2 .
+}
+
