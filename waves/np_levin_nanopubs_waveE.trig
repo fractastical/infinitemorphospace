@@ -1,95 +1,48 @@
 @prefix dcterms: <http://purl.org/dc/terms/> .
-@prefix ns1: <https://example.org/levin-kg/> .
-@prefix ns2: <http://www.nanopub.org/nschema#> .
-@prefix ns3: <https://w3id.org/levin-kg/> .
-@prefix ns4: <http://purl.org/spar/cito/> .
+@prefix ex: <https://w3id.org/levin-kg/> .
+@prefix np: <http://www.nanopub.org/nschema#> .
+@prefix ns1: <http://purl.org/spar/cito/> .
 @prefix prov: <http://www.w3.org/ns/prov#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
-ns1:np-F2005-C1-10.1016_j.cub.2005.03.044-provenance {
-    ns1:np-F2005-C1-10.1016_j.cub.2005.03.044-assertion prov:wasDerivedFrom <https://doi.org/10.1016/j.cub.2005.03.044> .
-}
-
-ns1:np-V2013-C1-10.1242_dmm.010256-pubinfo {
-    ns1:assessment-V2013-C1 a ns1:BayesianAssessment ;
+<https://w3id.org/levin-kg/np/np-F2005-C1-10.1016_j.cub.2005.03.044/pubinfo> {
+    ex:assessment-F2005-C1 a ex:BayesianAssessment ;
         dcterms:description "Combined assuming independence across evidence items; thresholds used where only p-bounds were reported." ;
-        ns1:bayesFactorCombined 63.814544 ;
-        ns1:calibrationMethod "Vovk–Sellke p-value calibration (Sellke, Bayarri & Berger, 2001)" ;
-        ns1:weightOfEvidence_deciban 18.049197 .
+        ex:bayesFactorCombined 425.430291 ;
+        ex:calibrationMethod "Vovk–Sellke p-value calibration (Sellke, Bayarri & Berger, 2001)" ;
+        ex:weightOfEvidence_deciban 26.288284 .
 
-    ns1:np-V2013-C1-10.1242_dmm.010256 dcterms:bibliographicCitation "Laura N. Vandenberg; Joan M. Lemire; Michael Levin (2013). Serotonin has early, cilia-independent roles in Xenopus left-right patterning. https://doi.org/10.1242/dmm.010256" ;
+    ex:np-F2005-C1-10.1016_j.cub.2005.03.044 dcterms:bibliographicCitation "Takahiro Fukumoto; Ido P. Kema; Michael Levin (2005). Serotonin signaling is a very early step in patterning of the left-right axis in chick and frog embryos. https://doi.org/10.1016/j.cub.2005.03.044" ;
         dcterms:created "2025-09-30"^^xsd:date ;
-        dcterms:creator ns1:generator ;
-        dcterms:identifier "22899856" ;
-        dcterms:source <https://doi.org/10.1242/dmm.010256> .
-
-    ns1:generator a prov:SoftwareAgent ;
-        dcterms:description "Constructs nanopublications with Bayesian weight-of-evidence estimates via Vovk–Sellke calibration." ;
-        dcterms:license "CC0-1.0" ;
-        dcterms:title "Levin-KG generator (wave E)" .
-}
-
-<N99795d260c9a4f44beeccbe90b4735c9#Head> {
-    <N99795d260c9a4f44beeccbe90b4735c9> a ns2:Nanopublication ;
-        ns2:hasAssertion <N99795d260c9a4f44beeccbe90b4735c9-assertion> ;
-        ns2:hasProvenance <N99795d260c9a4f44beeccbe90b4735c9-provenance> ;
-        ns2:hasPublicationInfo <N99795d260c9a4f44beeccbe90b4735c9-pubinfo> .
-}
-
-<https://example.org/levin-kg/np-V2013-C1-10.1242_dmm.010256#Head> {
-    ns1:np-V2013-C1-10.1242_dmm.010256 a ns2:Nanopublication ;
-        ns2:hasAssertion ns1:np-V2013-C1-10.1242_dmm.010256-assertion ;
-        ns2:hasProvenance ns1:np-V2013-C1-10.1242_dmm.010256-provenance ;
-        ns2:hasPublicationInfo ns1:np-V2013-C1-10.1242_dmm.010256-pubinfo .
-}
-
-ns1:np-F2005-C1-10.1016_j.cub.2005.03.044-pubinfo {
-    ns1:assessment-F2005-C1 a ns1:BayesianAssessment ;
-        dcterms:description "Combined assuming independence across evidence items; thresholds used where only p-bounds were reported." ;
-        ns1:bayesFactorCombined 425.430291 ;
-        ns1:calibrationMethod "Vovk–Sellke p-value calibration (Sellke, Bayarri & Berger, 2001)" ;
-        ns1:weightOfEvidence_deciban 26.288284 .
-
-    ns1:np-F2005-C1-10.1016_j.cub.2005.03.044 dcterms:bibliographicCitation "Takahiro Fukumoto; Ido P. Kema; Michael Levin (2005). Serotonin signaling is a very early step in patterning of the left-right axis in chick and frog embryos. https://doi.org/10.1016/j.cub.2005.03.044" ;
-        dcterms:created "2025-09-30"^^xsd:date ;
-        dcterms:creator ns1:generator ;
+        dcterms:creator ex:generator ;
         dcterms:identifier "15886096" ;
         dcterms:source <https://doi.org/10.1016/j.cub.2005.03.044> .
 
-    ns1:generator a prov:SoftwareAgent ;
+    ex:generator a prov:SoftwareAgent ;
         dcterms:description "Constructs nanopublications with Bayesian weight-of-evidence estimates via Vovk–Sellke calibration." ;
         dcterms:license "CC0-1.0" ;
         dcterms:title "Levin-KG generator (wave E)" .
 }
 
-ns1:np-F2005-C1-10.1016_j.cub.2005.03.044-assertion {
-    ns1:claim-F2005-C1 a ns1:Assertion ;
+<https://w3id.org/levin-kg/np/np-F2005-C1-10.1016_j.cub.2005.03.044/Head> {
+    <https://w3id.org/levin-kg/np/np-F2005-C1-10.1016_j.cub.2005.03.044/> a np:Nanopublication ;
+        dcterms:conformsTo <https://w3id.org/morphopkg/spc/1.0> ;
+        np:hasAssertion <https://w3id.org/levin-kg/np/np-F2005-C1-10.1016_j.cub.2005.03.044/assertion> ;
+        np:hasProvenance <https://w3id.org/levin-kg/np/np-F2005-C1-10.1016_j.cub.2005.03.044/provenance> ;
+        np:hasPublicationInfo <https://w3id.org/levin-kg/np/np-F2005-C1-10.1016_j.cub.2005.03.044/pubinfo> .
+}
+
+<https://w3id.org/levin-kg/np/np-F2005-C1-10.1016_j.cub.2005.03.044/assertion> {
+    ex:claim-F2005-C1 a ex:Assertion ;
         dcterms:description "Serotonin signaling acts at very early cleavage stages to control left-right patterning; manipulating 5-HT/SERT randomizes organ situs and LR gene expression." ;
-        ns4:citesAsEvidence <https://doi.org/10.1016/j.cub.2005.03.044> ;
-        ns1:context "Xenopus laevis and Gallus gallus embryos; early cleavage/epiblast; SSRIs and transporter manipulations; situs and Nodal/Pitx2 readouts." ;
-        ns1:hasAssessment ns1:assessment-F2005-C1 ;
-        ns3:hasEvidence ns1:evidence-F2005-C1-E1,
-            ns1:evidence-F2005-C1-E2 .
+        ns1:citesAsEvidence <https://doi.org/10.1016/j.cub.2005.03.044> ;
+        ex:context "Xenopus laevis and Gallus gallus embryos; early cleavage/epiblast; SSRIs and transporter manipulations; situs and Nodal/Pitx2 readouts." ;
+        ex:hasAssessment ex:assessment-F2005-C1 ;
+        ex:hasEvidence ex:evidence-F2005-C1-E1,
+            ex:evidence-F2005-C1-E2 .
 }
 
-ns1:np-V2013-C1-10.1242_dmm.010256-assertion {
-    ns1:claim-V2013-C1 a ns1:Assertion ;
-        dcterms:description "Serotonin functions early and independently of motile cilia to establish LR patterning; early manipulations of 5-HT transport/receptors increase heterotaxia." ;
-        ns4:citesAsEvidence <https://doi.org/10.1242/dmm.010256> ;
-        ns1:context "Xenopus laevis embryos; cleavage-stage pharmacology/morpholinos; scoring of heterotaxia and LR gene expression; cilia unaffected." ;
-        ns1:hasAssessment ns1:assessment-V2013-C1 ;
-        ns3:hasEvidence ns1:evidence-V2013-C1-E1,
-            ns1:evidence-V2013-C1-E2 .
-}
-
-ns1:np-V2013-C1-10.1242_dmm.010256-provenance {
-    ns1:np-V2013-C1-10.1242_dmm.010256-assertion prov:wasDerivedFrom <https://doi.org/10.1242/dmm.010256> .
-}
-
-<https://example.org/levin-kg/np-F2005-C1-10.1016_j.cub.2005.03.044#Head> {
-    ns1:np-F2005-C1-10.1016_j.cub.2005.03.044 a ns2:Nanopublication ;
-        ns2:hasAssertion ns1:np-F2005-C1-10.1016_j.cub.2005.03.044-assertion ;
-        ns2:hasProvenance ns1:np-F2005-C1-10.1016_j.cub.2005.03.044-provenance ;
-        ns2:hasPublicationInfo ns1:np-F2005-C1-10.1016_j.cub.2005.03.044-pubinfo .
+<https://w3id.org/levin-kg/np/np-F2005-C1-10.1016_j.cub.2005.03.044/provenance> {
+    <https://w3id.org/levin-kg/np/np-F2005-C1-10.1016_j.cub.2005.03.044/assertion> prov:wasDerivedFrom <https://doi.org/10.1016/j.cub.2005.03.044> .
 }
 

@@ -1,95 +1,48 @@
 @prefix dcterms: <http://purl.org/dc/terms/> .
-@prefix ns1: <https://example.org/levin-kg/> .
-@prefix ns2: <http://www.nanopub.org/nschema#> .
-@prefix ns3: <http://purl.org/spar/cito/> .
-@prefix ns4: <https://w3id.org/levin-kg/> .
+@prefix ex: <https://w3id.org/levin-kg/> .
+@prefix np: <http://www.nanopub.org/nschema#> .
+@prefix ns1: <http://purl.org/spar/cito/> .
 @prefix prov: <http://www.w3.org/ns/prov#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
-ns1:np-HR2017-C1-10.1038_s41467-017-00597-2-provenance {
-    ns1:np-HR2017-C1-10.1038_s41467-017-00597-2-assertion prov:wasDerivedFrom <https://doi.org/10.1038/s41467-017-00597-2> .
-}
-
-ns1:np-ADAMS2016-C1-10.1113_JP271930-pubinfo {
-    ns1:assessment-ADAMS2016-C1 a ns1:BayesianAssessment ;
+<https://w3id.org/levin-kg/np/np-HR2017-C1-10.1038_s41467-017-00597-2/pubinfo> {
+    ex:assessment-HR2017-C1 a ex:BayesianAssessment ;
         dcterms:description "Combined assuming independence across evidence items; thresholds used where only p-bounds were reported." ;
-        ns1:bayesFactorCombined 425.430291 ;
-        ns1:calibrationMethod "Vovk–Sellke p-value calibration (Sellke, Bayarri & Berger, 2001)" ;
-        ns1:weightOfEvidence_deciban 26.288284 .
+        ex:bayesFactorCombined 425.430291 ;
+        ex:calibrationMethod "Vovk–Sellke p-value calibration (Sellke, Bayarri & Berger, 2001)" ;
+        ex:weightOfEvidence_deciban 26.288284 .
 
-    ns1:np-ADAMS2016-C1-10.1113_JP271930 dcterms:bibliographicCitation "Dany Spencer Adams; Sebastien G. M. Uzel; Jin Akagi; Donald Wlodkowic; Viktoria Andreeva; Pamela Crotty Yelick; Adrian Devitt-Lee; Jean-François Paré; Michael Levin (2016). Bioelectric signalling via potassium channels: a mechanism for craniofacial dysmorphogenesis in KCNJ2-associated Andersen–Tawil Syndrome. https://doi.org/10.1113/JP271930" ;
+    ex:np-HR2017-C1-10.1038_s41467-017-00597-2 dcterms:bibliographicCitation "Celia Herrera-Rincón; Vaibhav P. Pai; Kelly M. Moran; Joan M. Lemire; Michael Levin (2017). The brain is required for normal muscle and nerve patterning during early Xenopus development. https://doi.org/10.1038/s41467-017-00597-2" ;
         dcterms:created "2025-09-30"^^xsd:date ;
-        dcterms:creator ns1:generator ;
-        dcterms:identifier "26864374" ;
-        dcterms:source <https://doi.org/10.1113/JP271930> .
-
-    ns1:generator a prov:SoftwareAgent ;
-        dcterms:description "Constructs nanopublications with Bayesian weight-of-evidence estimates via Vovk–Sellke calibration." ;
-        dcterms:license "CC0-1.0" ;
-        dcterms:title "Levin-KG generator (wave I)" .
-}
-
-<N42c398abc0a34734b9a36a38ac3afe48#Head> {
-    <N42c398abc0a34734b9a36a38ac3afe48> a ns2:Nanopublication ;
-        ns2:hasAssertion <N42c398abc0a34734b9a36a38ac3afe48-assertion> ;
-        ns2:hasProvenance <N42c398abc0a34734b9a36a38ac3afe48-provenance> ;
-        ns2:hasPublicationInfo <N42c398abc0a34734b9a36a38ac3afe48-pubinfo> .
-}
-
-ns1:np-ADAMS2016-C1-10.1113_JP271930-provenance {
-    ns1:np-ADAMS2016-C1-10.1113_JP271930-assertion prov:wasDerivedFrom <https://doi.org/10.1113/JP271930> .
-}
-
-ns1:np-HR2017-C1-10.1038_s41467-017-00597-2-assertion {
-    ns1:claim-HR2017-C1 a ns1:Assertion ;
-        dcterms:description "The early embryonic brain provides long-range instructive cues for peripheral muscle and nerve patterning; brain removal causes distal patterning defects that can be rescued by muscarinic acetylcholine receptor antagonism." ;
-        ns3:citesAsEvidence <https://doi.org/10.1038/s41467-017-00597-2> ;
-        ns1:context "Xenopus laevis; early brain ablation; muscle/nerve patterning metrics at distant sites; pharmacological rescue with muscarinic receptor antagonist." ;
-        ns1:hasAssessment ns1:assessment-HR2017-C1 ;
-        ns4:hasEvidence ns1:evidence-HR2017-C1-E1,
-            ns1:evidence-HR2017-C1-E2 .
-}
-
-ns1:np-ADAMS2016-C1-10.1113_JP271930-assertion {
-    ns1:claim-ADAMS2016-C1 a ns1:Assertion ;
-        dcterms:description "Kir2.x/KCNJ2 bioelectric signalling is a driver of craniofacial morphogenesis; channelopathy-mimicking perturbations produce craniofacial dysmorphogenesis that can be modulated by ion-flux pharmacology." ;
-        ns3:citesAsEvidence <https://doi.org/10.1113/JP271930> ;
-        ns1:context "Xenopus laevis and mouse; Kir2.1/KCNJ2 perturbations; geometric morphometrics; pharmacological modulators; craniofacial measurements." ;
-        ns1:hasAssessment ns1:assessment-ADAMS2016-C1 ;
-        ns4:hasEvidence ns1:evidence-ADAMS2016-C1-E1,
-            ns1:evidence-ADAMS2016-C1-E2 .
-}
-
-ns1:np-HR2017-C1-10.1038_s41467-017-00597-2-pubinfo {
-    ns1:np-HR2017-C1-10.1038_s41467-017-00597-2 dcterms:bibliographicCitation "Celia Herrera-Rincón; Vaibhav P. Pai; Kelly M. Moran; Joan M. Lemire; Michael Levin (2017). The brain is required for normal muscle and nerve patterning during early Xenopus development. https://doi.org/10.1038/s41467-017-00597-2" ;
-        dcterms:created "2025-09-30"^^xsd:date ;
-        dcterms:creator ns1:generator ;
+        dcterms:creator ex:generator ;
         dcterms:identifier "28916733" ;
         dcterms:source <https://doi.org/10.1038/s41467-017-00597-2> .
 
-    ns1:assessment-HR2017-C1 a ns1:BayesianAssessment ;
-        dcterms:description "Combined assuming independence across evidence items; thresholds used where only p-bounds were reported." ;
-        ns1:bayesFactorCombined 425.430291 ;
-        ns1:calibrationMethod "Vovk–Sellke p-value calibration (Sellke, Bayarri & Berger, 2001)" ;
-        ns1:weightOfEvidence_deciban 26.288284 .
-
-    ns1:generator a prov:SoftwareAgent ;
+    ex:generator a prov:SoftwareAgent ;
         dcterms:description "Constructs nanopublications with Bayesian weight-of-evidence estimates via Vovk–Sellke calibration." ;
         dcterms:license "CC0-1.0" ;
         dcterms:title "Levin-KG generator (wave I)" .
 }
 
-<https://example.org/levin-kg/np-ADAMS2016-C1-10.1113_JP271930#Head> {
-    ns1:np-ADAMS2016-C1-10.1113_JP271930 a ns2:Nanopublication ;
-        ns2:hasAssertion ns1:np-ADAMS2016-C1-10.1113_JP271930-assertion ;
-        ns2:hasProvenance ns1:np-ADAMS2016-C1-10.1113_JP271930-provenance ;
-        ns2:hasPublicationInfo ns1:np-ADAMS2016-C1-10.1113_JP271930-pubinfo .
+<https://w3id.org/levin-kg/np/np-HR2017-C1-10.1038_s41467-017-00597-2/provenance> {
+    <https://w3id.org/levin-kg/np/np-HR2017-C1-10.1038_s41467-017-00597-2/assertion> prov:wasDerivedFrom <https://doi.org/10.1038/s41467-017-00597-2> .
 }
 
-<https://example.org/levin-kg/np-HR2017-C1-10.1038_s41467-017-00597-2#Head> {
-    ns1:np-HR2017-C1-10.1038_s41467-017-00597-2 a ns2:Nanopublication ;
-        ns2:hasAssertion ns1:np-HR2017-C1-10.1038_s41467-017-00597-2-assertion ;
-        ns2:hasProvenance ns1:np-HR2017-C1-10.1038_s41467-017-00597-2-provenance ;
-        ns2:hasPublicationInfo ns1:np-HR2017-C1-10.1038_s41467-017-00597-2-pubinfo .
+<https://w3id.org/levin-kg/np/np-HR2017-C1-10.1038_s41467-017-00597-2/assertion> {
+    ex:claim-HR2017-C1 a ex:Assertion ;
+        dcterms:description "The early embryonic brain provides long-range instructive cues for peripheral muscle and nerve patterning; brain removal causes distal patterning defects that can be rescued by muscarinic acetylcholine receptor antagonism." ;
+        ns1:citesAsEvidence <https://doi.org/10.1038/s41467-017-00597-2> ;
+        ex:context "Xenopus laevis; early brain ablation; muscle/nerve patterning metrics at distant sites; pharmacological rescue with muscarinic receptor antagonist." ;
+        ex:hasAssessment ex:assessment-HR2017-C1 ;
+        ex:hasEvidence ex:evidence-HR2017-C1-E1,
+            ex:evidence-HR2017-C1-E2 .
+}
+
+<https://w3id.org/levin-kg/np/np-HR2017-C1-10.1038_s41467-017-00597-2/Head> {
+    <https://w3id.org/levin-kg/np/np-HR2017-C1-10.1038_s41467-017-00597-2/> a np:Nanopublication ;
+        dcterms:conformsTo <https://w3id.org/morphopkg/spc/1.0> ;
+        np:hasAssertion <https://w3id.org/levin-kg/np/np-HR2017-C1-10.1038_s41467-017-00597-2/assertion> ;
+        np:hasProvenance <https://w3id.org/levin-kg/np/np-HR2017-C1-10.1038_s41467-017-00597-2/provenance> ;
+        np:hasPublicationInfo <https://w3id.org/levin-kg/np/np-HR2017-C1-10.1038_s41467-017-00597-2/pubinfo> .
 }
 

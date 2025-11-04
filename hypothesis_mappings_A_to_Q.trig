@@ -1,0 +1,163 @@
+@prefix ex:   <https://example.org/levin-kg/> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+
+# ---- Hypothesis nodes (L1–L9) ----
+ex:L1 a ex:Hypothesis ; skos:prefLabel "L1 Bioelectric code is instructive/read-write" .
+ex:L2 a ex:Hypothesis ; skos:prefLabel "L2 Somatic pattern memory & bistability" .
+ex:L3 a ex:Hypothesis ; skos:prefLabel "L3 Regeneration control (regulative competency)" .
+ex:L4 a ex:Hypothesis ; skos:prefLabel "L4 Physiology → GRNs/anatomy (pre-neural computation)" .
+ex:L5 a ex:Hypothesis ; skos:prefLabel "L5 Cancer as bioelectric network disorder" .
+ex:L6 a ex:Hypothesis ; skos:prefLabel "L6 Morphological attractors; brief inputs switch basins" .
+ex:L7 a ex:Hypothesis ; skos:prefLabel "L7 Bioelectric gradients in LR/AP patterning (timing critical)" .
+ex:L8 a ex:Hypothesis ; skos:prefLabel "L8 Long-range network control ('cognitive glue')" .
+ex:L9 a ex:Hypothesis ; skos:prefLabel "L9 Reconfigurable body plans (Xenobots)" .
+
+# Property documentation
+# ex:supportsHypothesis : Assertion -> Hypothesis (many-to-many)
+# ex:hypothesisContribution : fraction of the Assertion's evidence weight allocated to this hypothesis (0..1)
+# ex:mappingConfidence : curator confidence (0..1)
+ex:claim-T2010-C1 a ex:Assertion ;
+  ex:supportsHypothesis ex:L3 ;
+  ex:hypothesisContribution "1.00"^^xsd:decimal ;
+  ex:mappingConfidence "0.90"^^xsd:decimal  .
+ex:claim-L2002-C1 a ex:Assertion ;
+  ex:supportsHypothesis ex:L7 ;
+  ex:hypothesisContribution "1.00"^^xsd:decimal ;
+  ex:mappingConfidence "0.90"^^xsd:decimal  .
+ex:claim-F2005-C1 a ex:Assertion ;
+  ex:supportsHypothesis ex:L7 ;
+  ex:hypothesisContribution "1.00"^^xsd:decimal ;
+  ex:mappingConfidence "0.90"^^xsd:decimal  .
+ex:claim-V2013-C1 a ex:Assertion ;
+  ex:supportsHypothesis ex:L7 ;
+  ex:hypothesisContribution "1.00"^^xsd:decimal ;
+  ex:mappingConfidence "0.90"^^xsd:decimal  .
+ex:claim-B2011-C1 a ex:Assertion ;
+  ex:supportsHypothesis ex:L5 ;
+  ex:hypothesisContribution "1.00"^^xsd:decimal ;
+  ex:mappingConfidence "0.90"^^xsd:decimal  .
+ex:claim-CFL2015-C1 a ex:Assertion ;
+  ex:supportsHypothesis ex:L5 ;
+  ex:hypothesisContribution "0.80"^^xsd:decimal ;
+  ex:mappingConfidence "0.80"^^xsd:decimal ;
+  ex:supportsHypothesis ex:L8 ;
+  ex:hypothesisContribution "0.20"^^xsd:decimal ;
+  ex:mappingConfidence "0.70"^^xsd:decimal  .
+ex:claim-BEANE2011-C1 a ex:Assertion ;
+  ex:supportsHypothesis ex:L1 ;
+  ex:hypothesisContribution "1.00"^^xsd:decimal ;
+  ex:mappingConfidence "0.90"^^xsd:decimal  .
+ex:claim-OVIEDO2010-C1 a ex:Assertion ;
+  ex:supportsHypothesis ex:L8 ;
+  ex:hypothesisContribution "1.00"^^xsd:decimal ;
+  ex:mappingConfidence "0.90"^^xsd:decimal  .
+ex:claim-PJN2015-C1 a ex:Assertion ;
+  ex:supportsHypothesis ex:L4 ;
+  ex:hypothesisContribution "1.00"^^xsd:decimal ;
+  ex:mappingConfidence "0.90"^^xsd:decimal  .
+ex:claim-PIJDB2015-C1 a ex:Assertion ;
+  ex:supportsHypothesis ex:L8 ;
+  ex:hypothesisContribution "1.00"^^xsd:decimal ;
+  ex:mappingConfidence "0.90"^^xsd:decimal  .
+ex:claim-ADAMS2016-C1 a ex:Assertion ;
+  ex:supportsHypothesis ex:L4 ;
+  ex:hypothesisContribution "1.00"^^xsd:decimal ;
+  ex:mappingConfidence "0.90"^^xsd:decimal  .
+ex:claim-HR2017-C1 a ex:Assertion ;
+  ex:supportsHypothesis ex:L8 ;
+  ex:hypothesisContribution "1.00"^^xsd:decimal ;
+  ex:mappingConfidence "0.90"^^xsd:decimal  .
+ex:claim-PAI2017-C1 a ex:Assertion ;
+  ex:supportsHypothesis ex:L7 ;
+  ex:hypothesisContribution "1.00"^^xsd:decimal ;
+  ex:mappingConfidence "0.90"^^xsd:decimal  .
+ex:claim-LOBIKIN2012-C1 a ex:Assertion ;
+  ex:supportsHypothesis ex:L7 ;
+  ex:hypothesisContribution "1.00"^^xsd:decimal ;
+  ex:mappingConfidence "0.90"^^xsd:decimal  .
+ex:claim-ADAMS2013-C1 a ex:Assertion ;
+  ex:supportsHypothesis ex:L6 ;
+  ex:hypothesisContribution "0.70"^^xsd:decimal ;
+  ex:mappingConfidence "0.90"^^xsd:decimal ;
+  ex:supportsHypothesis ex:L3 ;
+  ex:hypothesisContribution "0.30"^^xsd:decimal ;
+  ex:mappingConfidence "0.70"^^xsd:decimal  .
+ex:claim-JEWHURST2014-C1 a ex:Assertion ;
+  ex:supportsHypothesis ex:L1 ;
+  ex:hypothesisContribution "1.00"^^xsd:decimal ;
+  ex:mappingConfidence "0.90"^^xsd:decimal  .
+ex:claim-DURANT2017-C1 a ex:Assertion ;
+  ex:supportsHypothesis ex:L2 ;
+  ex:hypothesisContribution "1.00"^^xsd:decimal ;
+  ex:mappingConfidence "0.90"^^xsd:decimal  .
+ex:claim-BISCHOF2020-C1 a ex:Assertion ;
+  ex:supportsHypothesis ex:L2 ;
+  ex:hypothesisContribution "1.00"^^xsd:decimal ;
+  ex:mappingConfidence "0.90"^^xsd:decimal  .
+ex:claim-V2011-C2 a ex:Assertion ;
+  ex:supportsHypothesis ex:L7 ;
+  ex:hypothesisContribution "1.00"^^xsd:decimal ;
+  ex:mappingConfidence "0.90"^^xsd:decimal  .
+ex:claim-MONDIA2011-C1 a ex:Assertion ;
+  ex:supportsHypothesis ex:L8 ;
+  ex:hypothesisContribution "1.00"^^xsd:decimal ;
+  ex:mappingConfidence "0.90"^^xsd:decimal  .
+ex:claim-K2020-C1 a ex:Assertion ;
+  ex:supportsHypothesis ex:L9 ;
+  ex:hypothesisContribution "1.00"^^xsd:decimal ;
+  ex:mappingConfidence "0.90"^^xsd:decimal  .
+ex:claim-K2021-C1 a ex:Assertion ;
+  ex:supportsHypothesis ex:L9 ;
+  ex:hypothesisContribution "1.00"^^xsd:decimal ;
+  ex:mappingConfidence "0.90"^^xsd:decimal  .
+ex:claim-LEV1999-C1 a ex:Assertion ;
+  ex:supportsHypothesis ex:L7 ;
+  ex:hypothesisContribution "1.00"^^xsd:decimal ;
+  ex:mappingConfidence "0.90"^^xsd:decimal  .
+ex:claim-OVI2007-C1 a ex:Assertion ;
+  ex:supportsHypothesis ex:L8 ;
+  ex:hypothesisContribution "1.00"^^xsd:decimal ;
+  ex:mappingConfidence "0.85"^^xsd:decimal  .
+ex:claim-PAI2020-C1 a ex:Assertion ;
+  ex:supportsHypothesis ex:L8 ;
+  ex:hypothesisContribution "0.80"^^xsd:decimal ;
+  ex:mappingConfidence "0.90"^^xsd:decimal ;
+  ex:supportsHypothesis ex:L4 ;
+  ex:hypothesisContribution "0.20"^^xsd:decimal ;
+  ex:mappingConfidence "0.70"^^xsd:decimal  .
+ex:claim-PAI2022-C1 a ex:Assertion ;
+  ex:supportsHypothesis ex:L8 ;
+  ex:hypothesisContribution "0.80"^^xsd:decimal ;
+  ex:mappingConfidence "0.90"^^xsd:decimal ;
+  ex:supportsHypothesis ex:L4 ;
+  ex:hypothesisContribution "0.20"^^xsd:decimal ;
+  ex:mappingConfidence "0.70"^^xsd:decimal  .
+ex:claim-CHERNET2016-C1 a ex:Assertion ;
+  ex:supportsHypothesis ex:L5 ;
+  ex:hypothesisContribution "1.00"^^xsd:decimal ;
+  ex:mappingConfidence "0.90"^^xsd:decimal  .
+ex:claim-CHERNET2014-C1 a ex:Assertion ;
+  ex:supportsHypothesis ex:L5 ;
+  ex:hypothesisContribution "0.80"^^xsd:decimal ;
+  ex:mappingConfidence "0.85"^^xsd:decimal ;
+  ex:supportsHypothesis ex:L8 ;
+  ex:hypothesisContribution "0.20"^^xsd:decimal ;
+  ex:mappingConfidence "0.70"^^xsd:decimal  .
+ex:claim-B2013-C1 a ex:Assertion ;
+  ex:supportsHypothesis ex:L1 ;
+  ex:hypothesisContribution "1.00"^^xsd:decimal ;
+  ex:mappingConfidence "0.85"^^xsd:decimal  .
+ex:claim-V2011-C1 a ex:Assertion ;
+  ex:supportsHypothesis ex:L7 ;
+  ex:hypothesisContribution "1.00"^^xsd:decimal ;
+  ex:mappingConfidence "0.85"^^xsd:decimal  .
+ex:claim-AML2007-C1 a ex:Assertion ;
+  ex:supportsHypothesis ex:L3 ;
+  ex:hypothesisContribution "1.00"^^xsd:decimal ;
+  ex:mappingConfidence "0.90"^^xsd:decimal  .
+ex:claim-CL2013-C1 a ex:Assertion ;
+  ex:supportsHypothesis ex:L5 ;
+  ex:hypothesisContribution "1.00"^^xsd:decimal ;
+  ex:mappingConfidence "0.85"^^xsd:decimal  .

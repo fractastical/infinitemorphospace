@@ -1,95 +1,48 @@
 @prefix dcterms: <http://purl.org/dc/terms/> .
-@prefix ns1: <https://example.org/levin-kg/> .
-@prefix ns2: <https://w3id.org/levin-kg/> .
-@prefix ns3: <http://purl.org/spar/cito/> .
-@prefix ns4: <http://www.nanopub.org/nschema#> .
+@prefix ex: <https://w3id.org/levin-kg/> .
+@prefix np: <http://www.nanopub.org/nschema#> .
+@prefix ns1: <http://purl.org/spar/cito/> .
 @prefix prov: <http://www.w3.org/ns/prov#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
-ns1:np-DURANT2017-C1-10.1016_j.bpj.2017.04.011-pubinfo {
-    ns1:assessment-DURANT2017-C1 a ns1:BayesianAssessment ;
+<https://w3id.org/levin-kg/np/np-BISCHOF2020-C1-10.1016_j.ydbio.2020.08.009/Head> {
+    <https://w3id.org/levin-kg/np/np-BISCHOF2020-C1-10.1016_j.ydbio.2020.08.009/> a np:Nanopublication ;
+        dcterms:conformsTo <https://w3id.org/morphopkg/spc/1.0> ;
+        np:hasAssertion <https://w3id.org/levin-kg/np/np-BISCHOF2020-C1-10.1016_j.ydbio.2020.08.009/assertion> ;
+        np:hasProvenance <https://w3id.org/levin-kg/np/np-BISCHOF2020-C1-10.1016_j.ydbio.2020.08.009/provenance> ;
+        np:hasPublicationInfo <https://w3id.org/levin-kg/np/np-BISCHOF2020-C1-10.1016_j.ydbio.2020.08.009/pubinfo> .
+}
+
+<https://w3id.org/levin-kg/np/np-BISCHOF2020-C1-10.1016_j.ydbio.2020.08.009/pubinfo> {
+    ex:assessment-BISCHOF2020-C1 a ex:BayesianAssessment ;
         dcterms:description "Combined assuming independence across evidence items; thresholds used where only p-bounds were reported." ;
-        ns1:bayesFactorCombined 425.430291 ;
-        ns1:calibrationMethod "Vovk–Sellke p-value calibration (Sellke, Bayarri & Berger, 2001)" ;
-        ns1:weightOfEvidence_deciban 26.288284 .
+        ex:bayesFactorCombined 425.430291 ;
+        ex:calibrationMethod "Vovk–Sellke p-value calibration (Sellke, Bayarri & Berger, 2001)" ;
+        ex:weightOfEvidence_deciban 26.288284 .
 
-    ns1:np-DURANT2017-C1-10.1016_j.bpj.2017.04.011 dcterms:bibliographicCitation "F. Durant; Daniel Lobo; Joshua Hammelman; Michael Levin (2017). Long-Term, Stochastic Editing of Regenerative Anatomy via Targeting Endogenous Bioelectric Gradients. https://doi.org/10.1016/j.bpj.2017.04.011" ;
+    ex:np-BISCHOF2020-C1-10.1016_j.ydbio.2020.08.009 dcterms:bibliographicCitation "Jonathan Bischof; Élodie Day; Jillian Miller; Andrew LaPalme; Michael Levin (2020). The nervous system and tissue polarity dynamically adapt to new morphologies in planaria. https://doi.org/10.1016/j.ydbio.2020.08.009" ;
         dcterms:created "2025-09-30"^^xsd:date ;
-        dcterms:creator ns1:generator ;
-        dcterms:identifier "" ;
-        dcterms:source <https://doi.org/10.1016/j.bpj.2017.04.011> .
-
-    ns1:generator a prov:SoftwareAgent ;
-        dcterms:description "Constructs nanopublications with Bayesian weight-of-evidence estimates via Vovk–Sellke calibration." ;
-        dcterms:license "CC0-1.0" ;
-        dcterms:title "Levin-KG generator (wave L)" .
-}
-
-ns1:np-DURANT2017-C1-10.1016_j.bpj.2017.04.011-assertion {
-    ns1:claim-DURANT2017-C1 a ns1:Assertion ;
-        dcterms:description "Transient modulation of endogenous bioelectric gradients induces stable, heritable changes to planarian body plan (e.g., persistent two-headed morphologies) across multiple rounds of regeneration—anatomical memory." ;
-        ns3:citesAsEvidence <https://doi.org/10.1016/j.bpj.2017.04.011> ;
-        ns1:context "Planaria; transient gap-junction modulation/bioelectric drugs; repeated amputations; incidence of two-headed and other stable morphotypes over serial rounds." ;
-        ns1:hasAssessment ns1:assessment-DURANT2017-C1 ;
-        ns2:hasEvidence ns1:evidence-DURANT2017-C1-E1,
-            ns1:evidence-DURANT2017-C1-E2 .
-}
-
-<https://example.org/levin-kg/np-DURANT2017-C1-10.1016_j.bpj.2017.04.011#Head> {
-    ns1:np-DURANT2017-C1-10.1016_j.bpj.2017.04.011 a ns4:Nanopublication ;
-        ns4:hasAssertion ns1:np-DURANT2017-C1-10.1016_j.bpj.2017.04.011-assertion ;
-        ns4:hasProvenance ns1:np-DURANT2017-C1-10.1016_j.bpj.2017.04.011-provenance ;
-        ns4:hasPublicationInfo ns1:np-DURANT2017-C1-10.1016_j.bpj.2017.04.011-pubinfo .
-}
-
-ns1:np-DURANT2017-C1-10.1016_j.bpj.2017.04.011-provenance {
-    ns1:np-DURANT2017-C1-10.1016_j.bpj.2017.04.011-assertion prov:wasDerivedFrom <https://doi.org/10.1016/j.bpj.2017.04.011> .
-}
-
-ns1:np-BISCHOF2020-C1-10.1016_j.ydbio.2020.08.009-provenance {
-    ns1:np-BISCHOF2020-C1-10.1016_j.ydbio.2020.08.009-assertion prov:wasDerivedFrom <https://doi.org/10.1016/j.ydbio.2020.08.009> .
-}
-
-<N9293f941e9a044e285e187d1ba15b07c#Head> {
-    <N9293f941e9a044e285e187d1ba15b07c> a ns4:Nanopublication ;
-        ns4:hasAssertion <N9293f941e9a044e285e187d1ba15b07c-assertion> ;
-        ns4:hasProvenance <N9293f941e9a044e285e187d1ba15b07c-provenance> ;
-        ns4:hasPublicationInfo <N9293f941e9a044e285e187d1ba15b07c-pubinfo> .
-}
-
-ns1:np-BISCHOF2020-C1-10.1016_j.ydbio.2020.08.009-assertion {
-    ns1:claim-BISCHOF2020-C1 a ns1:Assertion ;
-        dcterms:description "Following induced morphological changes, planarian nervous system and tissue polarity dynamically reorient to align with the new body plan; polarity markers and neurite trajectories adapt over time." ;
-        ns3:citesAsEvidence <https://doi.org/10.1016/j.ydbio.2020.08.009> ;
-        ns1:context "Planaria; induced two-headed or altered morphologies; time-course imaging of polarity markers (e.g., slit/wnt) and neural tracts; lesion/perturbation tests." ;
-        ns1:hasAssessment ns1:assessment-BISCHOF2020-C1 ;
-        ns2:hasEvidence ns1:evidence-BISCHOF2020-C1-E1,
-            ns1:evidence-BISCHOF2020-C1-E2 .
-}
-
-ns1:np-BISCHOF2020-C1-10.1016_j.ydbio.2020.08.009-pubinfo {
-    ns1:np-BISCHOF2020-C1-10.1016_j.ydbio.2020.08.009 dcterms:bibliographicCitation "Jonathan Bischof; Élodie Day; Jillian Miller; Andrew LaPalme; Michael Levin (2020). The nervous system and tissue polarity dynamically adapt to new morphologies in planaria. https://doi.org/10.1016/j.ydbio.2020.08.009" ;
-        dcterms:created "2025-09-30"^^xsd:date ;
-        dcterms:creator ns1:generator ;
+        dcterms:creator ex:generator ;
         dcterms:identifier "" ;
         dcterms:source <https://doi.org/10.1016/j.ydbio.2020.08.009> .
 
-    ns1:assessment-BISCHOF2020-C1 a ns1:BayesianAssessment ;
-        dcterms:description "Combined assuming independence across evidence items; thresholds used where only p-bounds were reported." ;
-        ns1:bayesFactorCombined 425.430291 ;
-        ns1:calibrationMethod "Vovk–Sellke p-value calibration (Sellke, Bayarri & Berger, 2001)" ;
-        ns1:weightOfEvidence_deciban 26.288284 .
-
-    ns1:generator a prov:SoftwareAgent ;
+    ex:generator a prov:SoftwareAgent ;
         dcterms:description "Constructs nanopublications with Bayesian weight-of-evidence estimates via Vovk–Sellke calibration." ;
         dcterms:license "CC0-1.0" ;
         dcterms:title "Levin-KG generator (wave L)" .
 }
 
-<https://example.org/levin-kg/np-BISCHOF2020-C1-10.1016_j.ydbio.2020.08.009#Head> {
-    ns1:np-BISCHOF2020-C1-10.1016_j.ydbio.2020.08.009 a ns4:Nanopublication ;
-        ns4:hasAssertion ns1:np-BISCHOF2020-C1-10.1016_j.ydbio.2020.08.009-assertion ;
-        ns4:hasProvenance ns1:np-BISCHOF2020-C1-10.1016_j.ydbio.2020.08.009-provenance ;
-        ns4:hasPublicationInfo ns1:np-BISCHOF2020-C1-10.1016_j.ydbio.2020.08.009-pubinfo .
+<https://w3id.org/levin-kg/np/np-BISCHOF2020-C1-10.1016_j.ydbio.2020.08.009/assertion> {
+    ex:claim-BISCHOF2020-C1 a ex:Assertion ;
+        dcterms:description "Following induced morphological changes, planarian nervous system and tissue polarity dynamically reorient to align with the new body plan; polarity markers and neurite trajectories adapt over time." ;
+        ns1:citesAsEvidence <https://doi.org/10.1016/j.ydbio.2020.08.009> ;
+        ex:context "Planaria; induced two-headed or altered morphologies; time-course imaging of polarity markers (e.g., slit/wnt) and neural tracts; lesion/perturbation tests." ;
+        ex:hasAssessment ex:assessment-BISCHOF2020-C1 ;
+        ex:hasEvidence ex:evidence-BISCHOF2020-C1-E1,
+            ex:evidence-BISCHOF2020-C1-E2 .
+}
+
+<https://w3id.org/levin-kg/np/np-BISCHOF2020-C1-10.1016_j.ydbio.2020.08.009/provenance> {
+    <https://w3id.org/levin-kg/np/np-BISCHOF2020-C1-10.1016_j.ydbio.2020.08.009/assertion> prov:wasDerivedFrom <https://doi.org/10.1016/j.ydbio.2020.08.009> .
 }
 

@@ -1,95 +1,11 @@
 @prefix dcterms: <http://purl.org/dc/terms/> .
-@prefix ns1: <http://www.nanopub.org/nschema#> .
-@prefix ns2: <https://w3id.org/levin-kg/> .
-@prefix ns3: <https://example.org/levin-kg/> .
-@prefix ns4: <http://purl.org/spar/cito/> .
-@prefix prov: <http://www.w3.org/ns/prov#> .
-@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix np: <http://www.nanopub.org/nschema#> .
 
-<https://example.org/levin-kg/np-PIJDB2015-C1-10.1387_ijdb.150197ml#Head> {
-    ns3:np-PIJDB2015-C1-10.1387_ijdb.150197ml a ns1:Nanopublication ;
-        ns1:hasAssertion ns3:np-PIJDB2015-C1-10.1387_ijdb.150197ml-assertion ;
-        ns1:hasProvenance ns3:np-PIJDB2015-C1-10.1387_ijdb.150197ml-provenance ;
-        ns1:hasPublicationInfo ns3:np-PIJDB2015-C1-10.1387_ijdb.150197ml-pubinfo .
-}
-
-ns3:np-PIJDB2015-C1-10.1387_ijdb.150197ml-assertion {
-    ns3:claim-PIJDB2015-C1 a ns3:Assertion ;
-        dcterms:description "Local and long-range Vmem gradients form a two-component control system that antagonistically regulates apoptosis (Casp3) and proliferation (H3P) in the embryonic CNS." ;
-        ns4:citesAsEvidence <https://doi.org/10.1387/ijdb.150197ml> ;
-        ns3:context "Xenopus laevis; immunofluorescence for activated caspase-3 and phospho-histone H3; local vs distant ventral manipulations of Vmem." ;
-        ns3:hasAssessment ns3:assessment-PIJDB2015-C1 ;
-        ns2:hasEvidence ns3:evidence-PIJDB2015-C1-E1,
-            ns3:evidence-PIJDB2015-C1-E2 .
-}
-
-<N2fc7478bfe044999b2393e692e46317a#Head> {
-    <N2fc7478bfe044999b2393e692e46317a> a ns1:Nanopublication ;
-        ns1:hasAssertion <N2fc7478bfe044999b2393e692e46317a-assertion> ;
-        ns1:hasProvenance <N2fc7478bfe044999b2393e692e46317a-provenance> ;
-        ns1:hasPublicationInfo <N2fc7478bfe044999b2393e692e46317a-pubinfo> .
-}
-
-ns3:np-PJN2015-C1-10.1523_JNEUROSCI.1877-14.2015-provenance {
-    ns3:np-PJN2015-C1-10.1523_JNEUROSCI.1877-14.2015-assertion prov:wasDerivedFrom <https://doi.org/10.1523/JNEUROSCI.1877-14.2015> .
-}
-
-ns3:np-PJN2015-C1-10.1523_JNEUROSCI.1877-14.2015-pubinfo {
-    ns3:assessment-PJN2015-C1 a ns3:BayesianAssessment ;
-        dcterms:description "Combined assuming independence across evidence items; thresholds used where only p-bounds were reported." ;
-        ns3:bayesFactorCombined 425.430291 ;
-        ns3:calibrationMethod "Vovk–Sellke p-value calibration (Sellke, Bayarri & Berger, 2001)" ;
-        ns3:weightOfEvidence_deciban 26.288284 .
-
-    ns3:np-PJN2015-C1-10.1523_JNEUROSCI.1877-14.2015 dcterms:bibliographicCitation "Vaibhav P. Pai; Joan M. Lemire; Jean-François Paré; Gufa Lin; Ying Chen; Michael Levin (2015). Endogenous gradients of resting potential instructively pattern embryonic neural tissue via Notch signaling and regulation of proliferation. https://doi.org/10.1523/JNEUROSCI.1877-14.2015" ;
-        dcterms:created "2025-09-30"^^xsd:date ;
-        dcterms:creator ns3:generator ;
-        dcterms:identifier "25762681" ;
-        dcterms:source <https://doi.org/10.1523/JNEUROSCI.1877-14.2015> .
-
-    ns3:generator a prov:SoftwareAgent ;
-        dcterms:description "Constructs nanopublications with Bayesian weight-of-evidence estimates via Vovk–Sellke calibration." ;
-        dcterms:license "CC0-1.0" ;
-        dcterms:title "Levin-KG generator (wave H)" .
-}
-
-ns3:np-PJN2015-C1-10.1523_JNEUROSCI.1877-14.2015-assertion {
-    ns3:claim-PJN2015-C1 a ns3:Assertion ;
-        dcterms:description "Endogenous resting-potential (Vmem) gradients instructively pattern embryonic neural tissue via Notch signaling; experimental Vmem manipulations modulate Notch reporter and neural proliferation." ;
-        ns4:citesAsEvidence <https://doi.org/10.1523/JNEUROSCI.1877-14.2015> ;
-        ns3:context "Xenopus laevis; Notch reporter assays; voltage-dye/electrophysiology; ion-channel misexpression/optogenetics; H3P counts." ;
-        ns3:hasAssessment ns3:assessment-PJN2015-C1 ;
-        ns2:hasEvidence ns3:evidence-PJN2015-C1-E1,
-            ns3:evidence-PJN2015-C1-E2 .
-}
-
-<https://example.org/levin-kg/np-PJN2015-C1-10.1523_JNEUROSCI.1877-14.2015#Head> {
-    ns3:np-PJN2015-C1-10.1523_JNEUROSCI.1877-14.2015 a ns1:Nanopublication ;
-        ns1:hasAssertion ns3:np-PJN2015-C1-10.1523_JNEUROSCI.1877-14.2015-assertion ;
-        ns1:hasProvenance ns3:np-PJN2015-C1-10.1523_JNEUROSCI.1877-14.2015-provenance ;
-        ns1:hasPublicationInfo ns3:np-PJN2015-C1-10.1523_JNEUROSCI.1877-14.2015-pubinfo .
-}
-
-ns3:np-PIJDB2015-C1-10.1387_ijdb.150197ml-pubinfo {
-    ns3:assessment-PIJDB2015-C1 a ns3:BayesianAssessment ;
-        dcterms:description "Combined assuming independence across evidence items; thresholds used where only p-bounds were reported." ;
-        ns3:bayesFactorCombined 425.430291 ;
-        ns3:calibrationMethod "Vovk–Sellke p-value calibration (Sellke, Bayarri & Berger, 2001)" ;
-        ns3:weightOfEvidence_deciban 26.288284 .
-
-    ns3:np-PIJDB2015-C1-10.1387_ijdb.150197ml dcterms:bibliographicCitation "Vaibhav P. Pai; Joan M. Lemire; Ying Chen; Gufa Lin; Michael Levin (2015). Local and long-range endogenous resting potential gradients antagonistically regulate apoptosis and proliferation in the embryonic CNS. https://doi.org/10.1387/ijdb.150197ml" ;
-        dcterms:created "2025-09-30"^^xsd:date ;
-        dcterms:creator ns3:generator ;
-        dcterms:identifier "26198142" ;
-        dcterms:source <https://doi.org/10.1387/ijdb.150197ml> .
-
-    ns3:generator a prov:SoftwareAgent ;
-        dcterms:description "Constructs nanopublications with Bayesian weight-of-evidence estimates via Vovk–Sellke calibration." ;
-        dcterms:license "CC0-1.0" ;
-        dcterms:title "Levin-KG generator (wave H)" .
-}
-
-ns3:np-PIJDB2015-C1-10.1387_ijdb.150197ml-provenance {
-    ns3:np-PIJDB2015-C1-10.1387_ijdb.150197ml-assertion prov:wasDerivedFrom <https://doi.org/10.1387/ijdb.150197ml> .
+<https://w3id.org/levin-kg/np/N2fc7478bfe044999b2393e692e46317a/Head> {
+    <https://w3id.org/levin-kg/np/N2fc7478bfe044999b2393e692e46317a/> a np:Nanopublication ;
+        dcterms:conformsTo <https://w3id.org/morphopkg/spc/1.0> ;
+        np:hasAssertion <https://w3id.org/levin-kg/np/N2fc7478bfe044999b2393e692e46317a/assertion> ;
+        np:hasProvenance <https://w3id.org/levin-kg/np/N2fc7478bfe044999b2393e692e46317a/provenance> ;
+        np:hasPublicationInfo <https://w3id.org/levin-kg/np/N2fc7478bfe044999b2393e692e46317a/pubinfo> .
 }
 

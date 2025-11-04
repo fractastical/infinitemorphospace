@@ -1,95 +1,11 @@
 @prefix dcterms: <http://purl.org/dc/terms/> .
-@prefix ns1: <http://www.nanopub.org/nschema#> .
-@prefix ns2: <https://example.org/levin-kg/> .
-@prefix ns3: <http://purl.org/spar/cito/> .
-@prefix ns4: <https://w3id.org/levin-kg/> .
-@prefix prov: <http://www.w3.org/ns/prov#> .
-@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix np: <http://www.nanopub.org/nschema#> .
 
-<https://example.org/levin-kg/np-B2011-C1-10.1242_dmm.005561#Head> {
-    ns2:np-B2011-C1-10.1242_dmm.005561 a ns1:Nanopublication ;
-        ns1:hasAssertion ns2:np-B2011-C1-10.1242_dmm.005561-assertion ;
-        ns1:hasProvenance ns2:np-B2011-C1-10.1242_dmm.005561-provenance ;
-        ns1:hasPublicationInfo ns2:np-B2011-C1-10.1242_dmm.005561-pubinfo .
-}
-
-ns2:np-CFL2015-C1-10.3389_fphys.2014.00519-provenance {
-    ns2:np-CFL2015-C1-10.3389_fphys.2014.00519-assertion prov:wasDerivedFrom <https://doi.org/10.3389/fphys.2014.00519> .
-}
-
-ns2:np-B2011-C1-10.1242_dmm.005561-provenance {
-    ns2:np-B2011-C1-10.1242_dmm.005561-assertion prov:wasDerivedFrom <https://doi.org/10.1242/dmm.005561> .
-}
-
-ns2:np-CFL2015-C1-10.3389_fphys.2014.00519-assertion {
-    ns2:claim-CFL2015-C1 a ns2:Assertion ;
-        dcterms:description "Modulating host gap-junctional communication (GJC) at a distance controls KRAS-driven tumor incidence; disrupting GJC in remote tissues suppresses tumors, while enhancing GJC (Cx26) increases tumor incidence." ;
-        ns3:citesAsEvidence <https://doi.org/10.3389/fphys.2014.00519> ;
-        ns2:context "Xenopus laevis embryos; oncogene KRASG12D; GJ constructs (H7 inhibitor; Cx26 overexpression); tumor incidence (ITLS) scoring." ;
-        ns2:hasAssessment ns2:assessment-CFL2015-C1 ;
-        ns4:hasEvidence ns2:evidence-CFL2015-C1-E1,
-            ns2:evidence-CFL2015-C1-E2 .
-}
-
-<Nd4cc1f76a36a459dba83d3f9f5eb68ef#Head> {
-    <Nd4cc1f76a36a459dba83d3f9f5eb68ef> a ns1:Nanopublication ;
-        ns1:hasAssertion <Nd4cc1f76a36a459dba83d3f9f5eb68ef-assertion> ;
-        ns1:hasProvenance <Nd4cc1f76a36a459dba83d3f9f5eb68ef-provenance> ;
-        ns1:hasPublicationInfo <Nd4cc1f76a36a459dba83d3f9f5eb68ef-pubinfo> .
-}
-
-ns2:np-B2011-C1-10.1242_dmm.005561-pubinfo {
-    ns2:assessment-B2011-C1 a ns2:BayesianAssessment ;
-        dcterms:description "Combined assuming independence across evidence items; thresholds used where only p-bounds were reported." ;
-        ns2:bayesFactorCombined 425.430291 ;
-        ns2:calibrationMethod "Vovk–Sellke p-value calibration (Sellke, Bayarri & Berger, 2001)" ;
-        ns2:weightOfEvidence_deciban 26.288284 .
-
-    ns2:generator a prov:SoftwareAgent ;
-        dcterms:description "Constructs nanopublications with Bayesian weight-of-evidence estimates via Vovk–Sellke calibration." ;
-        dcterms:license "CC0-1.0" ;
-        dcterms:title "Levin-KG generator (wave F)" .
-
-    ns2:np-B2011-C1-10.1242_dmm.005561 dcterms:bibliographicCitation "Douglas Blackiston; Dany S. Adams; Joan M. Lemire; Maria Lobikin; Michael Levin (2011). Transmembrane potential of GlyCl-expressing instructor cells induces a neoplastic-like conversion of melanocytes via a serotonergic pathway. https://doi.org/10.1242/dmm.005561" ;
-        dcterms:created "2025-09-30"^^xsd:date ;
-        dcterms:creator ns2:generator ;
-        dcterms:identifier "20959630" ;
-        dcterms:source <https://doi.org/10.1242/dmm.005561> .
-}
-
-ns2:np-CFL2015-C1-10.3389_fphys.2014.00519-pubinfo {
-    ns2:np-CFL2015-C1-10.3389_fphys.2014.00519 dcterms:bibliographicCitation "Brook T. Chernet; Chris Fields; Michael Levin (2015). Long-range gap junctional signaling controls oncogene-mediated tumorigenesis in Xenopus laevis embryos. https://doi.org/10.3389/fphys.2014.00519" ;
-        dcterms:created "2025-09-30"^^xsd:date ;
-        dcterms:creator ns2:generator ;
-        dcterms:identifier "25646081" ;
-        dcterms:source <https://doi.org/10.3389/fphys.2014.00519> .
-
-    ns2:assessment-CFL2015-C1 a ns2:BayesianAssessment ;
-        dcterms:description "Combined assuming independence across evidence items; thresholds used where only p-bounds were reported." ;
-        ns2:bayesFactorCombined 63.814544 ;
-        ns2:calibrationMethod "Vovk–Sellke p-value calibration (Sellke, Bayarri & Berger, 2001)" ;
-        ns2:weightOfEvidence_deciban 18.049197 .
-
-    ns2:generator a prov:SoftwareAgent ;
-        dcterms:description "Constructs nanopublications with Bayesian weight-of-evidence estimates via Vovk–Sellke calibration." ;
-        dcterms:license "CC0-1.0" ;
-        dcterms:title "Levin-KG generator (wave F)" .
-}
-
-<https://example.org/levin-kg/np-CFL2015-C1-10.3389_fphys.2014.00519#Head> {
-    ns2:np-CFL2015-C1-10.3389_fphys.2014.00519 a ns1:Nanopublication ;
-        ns1:hasAssertion ns2:np-CFL2015-C1-10.3389_fphys.2014.00519-assertion ;
-        ns1:hasProvenance ns2:np-CFL2015-C1-10.3389_fphys.2014.00519-provenance ;
-        ns1:hasPublicationInfo ns2:np-CFL2015-C1-10.3389_fphys.2014.00519-pubinfo .
-}
-
-ns2:np-B2011-C1-10.1242_dmm.005561-assertion {
-    ns2:claim-B2011-C1 a ns2:Assertion ;
-        dcterms:description "Non-cell-autonomous depolarization of GlyCl-expressing 'instructor' cells induces a neoplasia-like conversion of melanocytes via a serotonin-transporter-dependent mechanism." ;
-        ns3:citesAsEvidence <https://doi.org/10.1242/dmm.005561> ;
-        ns2:context "Xenopus laevis; GlyCl expression + ivermectin depolarization; melanocyte conversion/overproliferation; SERT/SSRI perturbations." ;
-        ns2:hasAssessment ns2:assessment-B2011-C1 ;
-        ns4:hasEvidence ns2:evidence-B2011-C1-E1,
-            ns2:evidence-B2011-C1-E2 .
+<https://w3id.org/levin-kg/np/Nd4cc1f76a36a459dba83d3f9f5eb68ef/Head> {
+    <https://w3id.org/levin-kg/np/Nd4cc1f76a36a459dba83d3f9f5eb68ef/> a np:Nanopublication ;
+        dcterms:conformsTo <https://w3id.org/morphopkg/spc/1.0> ;
+        np:hasAssertion <https://w3id.org/levin-kg/np/Nd4cc1f76a36a459dba83d3f9f5eb68ef/assertion> ;
+        np:hasProvenance <https://w3id.org/levin-kg/np/Nd4cc1f76a36a459dba83d3f9f5eb68ef/provenance> ;
+        np:hasPublicationInfo <https://w3id.org/levin-kg/np/Nd4cc1f76a36a459dba83d3f9f5eb68ef/pubinfo> .
 }
 

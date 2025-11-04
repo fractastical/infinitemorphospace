@@ -1,95 +1,11 @@
 @prefix dcterms: <http://purl.org/dc/terms/> .
-@prefix ns1: <https://example.org/levin-kg/> .
-@prefix ns2: <http://purl.org/spar/cito/> .
-@prefix ns3: <https://w3id.org/levin-kg/> .
-@prefix ns4: <http://www.nanopub.org/nschema#> .
-@prefix prov: <http://www.w3.org/ns/prov#> .
-@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix np: <http://www.nanopub.org/nschema#> .
 
-ns1:np-PAI2022-C1-10.1111_wrr.13032-provenance {
-    ns1:np-PAI2022-C1-10.1111_wrr.13032-assertion prov:wasDerivedFrom <https://doi.org/10.1111/wrr.13032> .
-}
-
-ns1:np-PAI2020-C1-10.3389_fncel.2020.00136-assertion {
-    ns1:claim-PAI2020-C1 a ns1:Assertion ;
-        dcterms:description "Distal HCN2 misexpression or transplantation, and small-molecule HCN2 activators, non-cell-autonomously rescue severe brain teratogenesis (anatomy, gene expression, behavior), even with delayed treatment." ;
-        ns2:citesAsEvidence <https://doi.org/10.3389/fncel.2020.00136> ;
-        ns1:context "Xenopus laevis; nicotine/other teratogens; HCN2 misexpression/transplant; channel activators; morphology, gene expression, learning assays." ;
-        ns1:hasAssessment ns1:assessment-PAI2020-C1 ;
-        ns3:hasEvidence ns1:evidence-PAI2020-C1-E1,
-            ns1:evidence-PAI2020-C1-E2 .
-}
-
-<https://example.org/levin-kg/np-PAI2022-C1-10.1111_wrr.13032#Head> {
-    ns1:np-PAI2022-C1-10.1111_wrr.13032 a ns4:Nanopublication ;
-        ns4:hasAssertion ns1:np-PAI2022-C1-10.1111_wrr.13032-assertion ;
-        ns4:hasProvenance ns1:np-PAI2022-C1-10.1111_wrr.13032-provenance ;
-        ns4:hasPublicationInfo ns1:np-PAI2022-C1-10.1111_wrr.13032-pubinfo .
-}
-
-ns1:np-PAI2020-C1-10.3389_fncel.2020.00136-provenance {
-    ns1:np-PAI2020-C1-10.3389_fncel.2020.00136-assertion prov:wasDerivedFrom <https://doi.org/10.3389/fncel.2020.00136> .
-}
-
-<N4437811800bf45f9a68981193653906e#Head> {
-    <N4437811800bf45f9a68981193653906e> a ns4:Nanopublication ;
-        ns4:hasAssertion <N4437811800bf45f9a68981193653906e-assertion> ;
-        ns4:hasProvenance <N4437811800bf45f9a68981193653906e-provenance> ;
-        ns4:hasPublicationInfo <N4437811800bf45f9a68981193653906e-pubinfo> .
-}
-
-<https://example.org/levin-kg/np-PAI2020-C1-10.3389_fncel.2020.00136#Head> {
-    ns1:np-PAI2020-C1-10.3389_fncel.2020.00136 a ns4:Nanopublication ;
-        ns4:hasAssertion ns1:np-PAI2020-C1-10.3389_fncel.2020.00136-assertion ;
-        ns4:hasProvenance ns1:np-PAI2020-C1-10.3389_fncel.2020.00136-provenance ;
-        ns4:hasPublicationInfo ns1:np-PAI2020-C1-10.3389_fncel.2020.00136-pubinfo .
-}
-
-ns1:np-PAI2022-C1-10.1111_wrr.13032-assertion {
-    ns1:claim-PAI2022-C1 a ns1:Assertion ;
-        dcterms:description "Induced HCN2 expression locally or at a distance rescues CNS (brain, eye) and non-CNS (heart, gut) teratogenesis across etiologies (nicotine, ethanol, Notch); small-molecule activators also work." ;
-        ns2:citesAsEvidence <https://doi.org/10.1111/wrr.13032> ;
-        ns1:context "Xenopus laevis; multi-organ teratogenesis; HCN2 misexpression/activators; local vs distant rescue; timing windows." ;
-        ns1:hasAssessment ns1:assessment-PAI2022-C1 ;
-        ns3:hasEvidence ns1:evidence-PAI2022-C1-E1,
-            ns1:evidence-PAI2022-C1-E2 .
-}
-
-ns1:np-PAI2022-C1-10.1111_wrr.13032-pubinfo {
-    ns1:assessment-PAI2022-C1 a ns1:BayesianAssessment ;
-        dcterms:description "Combined assuming independence across evidence items; thresholds used where only p-bounds were reported." ;
-        ns1:bayesFactorCombined 425.430291 ;
-        ns1:calibrationMethod "Vovk–Sellke p-value calibration (Sellke, Bayarri & Berger, 2001)" ;
-        ns1:weightOfEvidence_deciban 26.288284 .
-
-    ns1:generator a prov:SoftwareAgent ;
-        dcterms:description "Constructs nanopublications with Bayesian weight-of-evidence estimates via Vovk–Sellke calibration." ;
-        dcterms:license "CC0-1.0" ;
-        dcterms:title "Levin-KG generator (wave P)" .
-
-    ns1:np-PAI2022-C1-10.1111_wrr.13032 dcterms:bibliographicCitation "Vaibhav P. Pai; Michael Levin (2022). HCN2 channel-induced rescue of brain, eye, heart and gut teratogenesis caused by nicotine, ethanol and aberrant Notch signalling. https://doi.org/10.1111/wrr.13032" ;
-        dcterms:created "2025-10-01"^^xsd:date ;
-        dcterms:creator ns1:generator ;
-        dcterms:identifier "35662339" ;
-        dcterms:source <https://doi.org/10.1111/wrr.13032> .
-}
-
-ns1:np-PAI2020-C1-10.3389_fncel.2020.00136-pubinfo {
-    ns1:assessment-PAI2020-C1 a ns1:BayesianAssessment ;
-        dcterms:description "Combined assuming independence across evidence items; thresholds used where only p-bounds were reported." ;
-        ns1:bayesFactorCombined 425.430291 ;
-        ns1:calibrationMethod "Vovk–Sellke p-value calibration (Sellke, Bayarri & Berger, 2001)" ;
-        ns1:weightOfEvidence_deciban 26.288284 .
-
-    ns1:np-PAI2020-C1-10.3389_fncel.2020.00136 dcterms:bibliographicCitation "Vaibhav P. Pai; Kelly M. Moran; Joan M. Lemire; Michael Levin (2020). HCN2 Channel-Induced Rescue of Brain Teratogenesis via Local and Long-Range Bioelectric Repair. https://doi.org/10.3389/fncel.2020.00136" ;
-        dcterms:created "2025-10-01"^^xsd:date ;
-        dcterms:creator ns1:generator ;
-        dcterms:identifier "32528251" ;
-        dcterms:source <https://doi.org/10.3389/fncel.2020.00136> .
-
-    ns1:generator a prov:SoftwareAgent ;
-        dcterms:description "Constructs nanopublications with Bayesian weight-of-evidence estimates via Vovk–Sellke calibration." ;
-        dcterms:license "CC0-1.0" ;
-        dcterms:title "Levin-KG generator (wave P)" .
+<https://w3id.org/levin-kg/np/N4437811800bf45f9a68981193653906e/Head> {
+    <https://w3id.org/levin-kg/np/N4437811800bf45f9a68981193653906e/> a np:Nanopublication ;
+        dcterms:conformsTo <https://w3id.org/morphopkg/spc/1.0> ;
+        np:hasAssertion <https://w3id.org/levin-kg/np/N4437811800bf45f9a68981193653906e/assertion> ;
+        np:hasProvenance <https://w3id.org/levin-kg/np/N4437811800bf45f9a68981193653906e/provenance> ;
+        np:hasPublicationInfo <https://w3id.org/levin-kg/np/N4437811800bf45f9a68981193653906e/pubinfo> .
 }
 

@@ -1,93 +1,11 @@
 @prefix dcterms: <http://purl.org/dc/terms/> .
-@prefix ns1: <https://example.org/levin-kg/> .
-@prefix ns2: <http://www.nanopub.org/nschema#> .
-@prefix ns3: <http://purl.org/spar/cito/> .
-@prefix ns4: <https://w3id.org/levin-kg/> .
-@prefix prov: <http://www.w3.org/ns/prov#> .
-@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix np: <http://www.nanopub.org/nschema#> .
 
-ns1:np-B2013-C1-10.1242_dev.086900-pubinfo {
-    ns1:assessment-B2013-C1 a ns1:BayesianAssessment ;
-        dcterms:description "Combined assuming independence across evidence items; thresholds used where only p-bounds were reported." ;
-        ns1:bayesFactorCombined 399.420028 ;
-        ns1:calibrationMethod "Vovk–Sellke p-value calibration (Sellke, Bayarri & Berger, 2001)" ;
-        ns1:weightOfEvidence_deciban 26.014298 .
-
-    ns1:np-B2013-C1-10.1242_dev.086900 dcterms:bibliographicCitation "Wendy S. Beane; Junji Morokuma; Joan M. Lemire; Michael Levin (2013). Bioelectric signaling regulates head and organ size during planarian regeneration. https://doi.org/10.1242/dev.086900" ;
-        dcterms:created "2025-09-30"^^xsd:date ;
-        dcterms:creator ns1:generator ;
-        dcterms:identifier "23250205" ;
-        dcterms:source <https://doi.org/10.1242/dev.086900> .
-
-    ns1:generator a prov:SoftwareAgent ;
-        dcterms:description "Constructs nanopublications with Bayesian weight-of-evidence estimates via Vovk–Sellke calibration." ;
-        dcterms:license "CC0-1.0" ;
-        dcterms:title "Levin-KG generator (wave A)" .
-}
-
-ns1:np-B2013-C1-10.1242_dev.086900-provenance {
-    ns1:np-B2013-C1-10.1242_dev.086900-assertion prov:wasDerivedFrom <https://doi.org/10.1242/dev.086900> .
-}
-
-ns1:np-V2011-C1-10.1371_journal.pone.0023306-pubinfo {
-    ns1:assessment-V2011-C1 a ns1:BayesianAssessment ;
-        dcterms:description "Combined assuming independence across evidence items; thresholds used where only p-bounds were reported." ;
-        ns1:bayesFactorCombined 7.988401 ;
-        ns1:calibrationMethod "Vovk–Sellke p-value calibration (Sellke, Bayarri & Berger, 2001)" ;
-        ns1:weightOfEvidence_deciban 9.024598 .
-
-    ns1:np-V2011-C1-10.1371_journal.pone.0023306 dcterms:bibliographicCitation "Laura N. Vandenberg; Brian W. Pennarola; Michael Levin (2011). Low Frequency Vibrations Disrupt Left-Right Patterning in the Xenopus Embryo. https://doi.org/10.1371/journal.pone.0023306" ;
-        dcterms:created "2025-09-30"^^xsd:date ;
-        dcterms:creator ns1:generator ;
-        dcterms:identifier "21826245" ;
-        dcterms:source <https://doi.org/10.1371/journal.pone.0023306> .
-
-    ns1:generator a prov:SoftwareAgent ;
-        dcterms:description "Constructs nanopublications with Bayesian weight-of-evidence estimates via Vovk–Sellke calibration." ;
-        dcterms:license "CC0-1.0" ;
-        dcterms:title "Levin-KG generator (wave A)" .
-}
-
-<N99839959bfc84a9f8a9e63f244c85ca5#Head> {
-    <N99839959bfc84a9f8a9e63f244c85ca5> a ns2:Nanopublication ;
-        ns2:hasAssertion <N99839959bfc84a9f8a9e63f244c85ca5-assertion> ;
-        ns2:hasProvenance <N99839959bfc84a9f8a9e63f244c85ca5-provenance> ;
-        ns2:hasPublicationInfo <N99839959bfc84a9f8a9e63f244c85ca5-pubinfo> .
-}
-
-<https://example.org/levin-kg/np-V2011-C1-10.1371_journal.pone.0023306#Head> {
-    ns1:np-V2011-C1-10.1371_journal.pone.0023306 a ns2:Nanopublication ;
-        ns2:hasAssertion ns1:np-V2011-C1-10.1371_journal.pone.0023306-assertion ;
-        ns2:hasProvenance ns1:np-V2011-C1-10.1371_journal.pone.0023306-provenance ;
-        ns2:hasPublicationInfo ns1:np-V2011-C1-10.1371_journal.pone.0023306-pubinfo .
-}
-
-ns1:np-V2011-C1-10.1371_journal.pone.0023306-assertion {
-    ns1:claim-V2011-C1 a ns1:Assertion ;
-        dcterms:description "7 Hz vibration during sensitive windows significantly increases heterotaxia compared to controls (stage-specific sensitivity)." ;
-        ns3:citesAsEvidence <https://doi.org/10.1371/journal.pone.0023306> ;
-        ns1:context "Xenopus laevis embryos; 7 Hz vibration; heterotaxia rate; stage windows (1-cell to st.19 etc.)" ;
-        ns1:hasAssessment ns1:assessment-V2011-C1 ;
-        ns4:hasEvidence ns1:evidence-V2011-C1-E1 .
-}
-
-ns1:np-V2011-C1-10.1371_journal.pone.0023306-provenance {
-    ns1:np-V2011-C1-10.1371_journal.pone.0023306-assertion prov:wasDerivedFrom <https://doi.org/10.1371/journal.pone.0023306> .
-}
-
-ns1:np-B2013-C1-10.1242_dev.086900-assertion {
-    ns1:claim-B2013-C1 a ns1:Assertion ;
-        dcterms:description "Inhibition of the H,K-ATPase ion pump (hyperpolarization) produces regenerates with significantly smaller heads while blastema size is unchanged early, indicating bioelectric control of head size and scaling." ;
-        ns3:citesAsEvidence <https://doi.org/10.1242/dev.086900> ;
-        ns1:context "Schmidtea mediterranea; H,K-ATPase RNAi; head size vs. blastema size; 4–14 dpa" ;
-        ns1:hasAssessment ns1:assessment-B2013-C1 ;
-        ns4:hasEvidence ns1:evidence-B2013-C1-E1 .
-}
-
-<https://example.org/levin-kg/np-B2013-C1-10.1242_dev.086900#Head> {
-    ns1:np-B2013-C1-10.1242_dev.086900 a ns2:Nanopublication ;
-        ns2:hasAssertion ns1:np-B2013-C1-10.1242_dev.086900-assertion ;
-        ns2:hasProvenance ns1:np-B2013-C1-10.1242_dev.086900-provenance ;
-        ns2:hasPublicationInfo ns1:np-B2013-C1-10.1242_dev.086900-pubinfo .
+<https://w3id.org/levin-kg/np/N99839959bfc84a9f8a9e63f244c85ca5/Head> {
+    <https://w3id.org/levin-kg/np/N99839959bfc84a9f8a9e63f244c85ca5/> a np:Nanopublication ;
+        dcterms:conformsTo <https://w3id.org/morphopkg/spc/1.0> ;
+        np:hasAssertion <https://w3id.org/levin-kg/np/N99839959bfc84a9f8a9e63f244c85ca5/assertion> ;
+        np:hasProvenance <https://w3id.org/levin-kg/np/N99839959bfc84a9f8a9e63f244c85ca5/provenance> ;
+        np:hasPublicationInfo <https://w3id.org/levin-kg/np/N99839959bfc84a9f8a9e63f244c85ca5/pubinfo> .
 }
 

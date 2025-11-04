@@ -1,9 +1,11 @@
-@prefix ns1: <http://www.nanopub.org/nschema#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix np: <http://www.nanopub.org/nschema#> .
 
-<N2c74ea92e2604244a850ee18ac9eb8e5#Head> {
-    <N2c74ea92e2604244a850ee18ac9eb8e5> a ns1:Nanopublication ;
-        ns1:hasAssertion <N2c74ea92e2604244a850ee18ac9eb8e5-assertion> ;
-        ns1:hasProvenance <N2c74ea92e2604244a850ee18ac9eb8e5-provenance> ;
-        ns1:hasPublicationInfo <N2c74ea92e2604244a850ee18ac9eb8e5-pubinfo> .
+<https://w3id.org/levin-kg/np/N2c74ea92e2604244a850ee18ac9eb8e5/Head> {
+    <https://w3id.org/levin-kg/np/N2c74ea92e2604244a850ee18ac9eb8e5/> a np:Nanopublication ;
+        dcterms:conformsTo <https://w3id.org/morphopkg/spc/1.0> ;
+        np:hasAssertion <https://w3id.org/levin-kg/np/N2c74ea92e2604244a850ee18ac9eb8e5/assertion> ;
+        np:hasProvenance <https://w3id.org/levin-kg/np/N2c74ea92e2604244a850ee18ac9eb8e5/provenance> ;
+        np:hasPublicationInfo <https://w3id.org/levin-kg/np/N2c74ea92e2604244a850ee18ac9eb8e5/pubinfo> .
 }
 
