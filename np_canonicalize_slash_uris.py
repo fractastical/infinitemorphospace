@@ -12,11 +12,16 @@ Fix common issues that cause nanopub parsing errors:
 - Insert dcterms:conformsTo <https://w3id.org/morphopkg/spc/1.0> into each Head.
 
 Usage:
+  # Single file (same as before)
   python np_canonicalize_slash_uris.py input.trig output.trig
+
+  # Directory mode (process all *.trig in input_dir; outputs go to output_dir)
+  python np_canonicalize_slash_uris.py input_dir output_dir
 
 Requires: rdflib >= 6.0
 """
 import re, sys, uuid
+from pathlib import Path
 from urllib.parse import quote
 from rdflib import ConjunctiveGraph, URIRef, Namespace, RDF, Literal
 from rdflib.namespace import DCTERMS
@@ -47,9 +52,9 @@ def rewrite_ns_example_to_w3id(node):
         return URIRef(str(node).replace(str(EX_EXAMPLE), str(EX_W3ID), 1))
     return node
 
-def main(inp, outp):
+def process_file(inp: Path, outp: Path) -> None:
     ds = ConjunctiveGraph()
-    ds.parse(inp, format="trig")
+    ds.parse(str(inp), format="trig")
 
     out = ConjunctiveGraph()
     out.bind("np", NP)
@@ -68,7 +73,12 @@ def main(inp, outp):
             sid = str(g.identifier)
             if sid.endswith("/Head") or sid.endswith("#Head") or sid.endswith("-Head"):
                 # synthesize a nanopub node = base (without suffix)
-                base = sid.rsplit("/",1)[0] if sid.endswith("/Head") else sid.rsplit("#",1)[0]
+                if sid.endswith("/Head"):
+                    base = sid.rsplit("/", 1)[0]
+                elif sid.endswith("#Head"):
+                    base = sid.rsplit("#", 1)[0]
+                else:
+                    base = sid.rsplit("-", 1)[0]
                 heads.append((g.identifier, URIRef(base)))
 
     for head_graph_iri, npnode in heads:
@@ -86,8 +96,8 @@ def main(inp, outp):
             # pick a graph that ends with -assertion/#assertion or /assertion and shares the stem
             for g in ds.contexts():
                 si = str(g.identifier)
-                if si.endswith(("-assertion","#assertion","/assertion")):
-                    stem = si.replace("-assertion","").replace("#assertion","").replace("/assertion","")
+                if si.endswith(("-assertion", "#assertion", "/assertion")):
+                    stem = si.replace("-assertion", "").replace("#assertion", "").replace("/assertion", "")
                     if stem in str(npnode):
                         assertion_target = g.identifier
                         break
@@ -113,8 +123,12 @@ def main(inp, outp):
         # Copy assertion graph content (rewrite example.org to w3id)
         g_assert_in = ds.get_context(assertion_target)
         g_assert_out = out.get_context(asrt_canon)
-        for s,p,o in g_assert_in.triples((None,None,None)):
-            g_assert_out.add((rewrite_ns_example_to_w3id(s), rewrite_ns_example_to_w3id(p), rewrite_ns_example_to_w3id(o)))
+        for s, p, o in g_assert_in.triples((None, None, None)):
+            g_assert_out.add((
+                rewrite_ns_example_to_w3id(s),
+                rewrite_ns_example_to_w3id(p),
+                rewrite_ns_example_to_w3id(o)
+            ))
 
         # Copy provenance and pubinfo if present; otherwise synthesize minimal provenance pointing to any DOI in pubinfo
         if prov_target is not None:
@@ -123,12 +137,16 @@ def main(inp, outp):
             g_prov_in = None
         g_prov_out = out.get_context(prov_canon)
         if g_prov_in:
-            for s,p,o in g_prov_in.triples((None,None,None)):
+            for s, p, o in g_prov_in.triples((None, None, None)):
                 # Ensure subject is the assertion GRAPH IRI
                 if p == PROV.wasDerivedFrom:
                     g_prov_out.add((asrt_canon, p, rewrite_ns_example_to_w3id(o)))
                 else:
-                    g_prov_out.add((rewrite_ns_example_to_w3id(s), rewrite_ns_example_to_w3id(p), rewrite_ns_example_to_w3id(o)))
+                    g_prov_out.add((
+                        rewrite_ns_example_to_w3id(s),
+                        rewrite_ns_example_to_w3id(p),
+                        rewrite_ns_example_to_w3id(o)
+                    ))
 
         if pubinfo_target is not None:
             g_pub_in = ds.get_context(pubinfo_target)
@@ -138,20 +156,60 @@ def main(inp, outp):
             g_pub_in = ds.get_context(URIRef(guess))
         g_pub_out = out.get_context(pubi_canon)
         if g_pub_in:
-            for s,p,o in g_pub_in.triples((None,None,None)):
-                g_pub_out.add((rewrite_ns_example_to_w3id(s), rewrite_ns_example_to_w3id(p), rewrite_ns_example_to_w3id(o)))
+            for s, p, o in g_pub_in.triples((None, None, None)):
+                g_pub_out.add((
+                    rewrite_ns_example_to_w3id(s),
+                    rewrite_ns_example_to_w3id(p),
+                    rewrite_ns_example_to_w3id(o)
+                ))
 
         # If provenance missing derivedFrom, try to add from pubinfo source
         has_derived = any(True for _ in g_prov_out.triples((asrt_canon, PROV.wasDerivedFrom, None)))
         if not has_derived:
-            for _,_,src in g_pub_out.triples((None, DCTERMS.source, None)):
+            for _, _, src in g_pub_out.triples((None, DCTERMS.source, None)):
                 g_prov_out.add((asrt_canon, PROV.wasDerivedFrom, src))
 
-    out.serialize(outp, format="trig")
-    print("Wrote", outp)
+    out.parent = None  # avoid accidental serialization side-effects
+    out.serialize(str(outp), format="trig")
+    print(f"Wrote {outp}")
+
+def main(argv):
+    if len(argv) < 3:
+        print(__doc__)
+        return 2
+
+    in_path = Path(argv[1])
+    out_path = Path(argv[2])
+
+    if in_path.is_file():
+        # Single-file behavior (as before)
+        if out_path.is_dir():
+            # If a directory is given as output, place file inside it with same name
+            out_path.mkdir(parents=True, exist_ok=True)
+            out_file = out_path / in_path.name
+        else:
+            out_file = out_path
+        process_file(in_path, out_file)
+        return 0
+
+    if in_path.is_dir():
+        # Directory mode: process all *.trig (non-recursive)
+        out_path.mkdir(parents=True, exist_ok=True)
+        trig_files = sorted([p for p in in_path.iterdir() if p.is_file() and p.suffix.lower() == ".trig"])
+        if not trig_files:
+            print(f"No *.trig files found in directory: {in_path}")
+            return 1
+        for f in trig_files:
+            out_file = out_path / f.name
+            try:
+                process_file(f, out_file)
+            except Exception as e:
+                # keep going on other files
+                print(f"ERROR processing {f}: {e}")
+        return 0
+
+    print(f"Input path not found: {in_path}")
+    return 2
 
 if __name__ == "__main__":
-    if len(sys.argv) < 3:
-        print(__doc__)
-        sys.exit(2)
-    main(sys.argv[1], sys.argv[2])
+    sys.exit(main(sys.argv))
