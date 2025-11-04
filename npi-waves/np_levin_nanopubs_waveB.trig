@@ -1,0 +1,53 @@
+@prefix cito: <http://purl.org/spar/cito/> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix ex: <https://w3id.org/levin-kg/> .
+@prefix np: <http://www.nanopub.org/nschema#> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+<https://w3id.org/levin-kg/np/np-AML2007-C1-10.1242_dev.02812/assertion> {
+    ex:claim-AML2007-C1 a ex:Assertion ;
+        dcterms:description "V-ATPase-driven H+ flux is necessary for tail regeneration, and a concanamycin-insensitive H+ pump (PMA) is sufficient to rescue regeneration under V-ATPase inhibition." ;
+        cito:citesAsEvidence <https://doi.org/10.1242/dev.02812> ;
+        ex:context "Xenopus laevis tadpole; amputation at stage 41; V-ATPase inhibition (concanamycin) and dominant-negative E-subunit; PMA H+ pump rescue; regeneration index (RI) at 7 dpa." ;
+        ex:hasAssessment ex:assessment-AML2007-C1 ;
+        ex:hasEvidence ex:evidence-AML2007-C1-E1,
+            ex:evidence-AML2007-C1-E2,
+            ex:evidence-AML2007-C1-E3,
+            ex:evidence-AML2007-C1-E4 .
+}
+
+<https://w3id.org/levin-kg/np/np-AML2007-C1-10.1242_dev.02812/Head> {
+    <https://w3id.org/levin-kg/np/np-AML2007-C1-10.1242_dev.02812/> a np:Nanopublication ;
+        dcterms:conformsTo <https://w3id.org/morphopkg/spc/1.0> ;
+        np:hasAssertion <https://w3id.org/levin-kg/np/np-AML2007-C1-10.1242_dev.02812/assertion> ;
+        np:hasProvenance <https://w3id.org/levin-kg/np/np-AML2007-C1-10.1242_dev.02812/provenance> ;
+        np:hasPublicationInfo <https://w3id.org/levin-kg/np/np-AML2007-C1-10.1242_dev.02812/pubinfo> .
+}
+
+<https://w3id.org/levin-kg/np/np-AML2007-C1-10.1242_dev.02812/provenance> {
+    <https://w3id.org/levin-kg/np/np-AML2007-C1-10.1242_dev.02812/assertion> prov:wasDerivedFrom <https://doi.org/10.1242/dev.02812> .
+}
+
+<https://w3id.org/levin-kg/np/np-AML2007-C1-10.1242_dev.02812/pubinfo> {
+    ex:np-AML2007-C1-10.1242_dev.02812 dcterms:bibliographicCitation "Dany S. Adams; Alessio Masi; Michael Levin (2007). H+ pump-dependent changes in membrane voltage are an early mechanism necessary and sufficient to induce Xenopus tail regeneration. https://doi.org/10.1242/dev.02812" ;
+        dcterms:created "2025-09-30"^^xsd:date ;
+        dcterms:creator ex:generator ;
+        dcterms:identifier "17329365" ;
+        dcterms:source <https://doi.org/10.1242/dev.02812> .
+
+    ex:assessment-AML2007-C1 a ex:BayesianAssessment ;
+        dcterms:description "Combined assuming independence across evidence items; p-bounds used conservatively where only thresholds were reported." ;
+        ex:bayesFactorCombined 100588.890510 ;
+        ex:calibrationMethod "Vovk–Sellke p-value calibration (Sellke, Bayarri & Berger, 2001)" ;
+        ex:weightOfEvidence_deciban 50.025500 .
+
+    ex:generator a prov:SoftwareAgent ;
+        dcterms:description "Constructs nanopublications with Bayesian weight-of-evidence estimates via Vovk–Sellke calibration." ;
+        dcterms:license "CC0-1.0" ;
+        dcterms:title "Levin-KG generator (wave B, parsed from main text)" .
+
+    <https://w3id.org/levin-kg/np/np-AML2007-C1-10.1242_dev.02812/> dcterms:created "2025-11-04"^^xsd:date ;
+        dcterms:source <https://doi.org/10.1242/dev.02812> .
+}
+
