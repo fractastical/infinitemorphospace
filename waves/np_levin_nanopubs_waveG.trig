@@ -1,7 +1,7 @@
+@prefix cito: <http://purl.org/spar/cito/> .
 @prefix dcterms: <http://purl.org/dc/terms/> .
 @prefix ex: <https://w3id.org/levin-kg/> .
 @prefix np: <http://www.nanopub.org/nschema#> .
-@prefix ns1: <http://purl.org/spar/cito/> .
 @prefix prov: <http://www.w3.org/ns/prov#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
@@ -13,36 +13,45 @@
         np:hasPublicationInfo <https://w3id.org/levin-kg/np/np-BEANE2011-C1-10.1016_j.chembiol.2010.11.012/pubinfo> .
 }
 
-<https://w3id.org/levin-kg/np/np-BEANE2011-C1-10.1016_j.chembiol.2010.11.012/provenance> {
-    <https://w3id.org/levin-kg/np/np-BEANE2011-C1-10.1016_j.chembiol.2010.11.012/assertion> prov:wasDerivedFrom <https://doi.org/10.1016/j.chembiol.2010.11.012> .
-}
-
-<https://w3id.org/levin-kg/np/np-BEANE2011-C1-10.1016_j.chembiol.2010.11.012/assertion> {
-    ex:claim-BEANE2011-C1 a ex:Assertion ;
-        dcterms:description "H,K-ATPase-mediated transmembrane voltage is required for planarian head regeneration; pharmacologic/RNAi inhibition blocks head formation after decapitation." ;
-        ns1:citesAsEvidence <https://doi.org/10.1016/j.chembiol.2010.11.012> ;
-        ex:context "Schmidtea mediterranea planaria; H,K-ATPase inhibitors or RNAi; head regeneration incidence/RI at 7–14 dpa." ;
-        ex:hasAssessment ex:assessment-BEANE2011-C1 ;
-        ex:hasEvidence ex:evidence-BEANE2011-C1-E1,
-            ex:evidence-BEANE2011-C1-E2 .
-}
-
 <https://w3id.org/levin-kg/np/np-BEANE2011-C1-10.1016_j.chembiol.2010.11.012/pubinfo> {
+    ex:assessment-BEANE2011-C1 a ex:BayesianAssessment ;
+        dcterms:created "2025-11-04"^^xsd:date ;
+        dcterms:creator "GPT-5 Pro" ;
+        dcterms:description "Combined assuming independence across evidence items; thresholds used where only p-bounds were reported." ;
+        prov:wasAttributedTo <https://w3id.org/levin-kg/agent/gpt-5-pro> ;
+        ex:assessmentAgent <https://w3id.org/levin-kg/agent/gpt-5-pro> ;
+        ex:bayesFactorCombined 425.430291 ;
+        ex:calibrationMethod "Vovk–Sellke p-value calibration (Sellke, Bayarri & Berger, 2001)" ;
+        ex:weightOfEvidence_deciban 26.288284 .
+
     ex:np-BEANE2011-C1-10.1016_j.chembiol.2010.11.012 dcterms:bibliographicCitation "Wendy S. Beane; Junji Morokuma; Dany S. Adams; Michael Levin (2011). A chemical genetics approach reveals H,K-ATPase-mediated transmembrane voltage is required for planarian head regeneration. https://doi.org/10.1016/j.chembiol.2010.11.012" ;
         dcterms:created "2025-09-30"^^xsd:date ;
         dcterms:creator ex:generator ;
         dcterms:identifier "" ;
         dcterms:source <https://doi.org/10.1016/j.chembiol.2010.11.012> .
 
-    ex:assessment-BEANE2011-C1 a ex:BayesianAssessment ;
-        dcterms:description "Combined assuming independence across evidence items; thresholds used where only p-bounds were reported." ;
-        ex:bayesFactorCombined 425.430291 ;
-        ex:calibrationMethod "Vovk–Sellke p-value calibration (Sellke, Bayarri & Berger, 2001)" ;
-        ex:weightOfEvidence_deciban 26.288284 .
-
     ex:generator a prov:SoftwareAgent ;
         dcterms:description "Constructs nanopublications with Bayesian weight-of-evidence estimates via Vovk–Sellke calibration." ;
         dcterms:license "CC0-1.0" ;
         dcterms:title "Levin-KG generator (wave G)" .
+
+    <https://w3id.org/levin-kg/np/np-BEANE2011-C1-10.1016_j.chembiol.2010.11.012/> dcterms:created "2025-11-04"^^xsd:date ;
+        dcterms:source <https://doi.org/10.1016/j.chembiol.2010.11.012> .
+
+    <https://w3id.org/levin-kg/agent/gpt-5-pro> a prov:SoftwareAgent .
+}
+
+<https://w3id.org/levin-kg/np/np-BEANE2011-C1-10.1016_j.chembiol.2010.11.012/assertion> {
+    ex:claim-BEANE2011-C1 a ex:Assertion ;
+        dcterms:description "H,K-ATPase-mediated transmembrane voltage is required for planarian head regeneration; pharmacologic/RNAi inhibition blocks head formation after decapitation." ;
+        cito:citesAsEvidence <https://doi.org/10.1016/j.chembiol.2010.11.012> ;
+        ex:context "Schmidtea mediterranea planaria; H,K-ATPase inhibitors or RNAi; head regeneration incidence/RI at 7–14 dpa." ;
+        ex:hasAssessment ex:assessment-BEANE2011-C1 ;
+        ex:hasEvidence ex:evidence-BEANE2011-C1-E1,
+            ex:evidence-BEANE2011-C1-E2 .
+}
+
+<https://w3id.org/levin-kg/np/np-BEANE2011-C1-10.1016_j.chembiol.2010.11.012/provenance> {
+    <https://w3id.org/levin-kg/np/np-BEANE2011-C1-10.1016_j.chembiol.2010.11.012/assertion> prov:wasDerivedFrom <https://doi.org/10.1016/j.chembiol.2010.11.012> .
 }
 

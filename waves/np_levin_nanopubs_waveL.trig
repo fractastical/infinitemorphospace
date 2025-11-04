@@ -1,9 +1,19 @@
+@prefix cito: <http://purl.org/spar/cito/> .
 @prefix dcterms: <http://purl.org/dc/terms/> .
 @prefix ex: <https://w3id.org/levin-kg/> .
 @prefix np: <http://www.nanopub.org/nschema#> .
-@prefix ns1: <http://purl.org/spar/cito/> .
 @prefix prov: <http://www.w3.org/ns/prov#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+<https://w3id.org/levin-kg/np/np-BISCHOF2020-C1-10.1016_j.ydbio.2020.08.009/assertion> {
+    ex:claim-BISCHOF2020-C1 a ex:Assertion ;
+        dcterms:description "Following induced morphological changes, planarian nervous system and tissue polarity dynamically reorient to align with the new body plan; polarity markers and neurite trajectories adapt over time." ;
+        cito:citesAsEvidence <https://doi.org/10.1016/j.ydbio.2020.08.009> ;
+        ex:context "Planaria; induced two-headed or altered morphologies; time-course imaging of polarity markers (e.g., slit/wnt) and neural tracts; lesion/perturbation tests." ;
+        ex:hasAssessment ex:assessment-BISCHOF2020-C1 ;
+        ex:hasEvidence ex:evidence-BISCHOF2020-C1-E1,
+            ex:evidence-BISCHOF2020-C1-E2 .
+}
 
 <https://w3id.org/levin-kg/np/np-BISCHOF2020-C1-10.1016_j.ydbio.2020.08.009/Head> {
     <https://w3id.org/levin-kg/np/np-BISCHOF2020-C1-10.1016_j.ydbio.2020.08.009/> a np:Nanopublication ;
@@ -14,32 +24,31 @@
 }
 
 <https://w3id.org/levin-kg/np/np-BISCHOF2020-C1-10.1016_j.ydbio.2020.08.009/pubinfo> {
-    ex:assessment-BISCHOF2020-C1 a ex:BayesianAssessment ;
-        dcterms:description "Combined assuming independence across evidence items; thresholds used where only p-bounds were reported." ;
-        ex:bayesFactorCombined 425.430291 ;
-        ex:calibrationMethod "Vovk–Sellke p-value calibration (Sellke, Bayarri & Berger, 2001)" ;
-        ex:weightOfEvidence_deciban 26.288284 .
-
     ex:np-BISCHOF2020-C1-10.1016_j.ydbio.2020.08.009 dcterms:bibliographicCitation "Jonathan Bischof; Élodie Day; Jillian Miller; Andrew LaPalme; Michael Levin (2020). The nervous system and tissue polarity dynamically adapt to new morphologies in planaria. https://doi.org/10.1016/j.ydbio.2020.08.009" ;
         dcterms:created "2025-09-30"^^xsd:date ;
         dcterms:creator ex:generator ;
         dcterms:identifier "" ;
         dcterms:source <https://doi.org/10.1016/j.ydbio.2020.08.009> .
 
+    ex:assessment-BISCHOF2020-C1 a ex:BayesianAssessment ;
+        dcterms:created "2025-11-04"^^xsd:date ;
+        dcterms:creator "GPT-5 Pro" ;
+        dcterms:description "Combined assuming independence across evidence items; thresholds used where only p-bounds were reported." ;
+        prov:wasAttributedTo <https://w3id.org/levin-kg/agent/gpt-5-pro> ;
+        ex:assessmentAgent <https://w3id.org/levin-kg/agent/gpt-5-pro> ;
+        ex:bayesFactorCombined 425.430291 ;
+        ex:calibrationMethod "Vovk–Sellke p-value calibration (Sellke, Bayarri & Berger, 2001)" ;
+        ex:weightOfEvidence_deciban 26.288284 .
+
     ex:generator a prov:SoftwareAgent ;
         dcterms:description "Constructs nanopublications with Bayesian weight-of-evidence estimates via Vovk–Sellke calibration." ;
         dcterms:license "CC0-1.0" ;
         dcterms:title "Levin-KG generator (wave L)" .
-}
 
-<https://w3id.org/levin-kg/np/np-BISCHOF2020-C1-10.1016_j.ydbio.2020.08.009/assertion> {
-    ex:claim-BISCHOF2020-C1 a ex:Assertion ;
-        dcterms:description "Following induced morphological changes, planarian nervous system and tissue polarity dynamically reorient to align with the new body plan; polarity markers and neurite trajectories adapt over time." ;
-        ns1:citesAsEvidence <https://doi.org/10.1016/j.ydbio.2020.08.009> ;
-        ex:context "Planaria; induced two-headed or altered morphologies; time-course imaging of polarity markers (e.g., slit/wnt) and neural tracts; lesion/perturbation tests." ;
-        ex:hasAssessment ex:assessment-BISCHOF2020-C1 ;
-        ex:hasEvidence ex:evidence-BISCHOF2020-C1-E1,
-            ex:evidence-BISCHOF2020-C1-E2 .
+    <https://w3id.org/levin-kg/np/np-BISCHOF2020-C1-10.1016_j.ydbio.2020.08.009/> dcterms:created "2025-11-04"^^xsd:date ;
+        dcterms:source <https://doi.org/10.1016/j.ydbio.2020.08.009> .
+
+    <https://w3id.org/levin-kg/agent/gpt-5-pro> a prov:SoftwareAgent .
 }
 
 <https://w3id.org/levin-kg/np/np-BISCHOF2020-C1-10.1016_j.ydbio.2020.08.009/provenance> {

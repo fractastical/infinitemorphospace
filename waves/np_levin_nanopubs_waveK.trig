@@ -1,7 +1,7 @@
+@prefix cito: <http://purl.org/spar/cito/> .
 @prefix dcterms: <http://purl.org/dc/terms/> .
 @prefix ex: <https://w3id.org/levin-kg/> .
 @prefix np: <http://www.nanopub.org/nschema#> .
-@prefix ns1: <http://purl.org/spar/cito/> .
 @prefix prov: <http://www.w3.org/ns/prov#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
@@ -17,32 +17,41 @@
     <https://w3id.org/levin-kg/np/np-ADAMS2013-C1-10.1242_bio.20133665/assertion> prov:wasDerivedFrom <https://doi.org/10.1242/bio.20133665> .
 }
 
-<https://w3id.org/levin-kg/np/np-ADAMS2013-C1-10.1242_bio.20133665/assertion> {
-    ex:claim-ADAMS2013-C1 a ex:Assertion ;
-        dcterms:description "Optogenetic hyperpolarization (Arch activation) rescues tail regeneration during the refractory period and after non-regenerative wound epithelium formation." ;
-        ns1:citesAsEvidence <https://doi.org/10.1242/bio.20133665> ;
-        ex:context "Xenopus laevis tadpoles; archaerhodopsin (Arch) expression; green light activation; refractory window; regeneration index (RI)." ;
-        ex:hasAssessment ex:assessment-ADAMS2013-C1 ;
-        ex:hasEvidence ex:evidence-ADAMS2013-C1-E1,
-            ex:evidence-ADAMS2013-C1-E2 .
-}
-
 <https://w3id.org/levin-kg/np/np-ADAMS2013-C1-10.1242_bio.20133665/pubinfo> {
+    ex:assessment-ADAMS2013-C1 a ex:BayesianAssessment ;
+        dcterms:created "2025-11-04"^^xsd:date ;
+        dcterms:creator "GPT-5 Pro" ;
+        dcterms:description "Combined assuming independence across evidence items; thresholds used where only p-bounds were reported." ;
+        prov:wasAttributedTo <https://w3id.org/levin-kg/agent/gpt-5-pro> ;
+        ex:assessmentAgent <https://w3id.org/levin-kg/agent/gpt-5-pro> ;
+        ex:bayesFactorCombined 425.430291 ;
+        ex:calibrationMethod "Vovk–Sellke p-value calibration (Sellke, Bayarri & Berger, 2001)" ;
+        ex:weightOfEvidence_deciban 26.288284 .
+
     ex:np-ADAMS2013-C1-10.1242_bio.20133665 dcterms:bibliographicCitation "Dany S. Adams; Ai-Sun Tseng; Michael Levin (2013). Light-activated archaerhodopsin reverses age-dependent loss of vertebrate regeneration via hyperpolarization. https://doi.org/10.1242/bio.20133665" ;
         dcterms:created "2025-09-30"^^xsd:date ;
         dcterms:creator ex:generator ;
         dcterms:identifier "" ;
         dcterms:source <https://doi.org/10.1242/bio.20133665> .
 
-    ex:assessment-ADAMS2013-C1 a ex:BayesianAssessment ;
-        dcterms:description "Combined assuming independence across evidence items; thresholds used where only p-bounds were reported." ;
-        ex:bayesFactorCombined 425.430291 ;
-        ex:calibrationMethod "Vovk–Sellke p-value calibration (Sellke, Bayarri & Berger, 2001)" ;
-        ex:weightOfEvidence_deciban 26.288284 .
-
     ex:generator a prov:SoftwareAgent ;
         dcterms:description "Constructs nanopublications with Bayesian weight-of-evidence estimates via Vovk–Sellke calibration." ;
         dcterms:license "CC0-1.0" ;
         dcterms:title "Levin-KG generator (wave K)" .
+
+    <https://w3id.org/levin-kg/np/np-ADAMS2013-C1-10.1242_bio.20133665/> dcterms:created "2025-11-04"^^xsd:date ;
+        dcterms:source <https://doi.org/10.1242/bio.20133665> .
+
+    <https://w3id.org/levin-kg/agent/gpt-5-pro> a prov:SoftwareAgent .
+}
+
+<https://w3id.org/levin-kg/np/np-ADAMS2013-C1-10.1242_bio.20133665/assertion> {
+    ex:claim-ADAMS2013-C1 a ex:Assertion ;
+        dcterms:description "Optogenetic hyperpolarization (Arch activation) rescues tail regeneration during the refractory period and after non-regenerative wound epithelium formation." ;
+        cito:citesAsEvidence <https://doi.org/10.1242/bio.20133665> ;
+        ex:context "Xenopus laevis tadpoles; archaerhodopsin (Arch) expression; green light activation; refractory window; regeneration index (RI)." ;
+        ex:hasAssessment ex:assessment-ADAMS2013-C1 ;
+        ex:hasEvidence ex:evidence-ADAMS2013-C1-E1,
+            ex:evidence-ADAMS2013-C1-E2 .
 }
 

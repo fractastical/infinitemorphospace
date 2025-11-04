@@ -1,5 +1,16 @@
 @prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix ex: <https://w3id.org/levin-kg/> .
 @prefix np: <http://www.nanopub.org/nschema#> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+<https://w3id.org/levin-kg/np/Nf630249905ee4cbeb00b89441812cc67/pubinfo> {
+    <https://w3id.org/levin-kg/np/Nf630249905ee4cbeb00b89441812cc67/> dcterms:created "2025-11-04"^^xsd:date .
+}
+
+<https://w3id.org/levin-kg/np/Nf630249905ee4cbeb00b89441812cc67/assertion> {
+    ex:claim-Nf630249905ee4cbeb00b89441812cc67 a ex:Assertion .
+}
 
 <https://w3id.org/levin-kg/np/Nf630249905ee4cbeb00b89441812cc67/Head> {
     <https://w3id.org/levin-kg/np/Nf630249905ee4cbeb00b89441812cc67/> a np:Nanopublication ;
@@ -7,5 +18,9 @@
         np:hasAssertion <https://w3id.org/levin-kg/np/Nf630249905ee4cbeb00b89441812cc67/assertion> ;
         np:hasProvenance <https://w3id.org/levin-kg/np/Nf630249905ee4cbeb00b89441812cc67/provenance> ;
         np:hasPublicationInfo <https://w3id.org/levin-kg/np/Nf630249905ee4cbeb00b89441812cc67/pubinfo> .
+}
+
+<https://w3id.org/levin-kg/np/Nf630249905ee4cbeb00b89441812cc67/provenance> {
+    <https://w3id.org/levin-kg/np/Nf630249905ee4cbeb00b89441812cc67/assertion> prov:wasGeneratedBy <https://w3id.org/levin-kg/activity/canonicalize-v1> .
 }
 

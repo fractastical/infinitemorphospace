@@ -1,14 +1,14 @@
+@prefix cito: <http://purl.org/spar/cito/> .
 @prefix dcterms: <http://purl.org/dc/terms/> .
 @prefix ex: <https://w3id.org/levin-kg/> .
 @prefix np: <http://www.nanopub.org/nschema#> .
-@prefix ns1: <http://purl.org/spar/cito/> .
 @prefix prov: <http://www.w3.org/ns/prov#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
 <https://w3id.org/levin-kg/np/np-CHERNET2016-C1-10.18632_oncotarget.8036/assertion> {
     ex:claim-CHERNET2016-C1 a ex:Assertion ;
         dcterms:description "Optogenetic hyperpolarization (Arch or ChR2^{D156A}) significantly prevents KRAS^{G12D}-induced tumor-like structures (ITLS) and promotes regression (normalization) of existing tumors in vivo." ;
-        ns1:citesAsEvidence <https://doi.org/10.18632/oncotarget.8036> ;
+        cito:citesAsEvidence <https://doi.org/10.18632/oncotarget.8036> ;
         ex:context "Xenopus laevis tumor model; KRAS^{G12D}; Arch and ChR2^{D156A}; light stimulation regimens; incidence and normalization outcomes; qPCR marker normalization." ;
         ex:hasAssessment ex:assessment-CHERNET2016-C1 ;
         ex:hasEvidence ex:evidence-CHERNET2016-C1-E1,
@@ -22,8 +22,15 @@
         dcterms:identifier "26988909" ;
         dcterms:source <https://doi.org/10.18632/oncotarget.8036> .
 
+    <https://w3id.org/levin-kg/np/np-CHERNET2016-C1-10.18632_oncotarget.8036/> dcterms:created "2025-11-04"^^xsd:date ;
+        dcterms:source <https://doi.org/10.18632/oncotarget.8036> .
+
     ex:assessment-CHERNET2016-C1 a ex:BayesianAssessment ;
+        dcterms:created "2025-11-04"^^xsd:date ;
+        dcterms:creator "GPT-5 Pro" ;
         dcterms:description "Combined assuming independence across evidence items; exact/threshold p-values per figure legend." ;
+        prov:wasAttributedTo <https://w3id.org/levin-kg/agent/gpt-5-pro> ;
+        ex:assessmentAgent <https://w3id.org/levin-kg/agent/gpt-5-pro> ;
         ex:bayesFactorCombined 223.581811 ;
         ex:calibrationMethod "Vovk–Sellke p-value calibration (Sellke, Bayarri & Berger, 2001)" ;
         ex:weightOfEvidence_deciban 23.494365 .
@@ -32,6 +39,12 @@
         dcterms:description "Constructs nanopublications with Bayesian weight-of-evidence estimates via Vovk–Sellke calibration." ;
         dcterms:license "CC0-1.0" ;
         dcterms:title "Levin-KG generator (wave Q)" .
+
+    <https://w3id.org/levin-kg/agent/gpt-5-pro> a prov:SoftwareAgent .
+}
+
+<https://w3id.org/levin-kg/np/np-CHERNET2016-C1-10.18632_oncotarget.8036/provenance> {
+    <https://w3id.org/levin-kg/np/np-CHERNET2016-C1-10.18632_oncotarget.8036/assertion> prov:wasDerivedFrom <https://doi.org/10.18632/oncotarget.8036> .
 }
 
 <https://w3id.org/levin-kg/np/np-CHERNET2016-C1-10.18632_oncotarget.8036/Head> {
@@ -40,9 +53,5 @@
         np:hasAssertion <https://w3id.org/levin-kg/np/np-CHERNET2016-C1-10.18632_oncotarget.8036/assertion> ;
         np:hasProvenance <https://w3id.org/levin-kg/np/np-CHERNET2016-C1-10.18632_oncotarget.8036/provenance> ;
         np:hasPublicationInfo <https://w3id.org/levin-kg/np/np-CHERNET2016-C1-10.18632_oncotarget.8036/pubinfo> .
-}
-
-<https://w3id.org/levin-kg/np/np-CHERNET2016-C1-10.18632_oncotarget.8036/provenance> {
-    <https://w3id.org/levin-kg/np/np-CHERNET2016-C1-10.18632_oncotarget.8036/assertion> prov:wasDerivedFrom <https://doi.org/10.18632/oncotarget.8036> .
 }
 

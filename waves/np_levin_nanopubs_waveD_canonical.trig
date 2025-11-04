@@ -4,6 +4,14 @@
 @prefix prov: <http://www.w3.org/ns/prov#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
+<https://w3id.org/levin-kg/np/T2010-C1/Head> {
+    <https://w3id.org/levin-kg/np/T2010-C1/> a np:Nanopublication ;
+        dcterms:conformsTo <https://w3id.org/morphopkg/spc/1.0> ;
+        np:hasAssertion <https://w3id.org/levin-kg/np/T2010-C1/assertion> ;
+        np:hasProvenance <https://w3id.org/levin-kg/np/T2010-C1/provenance> ;
+        np:hasPublicationInfo <https://w3id.org/levin-kg/np/T2010-C1/pubinfo> .
+}
+
 <https://w3id.org/levin-kg/np/T2010-C1/assertion> {
     ex:claim-T2010-C1 a ex:Assertion ;
         dcterms:description "A brief, early Na+ current is sufficient to induce vertebrate tail regeneration; transient opto/ion-channel inputs push tissue into a sustained regenerative program." ;
@@ -28,24 +36,26 @@
         ex:weightOfEvidence_deciban 17.26 .
 }
 
-<https://w3id.org/levin-kg/np/T2010-C1/Head> {
-    <https://w3id.org/levin-kg/np/T2010-C1/> a np:Nanopublication ;
-        dcterms:conformsTo <https://w3id.org/morphopkg/spc/1.0> ;
-        np:hasAssertion <https://w3id.org/levin-kg/np/T2010-C1/assertion> ;
-        np:hasProvenance <https://w3id.org/levin-kg/np/T2010-C1/provenance> ;
-        np:hasPublicationInfo <https://w3id.org/levin-kg/np/T2010-C1/pubinfo> .
-}
-
 <https://w3id.org/levin-kg/np/T2010-C1/pubinfo> {
     <https://w3id.org/levin-kg/np/T2010-C1#> dcterms:created "2025-10-07"^^xsd:date .
 
     ex:assessment-T2010-C1 a ex:BayesianAssessment ;
+        dcterms:created "2025-11-04"^^xsd:date ;
+        dcterms:creator "GPT-5 Pro" ;
         dcterms:description "Combined multiplicatively from two independent lines (VS-calibrated)." ;
+        prov:wasAttributedTo <https://w3id.org/levin-kg/agent/gpt-5-pro> ;
+        ex:assessmentAgent <https://w3id.org/levin-kg/agent/gpt-5-pro> ;
         ex:bayesFactorCombined 425.43 ;
         ex:weightOfEvidence_deciban 26.29 .
+
+    <https://w3id.org/levin-kg/np/T2010-C1/> dcterms:created "2025-11-04"^^xsd:date .
+
+    <https://w3id.org/levin-kg/agent/gpt-5-pro> a prov:SoftwareAgent .
 }
 
 <https://w3id.org/levin-kg/np/T2010-C1/provenance> {
     <https://w3id.org/levin-kg/np/T2010-C1#assertion> prov:wasGeneratedBy ex:extraction-v1 .
+
+    <https://w3id.org/levin-kg/np/T2010-C1/assertion> prov:wasGeneratedBy <https://w3id.org/levin-kg/activity/canonicalize-v1> .
 }
 
