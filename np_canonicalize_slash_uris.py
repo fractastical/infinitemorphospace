@@ -1,51 +1,81 @@
 #!/usr/bin/env python3
 """
-np_canonicalize_single_np.py  (fixed)
--------------------------------------
-- File OR directory input; optional --explode to split into one NP per output.
-- Emits valid nanopubs with slash graph IRIs.
-- Unifies namespaces (example.org -> w3id.org; model terms under /np/ -> model ns).
-- Skips empty assertions.
-- Guarantees:
-  * /pubinfo has at least one triple with the nanopub BASE as subject (adds dcterms:created).
-  * /provenance has at least one triple with the ASSERTION graph as subject:
-      - prefer prov:wasDerivedFrom <DOI> if a DOI can be inferred
-      - otherwise add prov:wasGeneratedBy <https://w3id.org/levin-kg/activity/canonicalize-v1>
+np_canonicalize_single_np.py  (LLM-provenance enhanced, Dataset-based)
+---------------------------------------------------------------------
+Canonicalize nanopubs and emit EXACTLY ONE nanopublication per output file
+(by default) *or* split each input into one output per nanopub (with --explode).
+Also unifies namespaces and normalizes graph IRIs.
 
-Optional: --normalize-mappings rewrites hasHypothesis/mapsToHypothesis to supportsHypothesis and
-canonicalizes hypothesis IRIs to ex:L1..ex:L9.
+Fixes & Guarantees:
+- Replace relative graph IRIs (e.g., <Nabcd#Head>) with absolute w3id bases.
+- Convert mixed '#assertion'/'-provenance' forms to slash layout:
+    BASE/Head, BASE/assertion, BASE/provenance, BASE/pubinfo
+- Unify https://example.org/levin-kg/ -> https://w3id.org/levin-kg/
+- If model terms (Assertion, hasEvidence, ...) were minted under /np/, move to https://w3id.org/levin-kg/
+- Skip empty assertions (won't emit broken nanopubs).
+- Ensure /Head includes dcterms:conformsTo <https://w3id.org/morphopkg/spc/1.0>
+- Ensure /pubinfo has a BASE-subject triple (adds dcterms:created if missing) and tries to set dcterms:source (DOI).
+- Ensure /provenance contains at least one triple with the ASSERTION GRAPH as subject:
+    <BASE/assertion> prov:wasDerivedFrom <DOI>  (preferred)
+    else <BASE/assertion> prov:wasGeneratedBy <https://w3id.org/levin-kg/activity/canonicalize-v1>
+
+Options:
+  --normalize-mappings       rewrite alias properties to ex:supportsHypothesis and canonicalize hypothesis IRIs
+  --ensure-llm-provenance    backfill LLM provenance on ex:BayesianAssessment:
+                               dcterms:creator "GPT-5 Pro" ;
+                               dcterms:created "YYYY-MM-DD"^^xsd:date ;
+                               ex:assessmentAgent <https://w3id.org/levin-kg/agent/gpt-5-pro> ;
+                               prov:wasAttributedTo <https://w3id.org/levin-kg/agent/gpt-5-pro> ;
+                               <https://w3id.org/levin-kg/agent/gpt-5-pro> a prov:SoftwareAgent .
+
+Usage:
+  # File -> File (one NP)
+  python np_canonicalize_single_np.py input.trig output.trig --normalize-mappings --ensure-llm-provenance
+  # Directory -> Directory (explode: one output per NP)
+  python np_canonicalize_single_np.py waves/ waves_fixed/ --explode --normalize-mappings --ensure-llm-provenance
 
 Requires: rdflib >= 6.0
 """
 import sys, re, datetime
 from pathlib import Path
 from urllib.parse import quote
-from rdflib import ConjunctiveGraph, URIRef, Namespace, RDF, Literal
+try:
+    from rdflib import Dataset, URIRef, Namespace, RDF, Literal
+except ImportError:
+    # Fallback for older rdflib: Dataset may not exist; use ConjunctiveGraph as a drop-in
+    from rdflib import ConjunctiveGraph as Dataset, URIRef, Namespace, RDF, Literal
 from rdflib.namespace import DCTERMS, XSD
 
 NP   = Namespace("http://www.nanopub.org/nschema#")
 PROV = Namespace("http://www.w3.org/ns/prov#")
 CITO = Namespace("http://purl.org/spar/cito/")
-EX_W3ID = Namespace("https://w3id.org/levin-kg/")
-EX_W3ID_NP = "https://w3id.org/levin-kg/np/"
+EX   = Namespace("https://w3id.org/levin-kg/")
+EX_NP = "https://w3id.org/levin-kg/np/"
 EX_EXAMPLE = Namespace("https://example.org/levin-kg/")
 PROFILE = URIRef("https://w3id.org/morphopkg/spc/1.0")
 ACT_CANON = URIRef("https://w3id.org/levin-kg/activity/canonicalize-v1")
 
 MODEL_TERMS = {
+    # classes
     "Assertion","EvidenceItem","BayesianAssessment","Hypothesis","EconomicHypothesis","EconomicAssessment",
+    # properties
     "hasEvidence","hasAssessment","supportsHypothesis","hypothesisContribution","mappingConfidence","mappingMethod",
-    "assessmentAgent","context","bayesFactorCombined","weightOfEvidence_deciban","calibrationMethod","publicationYear",
+    "assessmentAgent","context",
+    # numeric properties
+    "bayesFactorCombined","weightOfEvidence_deciban","calibrationMethod","publicationYear",
     "pValue","bayesFactorVS_MPR","countN","totalN","frequency","timeDays"
 }
 MAPPING_ALIASES = {
-    URIRef(str(EX_W3ID) + "supportsHypothesis"),
-    URIRef(str(EX_W3ID) + "hasHypothesis"),
-    URIRef(str(EX_W3ID) + "mapsToHypothesis"),
+    URIRef(str(EX) + "supportsHypothesis"),
+    URIRef(str(EX) + "hasHypothesis"),
+    URIRef(str(EX) + "mapsToHypothesis"),
     URIRef("https://example.org/levin-kg/hasHypothesis"),
     URIRef("https://example.org/levin-kg/mapsToHypothesis"),
     URIRef("https://example.org/levin-kg/supportsHypotheses"),
 }
+
+AGENT_IRI   = URIRef("https://w3id.org/levin-kg/agent/gpt-5-pro")
+AGENT_LABEL = "GPT-5 Pro"
 
 def local_id_from_old(assertion_graph_iri: str) -> str:
     s = assertion_graph_iri
@@ -62,16 +92,16 @@ def canonical_base(old_assertion_iri: str) -> str:
 
 def rewrite_example_to_w3id(node):
     if isinstance(node, URIRef) and str(node).startswith(str(EX_EXAMPLE)):
-        return URIRef(str(node).replace(str(EX_EXAMPLE), str(EX_W3ID), 1))
+        return URIRef(str(node).replace(str(EX_EXAMPLE), str(EX), 1))
     return node
 
 def rewrite_model_terms(node):
     if isinstance(node, URIRef):
         s = str(node)
-        if s.startswith(EX_W3ID_NP):
-            local = s[len(EX_W3ID_NP):]
+        if s.startswith(EX_NP):
+            local = s[len(EX_NP):]
             if "/" not in local and local in MODEL_TERMS:
-                return URIRef(str(EX_W3ID) + local)
+                return URIRef(str(EX) + local)
     return node
 
 def unify_hypothesis_iri(node):
@@ -80,15 +110,15 @@ def unify_hypothesis_iri(node):
     s = str(node)
     m = re.search(r"L([1-9])$", s)
     if m:
-        return URIRef(str(EX_W3ID) + "L" + m.group(1))
+        return URIRef(str(EX) + "L" + m.group(1))
     if s.startswith(str(EX_EXAMPLE)):
-        return URIRef(s.replace(str(EX_EXAMPLE), str(EX_W3ID), 1))
+        return URIRef(s.replace(str(EX_EXAMPLE), str(EX), 1))
     return node
 
 def unify_node(node):
     return rewrite_model_terms(rewrite_example_to_w3id(node))
 
-def find_nanopubs(ds: ConjunctiveGraph):
+def find_nanopubs(ds: Dataset):
     """Return list of dicts: head, base, asg, prg, pig, dois, asrt_triples"""
     out = []
     for g in ds.contexts():
@@ -99,7 +129,7 @@ def find_nanopubs(ds: ConjunctiveGraph):
             asg = prg = pig = None
             for _, p, o in g.triples((npnode, None, None)):
                 if p == NP.hasAssertion:       asg = o
-                if p == NP.hasProvenance:      prg = o      # <-- fixed (was pig)
+                if p == NP.hasProvenance:      prg = o
                 if p == NP.hasPublicationInfo: pig = o
             dois = set()
             if pig:
@@ -114,26 +144,37 @@ def find_nanopubs(ds: ConjunctiveGraph):
         for g in ds.contexts():
             sid = str(g.identifier)
             if sid.endswith(("/Head","#Head","-Head")):
-                base = sid[:-5]
-                out.append(dict(head=g.identifier, base=base, asg=None, prg=None, pig=None, dois=[], asrt_triples=0))
+                out.append(dict(head=g.identifier, base=sid[:-5], asg=None, prg=None, pig=None, dois=[], asrt_triples=0))
     return out
 
 def select_candidates(cands):
-    # keep only ones with non-empty assertion
     return [c for c in cands if c.get("asg") is not None and c.get("asrt_triples",0) > 0]
 
-def emit_single(ds: ConjunctiveGraph, cand, out_file: Path, normalize_mappings=False):
+def ensure_llm_provenance(gI, assessment):
+    """Ensure LLM provenance on the given assessment node in /pubinfo."""
+    today = datetime.date.today().isoformat()
+    # creator literal
+    if not any(True for _ in gI.triples((assessment, DCTERMS.creator, None))):
+        gI.add((assessment, DCTERMS.creator, Literal(AGENT_LABEL)))
+    # created date
+    if not any(True for _ in gI.triples((assessment, DCTERMS.created, None))):
+        gI.add((assessment, DCTERMS.created, Literal(today, datatype=XSD.date)))
+    # assessmentAgent custom property
+    gI.add((assessment, URIRef(str(EX) + "assessmentAgent"), AGENT_IRI))
+    # prov:wasAttributedTo
+    gI.add((assessment, PROV.wasAttributedTo, AGENT_IRI))
+    # Type the agent (once is fine)
+    gI.add((AGENT_IRI, RDF.type, PROV.SoftwareAgent))
+
+def emit_single(ds: Dataset, cand, out_file: Path, normalize_mappings=False, ensure_llm=False):
     base_guess = cand["base"]
-    asg_in = cand["asg"]
-    prg_in = cand["prg"]
-    pig_in = cand["pig"]
+    asg_in = cand["asg"]; prg_in = cand["prg"]; pig_in = cand["pig"]
 
     if asg_in is None:
         for g in ds.contexts():
             s = str(g.identifier)
             if s.endswith(("-assertion","#assertion","/assertion")) and base_guess in s:
-                asg_in = g.identifier
-                break
+                asg_in = g.identifier; break
     if asg_in is None:
         raise RuntimeError(f"No assertion graph found for base {base_guess}")
 
@@ -143,9 +184,9 @@ def emit_single(ds: ConjunctiveGraph, cand, out_file: Path, normalize_mappings=F
     prov_canon = URIRef(base + "provenance")
     pubi_canon = URIRef(base + "pubinfo")
 
-    out = ConjunctiveGraph()
+    out = Dataset()
     out.bind("np", NP); out.bind("prov", PROV); out.bind("dcterms", DCTERMS)
-    out.bind("ex", EX_W3ID); out.bind("cito", CITO)
+    out.bind("ex", EX); out.bind("cito", CITO)
 
     # HEAD
     gH = out.get_context(head_canon)
@@ -160,7 +201,7 @@ def emit_single(ds: ConjunctiveGraph, cand, out_file: Path, normalize_mappings=F
     for s,p,o in gA_in.triples((None,None,None)):
         s2,p2,o2 = unify_node(s), unify_node(p), unify_node(o)
         if normalize_mappings and p2 in MAPPING_ALIASES:
-            p2 = URIRef(str(EX_W3ID) + "supportsHypothesis")
+            p2 = URIRef(str(EX) + "supportsHypothesis")
             o2 = unify_hypothesis_iri(o2)
         gA.add((s2,p2,o2))
 
@@ -171,7 +212,6 @@ def emit_single(ds: ConjunctiveGraph, cand, out_file: Path, normalize_mappings=F
     if gP_in:
         for s,p,o in gP_in.triples((None,None,None)):
             s2,p2,o2 = unify_node(s), unify_node(p), unify_node(o)
-            # Force subject to be the assertion graph when copying derivedFrom
             if p2 == PROV.wasDerivedFrom:
                 gP.add((asrt_canon, p2, o2))
             else:
@@ -190,7 +230,7 @@ def emit_single(ds: ConjunctiveGraph, cand, out_file: Path, normalize_mappings=F
         today = datetime.date.today().isoformat()
         gI.add((URIRef(base), DCTERMS.created, Literal(today, datatype=XSD.date)))
 
-    # Ensure DOI in pubinfo if available
+    # Try to ensure a DOI in pubinfo if available
     if not any(True for _ in gI.triples((URIRef(base), DCTERMS.source, None))):
         doi = None
         for _,_,o in gA.triples((None, CITO.citesAsEvidence, None)):
@@ -203,7 +243,6 @@ def emit_single(ds: ConjunctiveGraph, cand, out_file: Path, normalize_mappings=F
 
     # Ensure at least one triple in provenance with ASSERTION as subject
     if not any(True for _ in gP.triples((asrt_canon, None, None))):
-        # Prefer to add derivedFrom if DOI now available
         src = None
         for _,_,o in gI.triples((URIRef(base), DCTERMS.source, None)):
             src = o; break
@@ -212,13 +251,20 @@ def emit_single(ds: ConjunctiveGraph, cand, out_file: Path, normalize_mappings=F
         else:
             gP.add((asrt_canon, PROV.wasGeneratedBy, ACT_CANON))
 
+    # Ensure LLM provenance on assessments
+    if ensure_llm:
+        ASSESS_CLS = URIRef(str(EX) + "BayesianAssessment")
+        for a,_,_ in gI.triples((None, RDF.type, ASSESS_CLS)):
+            ensure_llm_provenance(gI, a)
+
     out.serialize(str(out_file), format="trig")
     return out_file
 
 def process_file(input_path: Path, output_path: Path, explode=False, **kwargs):
-    ds = ConjunctiveGraph()
+    ds = Dataset()
     ds.parse(str(input_path), format="trig")
-    cands = select_candidates(find_nanopubs(ds))
+    cands = find_nanopubs(ds)
+    cands = [c for c in cands if c.get("asg") is not None and c.get("asrt_triples",0) > 0]
     if not cands:
         print(f"[WARN] {input_path.name}: no usable nanopubs (empty assertions)")
         return
@@ -248,16 +294,19 @@ def main():
     ap.add_argument("output", help="Output TriG file OR directory")
     ap.add_argument("--explode", action="store_true", help="Directory mode: write one output per nanopub")
     ap.add_argument("--normalize-mappings", action="store_true", help="Rewrite mapping aliases and canonicalize hypothesis IRIs")
+    ap.add_argument("--ensure-llm-provenance", action="store_true", help="Backfill LLM provenance on assessments")
     args = ap.parse_args()
 
     inp = Path(args.input); outp = Path(args.output)
+    kwargs = dict(normalize_mappings=args.normalize_mappings, ensure_llm=args.ensure_llm_provenance)
+
     if inp.is_file():
-        process_file(inp, outp, explode=False, normalize_mappings=args.normalize_mappings)
+        process_file(inp, outp, explode=False, **kwargs)
     elif inp.is_dir():
         outp.mkdir(parents=True, exist_ok=True)
-        for f in sorted(p for p in inp.iterdir() if p.suffix.lower()==".trig"):
+        for f in sorted(p for p in inp.iterdir() if p.is_file() and p.suffix.lower()==".trig"):
             try:
-                process_file(f, outp, explode=args.explode, normalize_mappings=args.normalize_mappings)
+                process_file(f, outp, explode=args.explode, **kwargs)
             except Exception as e:
                 print(f"[ERROR] {f.name}: {e}")
     else:
