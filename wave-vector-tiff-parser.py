@@ -185,14 +185,14 @@ class SparkTracker:
 
     # ---------- embryo geometry & poke detection ----------
 
-    def _init_geometry_and_poke(self, frame_bgr, user_poke_xy=None):
+    def _init_geometry_and_poke(self, frame_bgr, user_poke_xy=None, skip_poke_detection=False):
         """
         From a single BGR frame:
 
           * Segment up to 2 embryos.
           * Estimate head–tail axis (PCA of contour).
           * Precompute embryo_label_map, ap_norm_map, dv_map.
-          * If user_poke_xy is None, try to detect poke location from a pink arrow.
+          * If user_poke_xy is None and skip_poke_detection is False, try to detect poke location from a pink arrow.
         """
         h, w = frame_bgr.shape[:2]
         self.height = h
@@ -326,20 +326,21 @@ class SparkTracker:
             print("\n=== EMBRYO DETECTION SUMMARY ===")
             print("✗ WARNING: No embryos detected - geometry-based annotations will be empty")
 
-        # Poke detection: use user coords if provided, else try to auto-detect
-        print("\n=== POKE DETECTION SUMMARY ===")
-        if user_poke_xy is not None:
-            self.poke_xy = user_poke_xy
-            print(f"✓ Using user-provided poke location: ({user_poke_xy[0]:.1f}, {user_poke_xy[1]:.1f})")
-        else:
-            auto_poke = self._detect_poke_from_pink_arrow(frame_bgr)
-            self.poke_xy = auto_poke
-            if auto_poke is not None:
-                print(f"✓ Auto-detected poke location: ({auto_poke[0]:.1f}, {auto_poke[1]:.1f})")
+        # Poke detection: use user coords if provided, else try to auto-detect (unless skipped)
+        if not skip_poke_detection:
+            print("\n=== POKE DETECTION SUMMARY ===")
+            if user_poke_xy is not None:
+                self.poke_xy = user_poke_xy
+                print(f"✓ Using user-provided poke location: ({user_poke_xy[0]:.1f}, {user_poke_xy[1]:.1f})")
             else:
-                print("✗ WARNING: Could not auto-detect pink arrow")
-                print("  → dist_from_poke_px will be empty unless you provide --poke-x/--poke-y")
-        print("=" * 35 + "\n")
+                auto_poke = self._detect_poke_from_pink_arrow(frame_bgr)
+                self.poke_xy = auto_poke
+                if auto_poke is not None:
+                    print(f"✓ Auto-detected poke location: ({auto_poke[0]:.1f}, {auto_poke[1]:.1f})")
+                else:
+                    print("✗ WARNING: Could not auto-detect pink arrow")
+                    print("  → dist_from_poke_px will be empty unless you provide --poke-x/--poke-y")
+            print("=" * 35 + "\n")
 
     def _detect_poke_from_pink_arrow(self, frame_bgr):
         """
@@ -634,27 +635,36 @@ class SparkTracker:
         print(f"Found {len(paths)} TIFF file(s) (including subdirectories)")
         print(f"Frame rate: {fps} fps")
         print(f"Poke frame index: {poke_frame_idx} (t = 0)\n")
-
-        # Get frame size from first image and initialise geometry + poke
-        print("Analyzing reference frame (first image) for geometry...")
-        first_path = paths[0]
-        print(f"Reading first frame: {os.path.relpath(first_path, folder_path)}")
         
-        # Check file size first
-        file_size = os.path.getsize(first_path)
-        print(f"File size: {file_size / (1024*1024):.2f} MB")
-        print("Attempting to read TIFF file (using OpenCV for stability)...")
+        # Build frame index mapping (frame_idx -> (file_path, page_idx)) without loading images
+        print("Building frame index mapping...")
+        frame_mapping = []  # List of (file_path, page_idx, use_tifffile) tuples
+        for path in paths:
+            try:
+                num_pages, use_tifffile = self._get_tiff_page_count(path)
+                for page_idx in range(num_pages):
+                    frame_mapping.append((path, page_idx, use_tifffile))
+            except Exception as e:
+                print(f"⚠ Warning: Could not read page count from {os.path.relpath(path, folder_path)}: {str(e)}")
+                # Assume single page
+                frame_mapping.append((path, 0, False))
+        
+        total_frames_available = len(frame_mapping)
+        print(f"Total frames available: {total_frames_available}\n")
+        
+        # Validate poke_frame_idx
+        if poke_frame_idx < 0 or poke_frame_idx >= total_frames_available:
+            raise ValueError(f"poke_frame_idx {poke_frame_idx} is out of range. "
+                           f"Valid range: 0 to {total_frames_available - 1}")
+
+        # Get frame size from first image and initialise geometry
+        print("Analyzing reference frame (first image) for geometry...")
+        first_path, first_page_idx, first_use_tifffile = frame_mapping[0]
+        print(f"Reading first frame: {os.path.relpath(first_path, folder_path)} (page {first_page_idx + 1})")
         
         try:
-            # Get page count first
-            num_pages, use_tifffile = self._get_tiff_page_count(first_path)
-            if num_pages > 1:
-                print(f"✓ Detected multi-page TIFF file with {num_pages} pages")
-            else:
-                print(f"✓ Detected single-page TIFF file")
-            
-            # Read only the first page for geometry initialization
-            first_raw, is_bgr = self._read_tiff_page(first_path, page_idx=0, use_tifffile=use_tifffile)
+            # Read the first frame for geometry initialization
+            first_raw, is_bgr = self._read_tiff_page(first_path, page_idx=first_page_idx, use_tifffile=first_use_tifffile)
             print(f"Raw TIFF shape: {first_raw.shape}, dtype: {first_raw.dtype}")
             
             first_frame = self._prepare_frame(first_raw, is_bgr=is_bgr)
@@ -667,7 +677,42 @@ class SparkTracker:
             print(f"Error message: {str(e)}")
             raise
         
-        self._init_geometry_and_poke(first_frame, user_poke_xy=poke_xy)
+        # Initialize geometry with first frame (embryos are visible there)
+        # If poke_frame_idx is 0, detect poke from first frame. Otherwise, skip and detect from poke frame.
+        skip_poke = (poke_frame_idx != 0)  # Skip if poke is not at first frame
+        self._init_geometry_and_poke(first_frame, user_poke_xy=poke_xy, skip_poke_detection=skip_poke)
+        
+        # If poke is not at frame 0, try to detect poke from the actual poke frame
+        if poke_xy is None and poke_frame_idx != 0:
+            print(f"\nAnalyzing poke frame (frame {poke_frame_idx}) for poke detection...")
+            poke_path, poke_page_idx, poke_use_tifffile = frame_mapping[poke_frame_idx]
+            print(f"Reading poke frame: {os.path.relpath(poke_path, folder_path)} (page {poke_page_idx + 1})")
+            
+            try:
+                poke_raw, is_bgr = self._read_tiff_page(poke_path, page_idx=poke_page_idx, use_tifffile=poke_use_tifffile)
+                poke_frame = self._prepare_frame(poke_raw, is_bgr=is_bgr)
+                del poke_raw
+                
+                # Try to detect poke from this frame
+                auto_poke = self._detect_poke_from_pink_arrow(poke_frame)
+                if auto_poke is not None:
+                    self.poke_xy = auto_poke
+                    print(f"✓ Auto-detected poke location from frame {poke_frame_idx}: ({auto_poke[0]:.1f}, {auto_poke[1]:.1f})")
+                else:
+                    print("✗ Could not auto-detect poke location from poke frame")
+                del poke_frame
+            except Exception as e:
+                print(f"⚠ Warning: Could not read poke frame for poke detection: {str(e)}")
+        
+        # Override with user-provided poke coordinates if given
+        if poke_xy is not None:
+            self.poke_xy = poke_xy
+            print(f"\n✓ Using user-provided poke location: ({poke_xy[0]:.1f}, {poke_xy[1]:.1f})")
+        
+        if self.poke_xy is None:
+            print("\n⚠ WARNING: Poke location not detected. dist_from_poke_px will be empty.")
+            print("  → Consider providing --poke-x/--poke-y if auto-detection fails.")
+        print()
 
         # Video writer for overlay
         writer = None
@@ -706,74 +751,59 @@ class SparkTracker:
         print("Processing frames and tracking sparks...")
         print("(Processing frames incrementally to conserve memory...)\n")
         
-        global_frame_idx = 0
-        total_frames = 0
+        total_frames = len(frame_mapping)
         
-        # Process files one at a time, reading pages one at a time
+        # Process frames using the frame mapping we already built
         try:
-            for file_idx, path in enumerate(paths):
+            for frame_idx, (path, page_idx, use_tifffile) in enumerate(frame_mapping):
                 rel_path = os.path.relpath(path, folder_path)
                 
+                # Show progress for large files
+                if frame_idx % 100 == 0 or frame_idx == total_frames - 1:
+                    print(f"Processing frame {frame_idx + 1}/{total_frames}...")
+                
                 try:
-                    # Get page count without loading image data
-                    num_pages, use_tifffile = self._get_tiff_page_count(path)
+                    # Read only this one page
+                    raw, is_bgr = self._read_tiff_page(path, page_idx=page_idx, use_tifffile=use_tifffile)
                     
-                    if num_pages > 1:
-                        print(f"Processing {rel_path} ({num_pages} pages)...")
-                    
-                    # Process each page one at a time
-                    for page_idx in range(num_pages):
-                        frame_idx = global_frame_idx
-                        global_frame_idx += 1
-                        total_frames += 1
-                        
-                        # Show progress for large files
-                        if num_pages > 1 and (page_idx == 0 or (page_idx + 1) % 50 == 0 or (page_idx + 1) == num_pages):
-                            print(f"  Page {page_idx + 1}/{num_pages} (frame {frame_idx + 1})")
-                        
-                        try:
-                            # Read only this one page
-                            raw, is_bgr = self._read_tiff_page(path, page_idx=page_idx, use_tifffile=use_tifffile)
-                            
-                            frame = self._prepare_frame(raw, is_bgr=is_bgr)
-                            # Free raw memory immediately
-                            del raw
-                            
-                        except Exception as e:
-                            print(f"\n⚠ WARNING: Failed to read/prepare frame {frame_idx} from {rel_path} page {page_idx + 1}: {str(e)}")
-                            print("Skipping this frame...")
-                            continue
-
-                        time_s = (frame_idx - poke_frame_idx) / fps
-                        clusters, _ = self._detect_sparks(frame)
-                        frame_states = self._update_tracks(frame_idx, time_s, clusters)
-
-                        # write CSV rows
-                        for s in frame_states:
-                            row = dict(s)
-                            for key in ["vx", "vy", "speed", "angle_deg", "ap_norm", "dv_px"]:
-                                if row.get(key) is None or row.get(key) != row.get(key):  # NaN check
-                                    row[key] = ""
-                            # Store relative path with page info if multi-page
-                            if num_pages > 1:
-                                row["filename"] = f"{rel_path} (page {page_idx+1})"
-                            else:
-                                row["filename"] = rel_path
-                            csv_writer.writerow(row)
-
-                        # overlay video
-                        if writer is not None:
-                            overlay = frame.copy()
-                            self._draw_overlays(overlay, frame_states)
-                            writer.write(overlay)
-                        
-                        # Free frame memory
-                        del frame
+                    frame = self._prepare_frame(raw, is_bgr=is_bgr)
+                    # Free raw memory immediately
+                    del raw
                     
                 except Exception as e:
-                    print(f"\n⚠ WARNING: Failed to process file {file_idx} ({rel_path}): {str(e)}")
-                    print("Skipping this file...")
+                    print(f"\n⚠ WARNING: Failed to read/prepare frame {frame_idx} from {rel_path} page {page_idx + 1}: {str(e)}")
+                    print("Skipping this frame...")
                     continue
+
+                time_s = (frame_idx - poke_frame_idx) / fps
+                clusters, _ = self._detect_sparks(frame)
+                frame_states = self._update_tracks(frame_idx, time_s, clusters)
+
+                # write CSV rows
+                for s in frame_states:
+                    row = dict(s)
+                    for key in ["vx", "vy", "speed", "angle_deg", "ap_norm", "dv_px"]:
+                        if row.get(key) is None or row.get(key) != row.get(key):  # NaN check
+                            row[key] = ""
+                    # Store relative path with page info if multi-page (page_idx > 0 means multi-page)
+                    if page_idx > 0:
+                        row["filename"] = f"{rel_path} (page {page_idx+1})"
+                    else:
+                        row["filename"] = rel_path
+                    csv_writer.writerow(row)
+
+                # overlay video
+                if writer is not None:
+                    overlay = frame.copy()
+                    self._draw_overlays(overlay, frame_states)
+                    writer.write(overlay)
+                
+                # Free frame memory
+                del frame
+                    
+        except Exception as e:
+            print(f"\n⚠ WARNING: Error during processing: {str(e)}")
+            raise
         finally:
             if writer is not None:
                 writer.release()
