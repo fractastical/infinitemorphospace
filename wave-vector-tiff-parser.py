@@ -168,7 +168,10 @@ class SparkTracker:
         min_area = 0.01 * h * w
         emb_contours = [c for c in contours if cv2.contourArea(c) >= min_area]
         if not emb_contours:
-            print("WARNING: no embryo-sized contours found in reference frame.")
+            print("\n=== EMBRYO DETECTION SUMMARY ===")
+            print("✗ WARNING: No embryo-sized contours found in reference frame")
+            print("  → Geometry-based annotations (embryo_id, ap_norm, dv_px) will be empty")
+            print("=" * 35 + "\n")
             return
 
         # Sort by centroid x position: leftmost = A, rightmost = B
@@ -255,26 +258,40 @@ class SparkTracker:
             self.ap_norm_map[ys, xs] = ap
             self.dv_map[ys, xs] = dv
 
-        print("Embryo geometry:")
-        for label in self.embryo_labels:
-            emb = self.embryos[label]
-            print(
-                f"  Embryo {label}: head={emb['head']}, tail={emb['tail']},"
-                f" centroid={emb['centroid']}"
-            )
+        # Print embryo geometry summary
+        if self.embryo_labels:
+            print("\n=== EMBRYO DETECTION SUMMARY ===")
+            print(f"✓ Found {len(self.embryo_labels)} embryo(s) with directional axes")
+            print("\nEmbryo geometry:")
+            for label in self.embryo_labels:
+                emb = self.embryos[label]
+                head = emb['head']
+                tail = emb['tail']
+                axis_length = math.hypot(tail[0] - head[0], tail[1] - head[1])
+                print(
+                    f"  Embryo {label}: head=({head[0]:.1f}, {head[1]:.1f}), "
+                    f"tail=({tail[0]:.1f}, {tail[1]:.1f}), "
+                    f"axis_length={axis_length:.1f}px, "
+                    f"centroid=({emb['centroid'][0]:.1f}, {emb['centroid'][1]:.1f})"
+                )
+        else:
+            print("\n=== EMBRYO DETECTION SUMMARY ===")
+            print("✗ WARNING: No embryos detected - geometry-based annotations will be empty")
 
         # Poke detection: use user coords if provided, else try to auto-detect
+        print("\n=== POKE DETECTION SUMMARY ===")
         if user_poke_xy is not None:
             self.poke_xy = user_poke_xy
-            print(f"Using user-provided poke_xy={self.poke_xy}")
+            print(f"✓ Using user-provided poke location: ({user_poke_xy[0]:.1f}, {user_poke_xy[1]:.1f})")
         else:
             auto_poke = self._detect_poke_from_pink_arrow(frame_bgr)
             self.poke_xy = auto_poke
             if auto_poke is not None:
-                print(f"Auto-detected poke location at {self.poke_xy}")
+                print(f"✓ Auto-detected poke location: ({auto_poke[0]:.1f}, {auto_poke[1]:.1f})")
             else:
-                print("WARNING: could not auto-detect pink arrow; "
-                      "dist_from_poke_px will be empty unless you provide --poke-x/--poke-y.")
+                print("✗ WARNING: Could not auto-detect pink arrow")
+                print("  → dist_from_poke_px will be empty unless you provide --poke-x/--poke-y")
+        print("=" * 35 + "\n")
 
     def _detect_poke_from_pink_arrow(self, frame_bgr):
         """
@@ -531,6 +548,8 @@ class SparkTracker:
     ):
         """
         Process a folder of TIFF files as a time-lapse sequence.
+        
+        Recursively searches folder_path and all subdirectories for TIFF files.
 
         Assumes each TIFF is a single frame; frames are ordered by filename
         (natural sort) and spaced by 1/fps seconds.
@@ -539,25 +558,41 @@ class SparkTracker:
 
           track_id, frame_idx, time_s, x, y, vx, vy, speed, angle_deg, area,
           embryo_id, ap_norm, dv_px, dist_from_poke_px, filename
+        
+        The filename column contains the relative path from folder_path, preserving
+        subdirectory structure (e.g., "2/long name.tif").
         """
         self.tracks = {}
         self.next_track_id = 0
         self.fps = float(fps)
 
-        # Collect TIFF files
-        filenames = [
-            f for f in os.listdir(folder_path)
-            if f.lower().endswith((".tif", ".tiff"))
-        ]
-        if not filenames:
-            raise RuntimeError(f"No TIFF files found in {folder_path}")
-        filenames.sort(key=natural_key)
-        paths = [os.path.join(folder_path, f) for f in filenames]
+        print(f"\n{'='*60}")
+        print(f"Processing TIFF sequence from: {folder_path}")
+        print(f"{'='*60}\n")
+        
+        # Collect TIFF files recursively from folder and all subfolders
+        paths = []
+        for root, dirs, files in os.walk(folder_path):
+            for f in files:
+                if f.lower().endswith((".tif", ".tiff")):
+                    paths.append(os.path.join(root, f))
+        
+        if not paths:
+            raise RuntimeError(f"No TIFF files found in {folder_path} or its subdirectories")
+        
+        # Sort by full path (natural sort on filename portion)
+        paths.sort(key=lambda p: natural_key(os.path.basename(p)))
+        
+        print(f"Found {len(paths)} TIFF file(s) (including subdirectories)")
+        print(f"Frame rate: {fps} fps")
+        print(f"Poke frame index: {poke_frame_idx} (t = 0)\n")
 
         # Get frame size from first image and initialise geometry + poke
+        print("Analyzing reference frame (first image) for geometry...")
         first_raw = tiff.imread(paths[0])
         first_frame = self._prepare_frame(first_raw)
         height, width = first_frame.shape[:2]
+        print(f"Frame dimensions: {width}x{height} pixels\n")
         self._init_geometry_and_poke(first_frame, user_poke_xy=poke_xy)
 
         # Video writer for overlay
@@ -594,6 +629,7 @@ class SparkTracker:
         )
         csv_writer.writeheader()
 
+        print("Processing frames and tracking sparks...")
         try:
             for frame_idx, path in enumerate(paths):
                 raw = tiff.imread(path)
@@ -609,7 +645,9 @@ class SparkTracker:
                     for key in ["vx", "vy", "speed", "angle_deg", "ap_norm", "dv_px"]:
                         if row.get(key) is None or row.get(key) != row.get(key):  # NaN check
                             row[key] = ""
-                    row["filename"] = os.path.basename(path)
+                    # Store relative path from folder_path to preserve subdirectory info
+                    rel_path = os.path.relpath(path, folder_path)
+                    row["filename"] = rel_path
                     csv_writer.writerow(row)
 
                 # overlay video
@@ -622,11 +660,19 @@ class SparkTracker:
                 writer.release()
             csv_file.close()
 
-        print(f"Finished. Frames processed: {len(paths)}")
-        print(f"Tracks found: {len(self.tracks)}")
-        print(f"CSV written to: {csv_path}")
+        print(f"\n{'='*60}")
+        print("PROCESSING COMPLETE")
+        print(f"{'='*60}")
+        print(f"\nSummary:")
+        print(f"  • Frames processed: {len(paths)}")
+        print(f"  • Tracks found: {len(self.tracks)}")
+        print(f"  • Embryos detected: {len(self.embryo_labels)} ({', '.join(self.embryo_labels) if self.embryo_labels else 'none'})")
+        print(f"  • Poke location: {'✓ detected' if self.poke_xy is not None else '✗ not found'}")
+        print(f"\nOutput files:")
+        print(f"  • CSV: {csv_path}")
         if out_video_path is not None:
-            print(f"Overlay video written to: {out_video_path}")
+            print(f"  • Video: {out_video_path}")
+        print(f"{'='*60}\n")
 
 
 # ---------- CLI ----------
