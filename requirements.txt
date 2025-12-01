@@ -1,0 +1,4 @@
+opencv-python>=4.5.0
+numpy>=1.19.0
+tifffile>=2020.0.0
+
