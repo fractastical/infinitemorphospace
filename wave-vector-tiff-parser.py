@@ -74,43 +74,42 @@ class SparkTracker:
 
     # ---------- TIFF reading helper ----------
     
-    def _read_tiff_safe(self, path):
+    def _get_tiff_page_count(self, path):
         """
-        Safely read a TIFF file. Handles both single-page and multi-page TIFFs.
-        Returns list of (numpy array, is_bgr) tuples, one per page.
-        is_bgr indicates if image is already in BGR format.
+        Get the number of pages in a TIFF file without loading image data.
+        Returns (num_pages, use_tifffile) tuple.
         """
-        # Use tifffile for multi-page support - OpenCV can't handle multi-page TIFFs properly
         try:
             with tiff.TiffFile(path) as tif:
-                num_pages = len(tif.pages)
-                
-                if num_pages == 1:
-                    # Single page - read it
-                    img = tif.asarray()
+                return len(tif.pages), True
+        except Exception:
+            # If tifffile fails, assume single page (OpenCV will handle it)
+            return 1, False
+    
+    def _read_tiff_page(self, path, page_idx=0, use_tifffile=True):
+        """
+        Read a single page from a TIFF file. For memory efficiency.
+        Returns (numpy array, is_bgr) tuple.
+        """
+        if use_tifffile:
+            try:
+                with tiff.TiffFile(path) as tif:
+                    img = tif.asarray(key=page_idx)
                     if isinstance(img, np.ndarray):
                         img = img.copy()
                     else:
                         img = np.array(img)
-                    # tifffile reads as RGB
-                    return [(img, False)]
-                else:
-                    # Multi-page - read all pages
-                    images = []
-                    for page_idx in range(num_pages):
-                        img = tif.asarray(key=page_idx)
-                        if isinstance(img, np.ndarray):
-                            img = img.copy()
-                        else:
-                            img = np.array(img)
-                        images.append((img, False))  # tifffile reads as RGB
-                    return images
-        except Exception as e:
-            # Fallback to OpenCV (single page only)
+                    return img, False  # tifffile reads as RGB
+            except Exception as e:
+                raise RuntimeError(f"Could not read TIFF page {page_idx} from {path}: {str(e)}")
+        else:
+            # Fallback to OpenCV (single page only, page_idx must be 0)
+            if page_idx > 0:
+                raise ValueError(f"OpenCV can only read first page, but requested page {page_idx}")
             img = cv2.imread(path, cv2.IMREAD_UNCHANGED)
-            if img is not None and img.size > 0:
-                return [(img, True)]  # OpenCV reads as BGR
-            raise RuntimeError(f"Could not read TIFF file: {path}. Error: {str(e)}")
+            if img is None or img.size == 0:
+                raise RuntimeError(f"OpenCV could not read TIFF file: {path}")
+            return img, True  # OpenCV reads as BGR
 
     # ---------- frame prep / spark detection ----------
 
@@ -647,19 +646,21 @@ class SparkTracker:
         print("Attempting to read TIFF file (using OpenCV for stability)...")
         
         try:
-            first_pages = self._read_tiff_safe(first_path)
-            num_pages = len(first_pages)
+            # Get page count first
+            num_pages, use_tifffile = self._get_tiff_page_count(first_path)
             if num_pages > 1:
-                print(f"✓ Successfully read multi-page TIFF file with {num_pages} pages")
+                print(f"✓ Detected multi-page TIFF file with {num_pages} pages")
             else:
-                print(f"✓ Successfully read TIFF file")
+                print(f"✓ Detected single-page TIFF file")
             
-            first_raw, is_bgr = first_pages[0]  # Use first page for geometry initialization
+            # Read only the first page for geometry initialization
+            first_raw, is_bgr = self._read_tiff_page(first_path, page_idx=0, use_tifffile=use_tifffile)
             print(f"Raw TIFF shape: {first_raw.shape}, dtype: {first_raw.dtype}")
             
             first_frame = self._prepare_frame(first_raw, is_bgr=is_bgr)
             height, width = first_frame.shape[:2]
             print(f"Frame dimensions: {width}x{height} pixels\n")
+            del first_raw  # Free memory
         except Exception as e:
             print(f"\n✗ ERROR: Failed to read first TIFF file")
             print(f"Error type: {type(e).__name__}")
@@ -703,59 +704,76 @@ class SparkTracker:
         csv_writer.writeheader()
 
         print("Processing frames and tracking sparks...")
+        print("(Processing frames incrementally to conserve memory...)\n")
         
-        # Build list of all frames from all files (handling multi-page TIFFs)
-        all_frames = []  # List of (frame_idx, path, page_idx, raw, is_bgr) tuples
         global_frame_idx = 0
+        total_frames = 0
         
-        for file_idx, path in enumerate(paths):
-            try:
-                pages = self._read_tiff_safe(path)
+        # Process files one at a time, reading pages one at a time
+        try:
+            for file_idx, path in enumerate(paths):
                 rel_path = os.path.relpath(path, folder_path)
                 
-                for page_idx, (raw, is_bgr) in enumerate(pages):
-                    all_frames.append((global_frame_idx, rel_path, page_idx, raw, is_bgr))
-                    global_frame_idx += 1
-                    
-            except Exception as e:
-                print(f"\n⚠ WARNING: Failed to read file {file_idx} ({os.path.relpath(path, folder_path)}): {str(e)}")
-                print("Skipping this file...")
-                continue
-        
-        total_frames = len(all_frames)
-        print(f"Total frames to process: {total_frames} (from {len(paths)} TIFF file(s))\n")
-        
-        try:
-            for frame_idx, rel_path, page_idx, raw, is_bgr in all_frames:
                 try:
-                    frame = self._prepare_frame(raw, is_bgr=is_bgr)
+                    # Get page count without loading image data
+                    num_pages, use_tifffile = self._get_tiff_page_count(path)
+                    
+                    if num_pages > 1:
+                        print(f"Processing {rel_path} ({num_pages} pages)...")
+                    
+                    # Process each page one at a time
+                    for page_idx in range(num_pages):
+                        frame_idx = global_frame_idx
+                        global_frame_idx += 1
+                        total_frames += 1
+                        
+                        # Show progress for large files
+                        if num_pages > 1 and (page_idx == 0 or (page_idx + 1) % 50 == 0 or (page_idx + 1) == num_pages):
+                            print(f"  Page {page_idx + 1}/{num_pages} (frame {frame_idx + 1})")
+                        
+                        try:
+                            # Read only this one page
+                            raw, is_bgr = self._read_tiff_page(path, page_idx=page_idx, use_tifffile=use_tifffile)
+                            
+                            frame = self._prepare_frame(raw, is_bgr=is_bgr)
+                            # Free raw memory immediately
+                            del raw
+                            
+                        except Exception as e:
+                            print(f"\n⚠ WARNING: Failed to read/prepare frame {frame_idx} from {rel_path} page {page_idx + 1}: {str(e)}")
+                            print("Skipping this frame...")
+                            continue
+
+                        time_s = (frame_idx - poke_frame_idx) / fps
+                        clusters, _ = self._detect_sparks(frame)
+                        frame_states = self._update_tracks(frame_idx, time_s, clusters)
+
+                        # write CSV rows
+                        for s in frame_states:
+                            row = dict(s)
+                            for key in ["vx", "vy", "speed", "angle_deg", "ap_norm", "dv_px"]:
+                                if row.get(key) is None or row.get(key) != row.get(key):  # NaN check
+                                    row[key] = ""
+                            # Store relative path with page info if multi-page
+                            if num_pages > 1:
+                                row["filename"] = f"{rel_path} (page {page_idx+1})"
+                            else:
+                                row["filename"] = rel_path
+                            csv_writer.writerow(row)
+
+                        # overlay video
+                        if writer is not None:
+                            overlay = frame.copy()
+                            self._draw_overlays(overlay, frame_states)
+                            writer.write(overlay)
+                        
+                        # Free frame memory
+                        del frame
+                    
                 except Exception as e:
-                    print(f"\n⚠ WARNING: Failed to prepare frame {frame_idx} from {rel_path} page {page_idx}: {str(e)}")
-                    print("Skipping this frame...")
+                    print(f"\n⚠ WARNING: Failed to process file {file_idx} ({rel_path}): {str(e)}")
+                    print("Skipping this file...")
                     continue
-
-                time_s = (frame_idx - poke_frame_idx) / fps
-                clusters, _ = self._detect_sparks(frame)
-                frame_states = self._update_tracks(frame_idx, time_s, clusters)
-
-                # write CSV rows
-                for s in frame_states:
-                    row = dict(s)
-                    for key in ["vx", "vy", "speed", "angle_deg", "ap_norm", "dv_px"]:
-                        if row.get(key) is None or row.get(key) != row.get(key):  # NaN check
-                            row[key] = ""
-                    # Store relative path with page info if multi-page
-                    if page_idx > 0:
-                        row["filename"] = f"{rel_path} (page {page_idx+1})"
-                    else:
-                        row["filename"] = rel_path
-                    csv_writer.writerow(row)
-
-                # overlay video
-                if writer is not None:
-                    overlay = frame.copy()
-                    self._draw_overlays(overlay, frame_states)
-                    writer.write(overlay)
         finally:
             if writer is not None:
                 writer.release()
