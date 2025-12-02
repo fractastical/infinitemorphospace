@@ -423,18 +423,64 @@ class SparkTracker:
             end1 = pts[min_idx]
             end2 = pts[max_idx]
 
-            # Head = leftmost endpoint
-            head = end1
-            tail = end2
-            if head[0] > tail[0]:
-                head, tail = tail, head
-
+            # Calculate centroid first (needed for morphological analysis)
             M = cv2.moments(contour)
             if M["m00"] == 0:
-                cx, cy = float(head[0]), float(head[1])
+                cx, cy = float(mean[0, 0]), float(mean[0, 1])
             else:
                 cx = M["m10"] / M["m00"]
                 cy = M["m01"] / M["m00"]
+            centroid_pt = np.array([cx, cy])
+
+            # Determine head vs tail using morphological features instead of orientation
+            # Head is typically wider/rounder than tail
+            # Calculate width profile along the axis to identify which end is wider
+            proj_normalized = (proj - proj.min()) / (proj.max() - proj.min() + 1e-9)
+            
+            # Sample width at each end (average width in first/last 20% of length)
+            end1_region_mask = (proj_normalized < 0.2)
+            end2_region_mask = (proj_normalized > 0.8)
+            end1_region = pts[end1_region_mask]
+            end2_region = pts[end2_region_mask]
+            
+            # Calculate average distance from axis for each region
+            if len(end1_region) > 0 and len(end2_region) > 0:
+                # Project perpendicular distances
+                u_perp = np.array([-v_norm[1], v_norm[0]])
+                delta1 = end1_region - mean.reshape(1, 2)
+                delta2 = end2_region - mean.reshape(1, 2)
+                dist1 = np.abs(delta1 @ u_perp.reshape(2, 1)).ravel()
+                dist2 = np.abs(delta2 @ u_perp.reshape(2, 1)).ravel()
+                
+                avg_width1 = dist1.mean() if len(dist1) > 0 else 0
+                avg_width2 = dist2.mean() if len(dist2) > 0 else 0
+                
+                # Wider end = head (more bulbous/rounded)
+                # Use a threshold to avoid noise: only flip if difference is significant
+                width_diff_ratio = abs(avg_width1 - avg_width2) / (max(avg_width1, avg_width2) + 1e-9)
+                if width_diff_ratio > 0.1:  # At least 10% difference
+                    if avg_width1 > avg_width2:
+                        head = end1
+                        tail = end2
+                    else:
+                        head = end2
+                        tail = end1
+                else:
+                    # Widths too similar, use area near endpoint as fallback
+                    # Calculate area in region around each endpoint
+                    head_candidate1 = end1
+                    head_candidate2 = end2
+                    # Can't determine from width, keep as-is but warn
+                    head = end1  # Default assignment
+                    tail = end2
+                    print(f"  ⚠ Warning: Cannot determine head/tail from morphology for embryo {label}. "
+                          f"Using default assignment. Consider manual specification.")
+            else:
+                # Not enough points in regions, use default
+                head = end1
+                tail = end2
+                print(f"  ⚠ Warning: Cannot determine head/tail from morphology for embryo {label}. "
+                      f"Insufficient points. Using default assignment.")
 
             self.embryos[label] = {
                 "id": label,

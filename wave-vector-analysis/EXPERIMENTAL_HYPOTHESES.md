@@ -234,7 +234,13 @@ Plots and analysis results are available in `analysis_results/`:
 
 **Analysis:**
 - **Metric:** Activity and speed within tail ROI
-- **Filter:** Events where `ap_norm > threshold` (e.g., > 0.7 for tail region)
+- **Filter:** Events where `ap_norm >= 0.7` (posterior 30% of embryo)
+- **Tail labeling:** Uses `ap_norm` coordinate where:
+  - `ap_norm = 0` = head (wider/more bulbous end, determined by morphology)
+  - `ap_norm = 1` = tail (narrower/more pointed end)
+  - `ap_norm >= 0.7` = tail region (posterior 30%)
+  - **No orientation assumption** - head/tail determined by morphological features
+- **See:** `TAIL_LABELING.md` for detailed methodology
 - **Script:** Use `analyze_tail_response.py`
 
 **Outcome to Measure:**
