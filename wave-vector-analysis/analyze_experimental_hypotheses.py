@@ -574,8 +574,11 @@ def plot_tail_response(tracks_df, clusters_df, tail_threshold=0.7, output_path=N
     # 4. AP position distribution
     ax = axes[1, 1]
     if 'ap_norm' in tail_post.columns:
-        ap_vals = tail_post['ap_norm'].values
-        ax.hist(ap_vals, bins=30, edgecolor='black', alpha=0.7, color='teal')
+        ap_vals = tail_post['ap_norm'].dropna().values
+        if len(ap_vals) > 0:
+            ap_min, ap_max = ap_vals.min(), ap_vals.max()
+            bins = np.linspace(ap_min, ap_max, 31) if ap_max > ap_min else 30
+            ax.hist(ap_vals, bins=bins, edgecolor='black', alpha=0.7, color='teal')
         ax.axvline(tail_threshold, color='red', linestyle='--', linewidth=2,
                    label=f'Threshold: {tail_threshold}')
         ax.set_xlabel('AP Position (0=head, 1=tail)', fontsize=11)

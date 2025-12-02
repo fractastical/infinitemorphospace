@@ -41,6 +41,7 @@ This follows the methodology described in:
 - **`wave-vector.md`**: Detailed specification of output CSV formats
 - **`SPARK_ANALYSIS_README.md`**: Usage guide for analysis scripts
 - **`EXPERIMENTAL_HYPOTHESES.md`**: Mapping of experimental hypotheses to specific analyses
+- **`PLOTTING_GUIDE.md`**: Complete guide to generating publication-quality plots
 
 ### Analysis Scripts
 

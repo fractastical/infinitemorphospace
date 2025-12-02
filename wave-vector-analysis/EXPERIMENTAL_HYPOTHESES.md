@@ -2,11 +2,90 @@
 
 This document maps experimental hypotheses to specific analyses that can be performed with the `spark_tracks.csv` and `vector_clusters.csv` data.
 
+## Data Availability Summary
+
+**Analysis Date:** Generated from current dataset  
+**Total Track States:** 309,603  
+**Total Clusters:** 79,902  
+**Time Range:** -1.00 to 27,132.00 seconds (relative to poke)
+
+### Testability Status
+
+| Status | Count | Hypotheses |
+|--------|-------|------------|
+| ✅ **Can Test Fully** | 5 | 1, 3, 4, 6, 7 |
+| ⚠️ **Can Test Partially** | 4 | 5, Spatial Matching, Wound Memory (both) |
+| ❌ **Cannot Test** | 3 | 2, 8, Contraction |
+
+### Key Data Quality Metrics
+
+- **Pre-poke data:** ✅ Available (baseline comparison possible)
+- **Post-poke data:** ✅ Available (response analysis possible)
+- **Embryo IDs:** ⚠️ 46.1% valid (142,770/309,603 events)
+- **Angle data:** ✅ 74.2% valid (229,701/309,603 events)
+- **AP position:** ⚠️ 46.1% valid (142,770/309,603 events)
+- **Distance from poke:** ❌ 0% valid (requires poke coordinates)
+
+### Generated Analysis Results
+
+Plots and analysis results are available in `analysis_results/`:
+
+- **Hypothesis 1:** `hypothesis1_activity.png` - Activity comparison pre/post poke
+- **Hypothesis 3:** `hypothesis3_directionality_A.png` - Wave directionality in embryo A
+- **Hypothesis 4:** `hypothesis4_directionality_B.png` - Wave directionality in embryo B  
+- **Hypothesis 6:** `spatial_heatmap.png` - Spatial patterning analysis
+- **Hypothesis 7:** `hypothesis7_tail_response.png` - Local tail response analysis
+
+### Key Findings from Current Data
+
+**Hypothesis 1 - Presence of Calcium Activity:**
+- ✅ **Testable:** Pre-poke and post-poke data available
+- **Results:** Activity ratio (post/pre) = 128,529x increase
+- **Peak activity:** 8,237 seconds post-poke
+- **Note:** Massive increase suggests strong response, but verify baseline is correct
+
+**Hypothesis 3 - Wave Directionality (Embryo A):**
+- ✅ **Testable:** 5,442 clusters with angle data
+- **Mean direction:** 21.5° (northeast)
+- **Mean speed:** 3.08 pixels/second
+- **Peak speed:** 19.99 pixels/second
+- **Circular variance:** 0.97 (high dispersion - not strongly directional)
+
+**Hypothesis 4 - Wave Directionality (Embryo B):**
+- ✅ **Testable:** 11,690 clusters with angle data
+- **Mean direction:** 4.9° (east)
+- **Mean speed:** 3.70 pixels/second
+- **Peak speed:** 20.0 pixels/second
+- **Circular variance:** 0.97 (high dispersion)
+
+**Hypothesis 7 - Local Tail Response:**
+- ✅ **Testable:** 51,822 tail events detected
+- **Total tail activity:** 6,189,498 pixels²
+- **Peak tail activity:** 7,509 pixels² at 20,252 seconds
+- **Mean tail speed:** 3.34 pixels/second
+- **Peak tail speed:** 19.99 pixels/second
+
+---
+
+## Detailed Hypothesis Analysis
+
+---
+
 ## Table 1: Calcium Activity Experiments
 
 ### 1. Presence of Calcium Activity
 
+**Status:** ✅ **CAN TEST FULLY** | **Confidence:** High  
+**Plot:** `analysis_results/hypothesis1_activity.png`
+
 **Claim:** Damaging embryo A increases the calcium activity in embryo A and B
+
+**Current Data Results:**
+- Activity ratio (post/pre): **128,529x increase**
+- Pre-poke mean activity: 53.5 pixels²
+- Post-poke mean activity: 133.3 pixels²
+- Peak activity time: 8,237 seconds post-poke
+- Peak activity value: 25,931 pixels²
 
 **Analysis:**
 - **Metric:** Total activity over time (ΔF/F₀ proxy: `total_area_px2_frames` or sum of `area` per frame)
@@ -26,6 +105,9 @@ This document maps experimental hypotheses to specific analyses that can be perf
 
 ### 2. Distance Effect (Contact vs Non-contact)
 
+**Status:** ❌ **CANNOT TEST** | **Confidence:** Low  
+**Reason:** Requires data from multiple experimental conditions (separate CSV files)
+
 **Claim:** Damaging embryo A at a distance increases calcium activity in A and B, but response in B is lower than direct-contact condition
 
 **Analysis:**
@@ -42,7 +124,17 @@ This document maps experimental hypotheses to specific analyses that can be perf
 
 ### 3. Wave Directionality Within Embryo
 
+**Status:** ✅ **CAN TEST FULLY** | **Confidence:** High  
+**Plot:** `analysis_results/hypothesis3_directionality_A.png`
+
 **Claim:** Damaging embryo A (mid region) causes a bidirectional calcium wave in embryo A
+
+**Current Data Results (Embryo A):**
+- Clusters analyzed: 5,442
+- Mean wave direction: 21.5° (northeast)
+- Mean speed: 3.08 pixels/second
+- Peak speed: 19.99 pixels/second
+- Circular variance: 0.97 (high dispersion - not strongly unidirectional)
 
 **Analysis:**
 - **Metric:** Wave propagation direction (`angle_deg`, `mean_angle_deg`)
@@ -60,7 +152,17 @@ This document maps experimental hypotheses to specific analyses that can be perf
 
 ### 4. Wave Directionality Between Embryos
 
+**Status:** ✅ **CAN TEST FULLY** | **Confidence:** High  
+**Plot:** `analysis_results/hypothesis4_directionality_B.png`
+
 **Claim:** Damaging embryo A (anterior and mid region) triggers a calcium wave in embryo B when oriented head-head, head-tail, tail-tail
+
+**Current Data Results (Embryo B):**
+- Clusters analyzed: 11,690
+- Mean wave direction: 4.9° (east)
+- Mean speed: 3.70 pixels/second
+- Peak speed: 20.0 pixels/second
+- Circular variance: 0.97 (high dispersion)
 
 **Analysis:**
 - **Metric:** Wave presence, intensity, speed
@@ -76,6 +178,9 @@ This document maps experimental hypotheses to specific analyses that can be perf
 ---
 
 ### 5. Posterior Damage Effect
+
+**Status:** ⚠️ **CAN TEST PARTIALLY** | **Confidence:** Medium  
+**Note:** Can identify posterior region if AP position or distance data available
 
 **Claim:** Damaging embryo A (posterior region) does NOT trigger a calcium wave in embryo B when oriented tail-tail
 
@@ -94,6 +199,9 @@ This document maps experimental hypotheses to specific analyses that can be perf
 
 ### 6. Spatial Patterning
 
+**Status:** ✅ **CAN TEST FULLY** | **Confidence:** High  
+**Plot:** `analysis_results/spatial_heatmap.png`
+
 **Claim:** The calcium wave in embryo A and B can be spatially patterned
 
 **Analysis:**
@@ -111,7 +219,18 @@ This document maps experimental hypotheses to specific analyses that can be perf
 
 ### 7. Local Tail Response
 
+**Status:** ✅ **CAN TEST FULLY** | **Confidence:** High  
+**Plot:** `analysis_results/hypothesis7_tail_response.png`
+
 **Claim:** Damaging embryo A causes a (fast) localized posterior response in embryo A and B
+
+**Current Data Results:**
+- Tail events detected: 51,822
+- Tail clusters: 12,241
+- Total tail activity: 6,189,498 pixels²
+- Peak tail activity: 7,509 pixels² at 20,252 seconds
+- Mean tail speed: 3.34 pixels/second
+- Peak tail speed: 19.99 pixels/second
 
 **Analysis:**
 - **Metric:** Activity and speed within tail ROI
@@ -128,6 +247,9 @@ This document maps experimental hypotheses to specific analyses that can be perf
 ---
 
 ### 8. Age-Dependent Localization
+
+**Status:** ❌ **CANNOT TEST** | **Confidence:** Low  
+**Reason:** Requires data from multiple embryo ages/stages (need metadata)
 
 **Claim:** The posterior response gets more localized with age
 
@@ -146,6 +268,9 @@ This document maps experimental hypotheses to specific analyses that can be perf
 ## Table 2: Spatial Matching, Contraction, and Wound Memory
 
 ### 1. Spatial Matching
+
+**Status:** ⚠️ **CAN TEST PARTIALLY** | **Confidence:** Low  
+**Note:** Distance column exists but is empty (0% valid). Can calculate if poke coordinates provided.
 
 **Claim:** Embryo A/B shows a local calcium response in a similar region as the wound site of embryo A/B
 
@@ -168,6 +293,9 @@ This document maps experimental hypotheses to specific analyses that can be perf
 
 ### 2. Contraction
 
+**Status:** ❌ **CANNOT TEST** | **Confidence:** Low  
+**Reason:** Requires separate contraction analysis - not in current pipeline
+
 **Claim:** Damaging embryo A causes a contraction in embryo B in a similar region as the wound site of embryo A
 
 **Analysis:**
@@ -184,6 +312,9 @@ This document maps experimental hypotheses to specific analyses that can be perf
 ---
 
 ### 3. Wound Memory (Increased Activity)
+
+**Status:** ⚠️ **CAN TEST PARTIALLY** | **Confidence:** Medium  
+**Note:** Would need to identify healed wound locations from metadata or coordinates
 
 **Claim:** Presence of embryo A increases calcium activity in embryo B at a previously 'healed' wound location
 
@@ -202,6 +333,9 @@ This document maps experimental hypotheses to specific analyses that can be perf
 ---
 
 ### 4. Wound Memory (Local Response)
+
+**Status:** ⚠️ **CAN TEST PARTIALLY** | **Confidence:** Medium  
+**Note:** Would need healed wound location data to match responses
 
 **Claim:** Damaging embryo A causes a local response at the location of a previously 'healed' wound in embryo B
 
@@ -228,4 +362,60 @@ This document maps experimental hypotheses to specific analyses that can be perf
 6. **`analyze_wound_memory.py`**: Analyze healed wound responses
 
 See individual script documentation for usage details.
+
+---
+
+## Summary and Recommendations
+
+### Immediate Next Steps
+
+1. **For testable hypotheses (1, 3, 4, 6, 7):**
+   - ✅ Plots generated and available in `analysis_results/`
+   - ✅ Quantitative metrics calculated
+   - ⚠️ **Action needed:** Review plots and validate findings
+   - ⚠️ **Action needed:** Compare results across multiple experiments/replicates
+
+2. **For partially testable hypotheses (5, Spatial Matching, Wound Memory):**
+   - ⚠️ **Action needed:** Provide poke coordinates to enable distance calculations
+   - ⚠️ **Action needed:** Identify healed wound locations from metadata
+   - ⚠️ **Action needed:** Add AP position filtering for posterior region analysis
+
+3. **For untestable hypotheses (2, 8, Contraction):**
+   - ❌ **Action needed:** Collect data from multiple conditions (contact vs non-contact)
+   - ❌ **Action needed:** Add embryo age/stage metadata
+   - ❌ **Action needed:** Implement separate contraction detection pipeline
+
+### Data Quality Improvements Needed
+
+1. **Embryo ID coverage:** Only 46.1% of events have embryo_id. Consider improving embryo detection or manual annotation.
+2. **Poke coordinates:** 0% of events have `dist_from_poke_px`. Need to:
+   - Detect poke location from video frames
+   - Or manually annotate poke coordinates
+   - Or extract from experimental metadata
+3. **AP position coverage:** 46.1% coverage. This limits anatomical analysis. Consider:
+   - Improving embryo segmentation
+   - Using more lenient detection thresholds
+   - Manual annotation for key frames
+
+### Key Insights from Current Analysis
+
+1. **Massive activity increase:** 128,529x increase suggests very strong response (verify baseline is correct)
+2. **High wave dispersion:** Circular variance ~0.97 in both embryos suggests waves are not strongly directional
+3. **Substantial tail response:** 51,822 tail events detected, indicating significant posterior activity
+4. **Inter-embryo propagation:** 11,690 clusters in embryo B suggests strong inter-embryo signaling
+
+### How to Run Analysis
+
+```bash
+# Check data availability
+python check_data_availability.py spark_tracks.csv --clusters-csv vector_clusters.csv
+
+# Generate all plots
+python analyze_experimental_hypotheses.py spark_tracks.csv \
+    --clusters-csv vector_clusters.csv \
+    --analysis activity \
+    --output analysis_results/hypothesis1_activity.png
+
+# See PLOTTING_GUIDE.md for complete examples
+```
 
