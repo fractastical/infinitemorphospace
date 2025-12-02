@@ -10,6 +10,12 @@ A complete pipeline for detecting and tracking Ca²⁺ signaling waves in time-l
 
 **See [`wave-vector-analysis/README.md`](./wave-vector-analysis/README.md) for full documentation.**
 
+### [Nanopublications](./nanopubs/)
+
+Nanopublication-related files including wave files (.trig format), hypothesis mappings, and scripts for processing and canonicalizing nanopublications.
+
+**See [`nanopubs/README.md`](./nanopubs/README.md) for details.**
+
 
 
 
