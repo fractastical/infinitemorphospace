@@ -597,6 +597,83 @@ class SparkTracker:
 
         return best_xy
 
+    def _detect_poke_from_first_sparks(self, early_sparks_data, time_window_s=5.0):
+        """
+        Detect poke location from the centroid of the first spark clusters.
+        
+        The poke typically triggers the first Ca²⁺ sparks, so we use the earliest
+        spark clusters as a proxy for the poke location.
+        
+        Args:
+            early_sparks_data: List of dicts with keys: 'frame_idx', 'time_s', 'clusters'
+                              Clusters should be list of dicts with 'x', 'y', 'area'
+            time_window_s: Maximum time after poke to consider (default 5 seconds)
+        
+        Returns:
+            (x, y) tuple or None if insufficient data
+        """
+        if not early_sparks_data:
+            return None
+        
+        # Collect all clusters within the time window
+        all_early_clusters = []
+        
+        for frame_data in early_sparks_data:
+            time_s = frame_data.get('time_s', float('inf'))
+            if time_s < 0 or time_s > time_window_s:
+                continue  # Only consider post-poke clusters
+            
+            clusters = frame_data.get('clusters', [])
+            for cluster in clusters:
+                if 'x' in cluster and 'y' in cluster:
+                    all_early_clusters.append(cluster)
+        
+        if len(all_early_clusters) == 0:
+            return None
+        
+        # Calculate weighted centroid (weighted by area, larger sparks more important)
+        total_area = sum(c.get('area', 1) for c in all_early_clusters)
+        if total_area == 0:
+            total_area = len(all_early_clusters)  # Fallback to unweighted
+        
+        centroid_x = sum(c['x'] * c.get('area', 1) for c in all_early_clusters) / total_area
+        centroid_y = sum(c['y'] * c.get('area', 1) for c in all_early_clusters) / total_area
+        
+        # If embryos are detected, prefer centroid near embryo surface
+        if self.embryo_union_mask is not None:
+            # Check if centroid is near an embryo
+            cy_int = int(round(centroid_y))
+            cx_int = int(round(centroid_x))
+            
+            h, w = self.embryo_union_mask.shape
+            if 0 <= cy_int < h and 0 <= cx_int < w:
+                if not self.embryo_union_mask[cy_int, cx_int]:
+                    # Not on embryo, find closest point on embryo surface
+                    emb_uint8 = np.where(self.embryo_union_mask, 0, 255).astype(np.uint8)
+                    distmap = cv2.distanceTransform(emb_uint8, cv2.DIST_L2, 3)
+                    
+                    # Search in a radius around centroid for closest embryo point
+                    search_radius = 50
+                    min_dist = float('inf')
+                    best_on_embryo = None
+                    
+                    for dy in range(-search_radius, search_radius + 1):
+                        for dx in range(-search_radius, search_radius + 1):
+                            y = cy_int + dy
+                            x = cx_int + dx
+                            if 0 <= y < h and 0 <= x < w:
+                                if self.embryo_union_mask[y, x]:
+                                    dist_to_centroid = math.hypot(dx, dy)
+                                    if dist_to_centroid < min_dist:
+                                        min_dist = dist_to_centroid
+                                        best_on_embryo = (x, y)
+                    
+                    if best_on_embryo is not None:
+                        # Use point on embryo that's closest to spark centroid
+                        return best_on_embryo
+        
+        return (float(centroid_x), float(centroid_y))
+
     # ---------- tracking & annotation ----------
 
     def _annotate_state(self, state):
@@ -1093,9 +1170,67 @@ class SparkTracker:
             self.poke_detection_frame = None  # User-provided, not auto-detected
             print(f"\n✓ Using user-provided poke location: ({poke_xy[0]:.1f}, {poke_xy[1]:.1f})")
         
+        # If poke still not detected, try to infer from first spark clusters
+        if self.poke_xy is None:
+            print("\n⚠ Poke location not detected via pink arrow.")
+            print("  → Attempting to infer poke location from first spark clusters...")
+            print("    (Processing early post-poke frames to find initial spark centroids)")
+            
+            # Process early frames to collect spark data
+            early_sparks_data = []
+            time_window_s = 5.0  # Look at first 5 seconds after poke
+            max_frames_to_check = min(20, len(frame_mapping) - poke_frame_idx)  # Check up to 20 frames after poke
+            
+            for offset in range(0, max_frames_to_check):
+                check_frame_idx = poke_frame_idx + offset
+                if check_frame_idx >= len(frame_mapping):
+                    break
+                
+                time_s = offset / fps if fps > 0 else 0
+                if time_s > time_window_s:
+                    break  # Beyond time window
+                
+                path, page_idx, use_tifffile = frame_mapping[check_frame_idx]
+                
+                try:
+                    raw, is_bgr = self._read_tiff_page(path, page_idx=page_idx, use_tifffile=use_tifffile)
+                    frame = self._prepare_frame(raw, is_bgr=is_bgr)
+                    
+                    # Detect sparks
+                    raw_for_detection = None
+                    if raw.dtype == np.uint16 and raw.ndim == 2:
+                        raw_for_detection = raw
+                    
+                    clusters, _ = self._detect_sparks(frame, raw_16bit=raw_for_detection)
+                    
+                    if len(clusters) > 0:
+                        early_sparks_data.append({
+                            'frame_idx': check_frame_idx,
+                            'time_s': time_s,
+                            'clusters': clusters
+                        })
+                    
+                    del raw, frame
+                except Exception as e:
+                    print(f"    ⚠ Warning: Could not read frame {check_frame_idx} for spark-based poke detection: {str(e)}")
+                    continue
+            
+            # Try to detect poke from early sparks
+            if early_sparks_data:
+                inferred_poke = self._detect_poke_from_first_sparks(early_sparks_data, time_window_s=time_window_s)
+                if inferred_poke is not None:
+                    self.poke_xy = inferred_poke
+                    self.poke_detection_frame = None  # Spark-based, not from a specific frame
+                    print(f"  ✓ Inferred poke location from {sum(len(d['clusters']) for d in early_sparks_data)} early spark(s): ({inferred_poke[0]:.1f}, {inferred_poke[1]:.1f})")
+                else:
+                    print(f"  ✗ Could not infer poke location from {len(early_sparks_data)} frame(s) with sparks")
+            else:
+                print(f"  ✗ No sparks found in first {max_frames_to_check} post-poke frames")
+        
         if self.poke_xy is None:
             print("\n⚠ WARNING: Poke location not detected. dist_from_poke_px will be empty.")
             print("  → Consider providing --poke-x/--poke-y if auto-detection fails.")
+        
         print()
 
         # Video writer for overlay
