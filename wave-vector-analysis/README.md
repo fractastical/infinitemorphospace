@@ -40,6 +40,16 @@ This follows the methodology described in:
 
 - **`wave-vector.md`**: Detailed specification of output CSV formats
 - **`SPARK_ANALYSIS_README.md`**: Usage guide for analysis scripts
+- **`EXPERIMENTAL_HYPOTHESES.md`**: Mapping of experimental hypotheses to specific analyses
+
+### Analysis Scripts
+
+- **`analyze_experimental_hypotheses.py`**: Comprehensive analysis script for testing experimental claims
+  - Calcium activity comparisons
+  - Wave directionality analysis
+  - Spatial matching
+  - Tail response analysis
+  - Condition comparisons (contact vs non-contact, etc.)
 
 ### Utilities
 
