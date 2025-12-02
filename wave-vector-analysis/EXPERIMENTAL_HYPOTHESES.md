@@ -28,24 +28,64 @@ This document maps experimental hypotheses to specific analyses that can be perf
 
 ### Generated Analysis Results
 
-Plots and analysis results are available in `analysis_results/`:
+**All plots are available in `analysis_results/` directory:**
 
-- **Hypothesis 1:** `hypothesis1_activity.png` - Activity comparison pre/post poke
-- **Hypothesis 3:** `hypothesis3_directionality_A.png` - Wave directionality in embryo A
-- **Hypothesis 4:** `hypothesis4_directionality_B.png` - Wave directionality in embryo B  
-- **Hypothesis 6:** `spatial_heatmap.png` - Spatial patterning analysis
-- **Hypothesis 7:** `hypothesis7_tail_response.png` - Local tail response analysis
+#### Primary Hypothesis Plots
+
+- **Hypothesis 1 - Presence of Calcium Activity:**
+  - `hypothesis1_activity.png` - Basic activity comparison pre/post poke
+  - `hypothesis1_activity_detailed.png` - Detailed activity with standard deviation and ratios
+
+- **Hypothesis 3 - Wave Directionality (Embryo A):**
+  - `hypothesis3_directionality_A.png` - Rose plot, speed distribution, direction analysis
+
+- **Hypothesis 4 - Wave Directionality (Embryo B):**
+  - `hypothesis4_directionality_B.png` - Rose plot, speed distribution, direction analysis
+  - `hypothesis4_inter_embryo_comparison.png` - Comprehensive comparison between embryos A and B
+
+- **Hypothesis 6 - Spatial Patterning:**
+  - `spatial_heatmap.png` - Spatial density map of Ca²⁺ events
+
+- **Hypothesis 7 - Local Tail Response:**
+  - `hypothesis7_tail_response.png` - Tail activity, speed, and spatial distribution
+
+#### Additional Analysis Plots
+
+- `hypothesis_ap_position_analysis.png` - Activity by AP position (relevant for multiple hypotheses)
+- `hypothesis_speed_vs_time.png` - Speed analysis over time (wave propagation)
+- `hypothesis_time_series_detailed.png` - Detailed time series analysis
+- `hypothesis_embryo_comparison_detailed.png` - Comprehensive embryo comparison
+
+**To regenerate all plots:**
+```bash
+python generate_all_hypothesis_plots.py spark_tracks.csv --clusters-csv vector_clusters.csv --output-dir analysis_results/
+```
+
+### Plot-to-Hypothesis Mapping
+
+| Hypothesis | Plot Files | What They Show |
+|------------|------------|----------------|
+| **1. Presence of Activity** | `hypothesis1_activity.png`<br>`hypothesis1_activity_detailed.png` | Activity pre/post poke, standard deviation, ratios |
+| **3. Directionality (A)** | `hypothesis3_directionality_A.png` | Wave directions, speeds, activity by direction quadrant |
+| **4. Directionality (B)** | `hypothesis4_directionality_B.png`<br>`hypothesis4_inter_embryo_comparison.png` | Wave directions, speeds, A vs B comparison |
+| **5. Posterior Effect** | `hypothesis_ap_position_analysis.png` | AP position distribution, activity by region |
+| **6. Spatial Patterning** | `spatial_heatmap.png` | Spatial density of events |
+| **7. Tail Response** | `hypothesis7_tail_response.png` | Tail activity, speed, spatial distribution |
+| **Supporting Analyses** | `hypothesis_speed_vs_time.png`<br>`hypothesis_time_series_detailed.png`<br>`hypothesis_embryo_comparison_detailed.png` | Speed dynamics, temporal patterns, comprehensive comparisons |
 
 ### Key Findings from Current Data
 
 **Hypothesis 1 - Presence of Calcium Activity:**
 - ✅ **Testable:** Pre-poke and post-poke data available
+- **Plots:** `hypothesis1_activity.png`, `hypothesis1_activity_detailed.png`
 - **Results:** Activity ratio (post/pre) = 128,529x increase
 - **Peak activity:** 8,237 seconds post-poke
+- **Standard deviation analysis:** Shows variability in response over time
 - **Note:** Massive increase suggests strong response, but verify baseline is correct
 
 **Hypothesis 3 - Wave Directionality (Embryo A):**
 - ✅ **Testable:** 5,442 clusters with angle data
+- **Plot:** `hypothesis3_directionality_A.png`
 - **Mean direction:** 21.5° (northeast)
 - **Mean speed:** 3.08 pixels/second
 - **Peak speed:** 19.99 pixels/second
@@ -53,17 +93,34 @@ Plots and analysis results are available in `analysis_results/`:
 
 **Hypothesis 4 - Wave Directionality (Embryo B):**
 - ✅ **Testable:** 11,690 clusters with angle data
+- **Plots:** `hypothesis4_directionality_B.png`, `hypothesis4_inter_embryo_comparison.png`
 - **Mean direction:** 4.9° (east)
 - **Mean speed:** 3.70 pixels/second
 - **Peak speed:** 20.0 pixels/second
 - **Circular variance:** 0.97 (high dispersion)
+- **Comparison:** Shows differences in activity, speed, and AP distribution between embryos
+
+**Hypothesis 5 - Posterior Damage Effect:**
+- ⚠️ **Partially testable:** Can analyze if AP position or distance data available
+- **Relevant plots:** `hypothesis_ap_position_analysis.png` - Can filter by posterior region
+
+**Hypothesis 6 - Spatial Patterning:**
+- ✅ **Testable:** Spatial coordinates available
+- **Plot:** `spatial_heatmap.png` - Shows spatial density distribution
 
 **Hypothesis 7 - Local Tail Response:**
 - ✅ **Testable:** 51,822 tail events detected
+- **Plot:** `hypothesis7_tail_response.png`
 - **Total tail activity:** 6,189,498 pixels²
 - **Peak tail activity:** 7,509 pixels² at 20,252 seconds
 - **Mean tail speed:** 3.34 pixels/second
 - **Peak tail speed:** 19.99 pixels/second
+
+**Additional Supporting Analyses:**
+- **AP Position Analysis:** `hypothesis_ap_position_analysis.png` - Activity distribution by anatomical position
+- **Speed Analysis:** `hypothesis_speed_vs_time.png` - Wave speed over time (relevant for Hypotheses 3, 4, 7)
+- **Time Series:** `hypothesis_time_series_detailed.png` - Detailed temporal dynamics
+- **Embryo Comparison:** `hypothesis_embryo_comparison_detailed.png` - Comprehensive A vs B comparison
 
 ---
 
@@ -423,5 +480,29 @@ python analyze_experimental_hypotheses.py spark_tracks.csv \
     --output analysis_results/hypothesis1_activity.png
 
 # See PLOTTING_GUIDE.md for complete examples
+```
+
+---
+
+## Complete Plot Inventory
+
+**Total plots generated: 11**
+
+| Plot File | Hypothesis | Description |
+|-----------|------------|-------------|
+| `hypothesis1_activity.png` | 1 | Basic activity comparison (pre/post poke, by embryo) |
+| `hypothesis1_activity_detailed.png` | 1 | Detailed activity with std dev, ratios, variability |
+| `hypothesis3_directionality_A.png` | 3 | Wave directionality in embryo A (rose plot, speeds, directions) |
+| `hypothesis4_directionality_B.png` | 4 | Wave directionality in embryo B (rose plot, speeds, directions) |
+| `hypothesis4_inter_embryo_comparison.png` | 4 | Comprehensive A vs B comparison (activity, speed, AP distribution) |
+| `hypothesis7_tail_response.png` | 7 | Local tail response (activity, speed, spatial distribution) |
+| `spatial_heatmap.png` | 6 | Spatial density map of Ca²⁺ events |
+| `hypothesis_ap_position_analysis.png` | 5, 7 | Activity by AP position (head/mid/tail regions) |
+| `hypothesis_speed_vs_time.png` | 3, 4, 7 | Speed analysis over time (pre/post, by embryo) |
+| `hypothesis_time_series_detailed.png` | All | Detailed time series (active tracks, integrated signal) |
+| `hypothesis_embryo_comparison_detailed.png` | 1, 4 | Comprehensive embryo comparison (tracks, speeds, activity, AP) |
+
+All plots are high-resolution (150 DPI) PNG files suitable for presentations and publications.
+
 ```
 

@@ -36,6 +36,13 @@ This follows the methodology described in:
   - Spatial heatmaps
   - Per-embryo comparisons
 
+- **`generate_all_hypothesis_plots.py`**: Generate comprehensive plots for all testable hypotheses
+  - Activity analysis with standard deviation
+  - Inter-embryo comparisons
+  - AP position analysis
+  - Speed vs time analysis
+  - All plots mapped to specific experimental hypotheses
+
 ### Documentation
 
 - **`wave-vector.md`**: Detailed specification of output CSV formats
