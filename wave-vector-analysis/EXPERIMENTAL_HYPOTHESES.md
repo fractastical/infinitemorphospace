@@ -4,21 +4,21 @@ This document maps experimental hypotheses to specific analyses that can be perf
 
 ## Summary of Results and Data Sources
 
-| Experiment | Claim | Current Results | Data Sources Used | Status |
-|------------|-------|-----------------|-------------------|--------|
-| **Presence of calcium activity** | Damaging embryo A increases the calcium activity in embryo A and B | Activity ratio (post/pre): **128,529x increase**<br>Peak: 25,931 pixels² at 8,237s | `spark_tracks.csv` (time_s, area)<br>`vector_clusters.csv` (total_area_px2_frames) | ✅ Testable |
-| **Presence of calcium activity** | Damaging embryo A at a distance increases the calcium activity in embryo A and B, however the response in B is lower than the direct-contact condition | *Requires multiple conditions* | *Multiple CSV files needed* | ❌ Cannot test |
-| **Wave directionality within embryo** | Damaging embryo A (mid region) causes a bidirectional calcium wave in embryo A | Mean direction: 21.5°<br>Mean speed: 3.08 px/s<br>5,442 clusters analyzed | `vector_clusters.csv` (mean_angle_deg, mean_speed_px_per_s)<br>Filtered by embryo_id='A' | ✅ Testable |
-| **Wave directionality between embryos** | Damaging embryo A (anterior and mid region) triggers a calcium wave in embryo B when oriented head-head, head-tail, tail-tail | Mean direction: 4.9°<br>Mean speed: 3.70 px/s<br>11,690 clusters in embryo B | `vector_clusters.csv` (mean_angle_deg, mean_speed_px_per_s)<br>Filtered by embryo_id='B' | ✅ Testable |
-| **Wave directionality between embryos** | Damaging embryo A (posterior region) does not trigger a calcium wave in embryo B when oriented tail-tail | *Partial analysis possible*<br>Can filter by ap_norm | `spark_tracks.csv` (ap_norm, embryo_id)<br>AP position filtering | ⚠️ Partial |
-| **Spatial patterning** | The calcium wave in embryo A and B can be spatially patterned | Spatial density map generated | `spark_tracks.csv` (x, y coordinates) | ✅ Testable |
-| **Local tail response** | Damaging embryo A causes a (fast) localized posterior response in embryo A and B | 51,822 tail events<br>Mean speed: 3.34 px/s<br>Peak activity: 7,509 pixels² | `spark_tracks.csv` (ap_norm >= 0.7)<br>`vector_clusters.csv` (speeds) | ✅ Testable |
-| **Local tail response** | This posterior response gets more localized with age | *Requires age metadata* | *Age/stage metadata needed* | ❌ Cannot test |
-| **Spatial matching** | Embryo A/B shows a local calcium response in a similar region as the wound site of embryo A/B | *Requires poke coordinates* | `spark_tracks.csv` (x, y, dist_from_poke_px)<br>*0% valid distance data* | ⚠️ Partial |
-| **Spatial matching** | Embryo A/B does not show a local response in a similar region when poked further posterior | *Requires posterior poke data* | `spark_tracks.csv` (ap_norm, x, y)<br>Posterior region filtering | ⚠️ Partial |
-| **Contraction** | Damaging embryo A causes a contraction in embryo B in a similar region as the wound site of embryo A | *Requires contraction analysis* | *Separate analysis pipeline needed* | ❌ Cannot test |
-| **Wound memory** | Presence of embryo A increases calcium activity in embryo B at a previously 'healed' wound location | *Requires healed wound coordinates* | `spark_tracks.csv`<br>*Need wound location metadata* | ⚠️ Partial |
-| **Wound memory** | Damaging embryo A causes a local response at the location of a previously 'healed' wound in embryo B | *Requires healed wound coordinates* | `spark_tracks.csv`<br>*Need wound location metadata* | ⚠️ Partial |
+| Claim | Current Results | Data Sources Used | Status |
+|-------|-----------------|-------------------|--------|
+| **Damaging embryo A increases the calcium activity in embryo A and B** | Activity ratio (post/pre): **128,529x increase**<br>Peak: 25,931 pixels² at 8,237s | `spark_tracks.csv` (time_s, area)<br>`vector_clusters.csv` (total_area_px2_frames) | ✅ Testable |
+| **Damaging embryo A at a distance increases the calcium activity in embryo A and B, however the response in B is lower than the direct-contact condition** | *Requires multiple conditions* | *Multiple CSV files needed* | ❌ Cannot test |
+| **Damaging embryo A (mid region) causes a bidirectional calcium wave in embryo A** | Mean direction: 21.5°<br>Mean speed: 3.08 px/s<br>5,442 clusters analyzed | `vector_clusters.csv` (mean_angle_deg, mean_speed_px_per_s)<br>Filtered by embryo_id='A' | ✅ Testable |
+| **Damaging embryo A (anterior and mid region) triggers a calcium wave in embryo B when oriented head-head, head-tail, tail-tail** | Mean direction: 4.9°<br>Mean speed: 3.70 px/s<br>11,690 clusters in embryo B | `vector_clusters.csv` (mean_angle_deg, mean_speed_px_per_s)<br>Filtered by embryo_id='B' | ✅ Testable |
+| **Damaging embryo A (posterior region) does not trigger a calcium wave in embryo B when oriented tail-tail** | *Partial analysis possible*<br>Can filter by ap_norm | `spark_tracks.csv` (ap_norm, embryo_id)<br>AP position filtering | ⚠️ Partial |
+| **The calcium wave in embryo A and B can be spatially patterned** | Spatial density map generated | `spark_tracks.csv` (x, y coordinates) | ✅ Testable |
+| **Damaging embryo A causes a (fast) localized posterior response in embryo A and B** | 51,822 tail events<br>Mean speed: 3.34 px/s<br>Peak activity: 7,509 pixels² | `spark_tracks.csv` (ap_norm >= 0.7)<br>`vector_clusters.csv` (speeds) | ✅ Testable |
+| **This posterior response gets more localized with age** | *Requires age metadata* | *Age/stage metadata needed* | ❌ Cannot test |
+| **Embryo A/B shows a local calcium response in a similar region as the wound site of embryo A/B** | *Requires poke coordinates* | `spark_tracks.csv` (x, y, dist_from_poke_px)<br>*0% valid distance data* | ⚠️ Partial |
+| **Embryo A/B does not show a local response in a similar region when poked further posterior** | *Requires posterior poke data* | `spark_tracks.csv` (ap_norm, x, y)<br>Posterior region filtering | ⚠️ Partial |
+| **Damaging embryo A causes a contraction in embryo B in a similar region as the wound site of embryo A** | *Requires contraction analysis* | *Separate analysis pipeline needed* | ❌ Cannot test |
+| **Presence of embryo A increases calcium activity in embryo B at a previously 'healed' wound location** | *Requires healed wound coordinates* | `spark_tracks.csv`<br>*Need wound location metadata* | ⚠️ Partial |
+| **Damaging embryo A causes a local response at the location of a previously 'healed' wound in embryo B** | *Requires healed wound coordinates* | `spark_tracks.csv`<br>*Need wound location metadata* | ⚠️ Partial |
 
 **Data Sources:**
 - `spark_tracks.csv`: Per-frame spark detections (309,603 track states)
