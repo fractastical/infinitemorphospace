@@ -64,6 +64,15 @@ This follows the methodology described in:
 
 - **`diagnose_tiffs.py`**: Diagnostic tool to inspect TIFF file properties
 - **`convert_tiffs_for_viewing.py`**: Convert 16-bit TIFFs to 8-bit for preview
+- **`plot_poke_locations.py`**: Visualize all poke locations across processing runs
+
+### Simulations
+
+- **`simulations/`**: Simulation framework for generating synthetic Ca²⁺ wave data
+  - Generate data with configurable embryos, poke locations, and wave parameters
+  - Test hypotheses with controlled conditions
+  - Compare simulated vs real data patterns
+  - See `simulations/README.md` for details
 
 ### Output Data
 

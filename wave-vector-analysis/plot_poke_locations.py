@@ -16,67 +16,94 @@ import argparse
 from pathlib import Path
 import sys
 
-def infer_poke_from_early_sparks(tracks_df, time_window_s=2.0, min_sparks=3):
+def infer_poke_from_early_sparks(tracks_df, time_window_s=2.0, min_sparks=1):
     """
-    Infer poke location from the earliest spark clusters after time_s = 0.
+    Infer poke location from the first spark cluster that appears in each file.
     
     Args:
         tracks_df: DataFrame with spark_tracks.csv data
-        time_window_s: Maximum time after poke to consider (default 2 seconds)
-        min_sparks: Minimum number of sparks needed to infer location
+        time_window_s: Not used anymore - kept for compatibility
+        min_sparks: Minimum number of sparks needed to infer location (default 1, just need first cluster)
     
     Returns:
         DataFrame with columns: filename, poke_x, poke_y, n_sparks, method
     """
-    # Group by filename (each file/processing run may have different poke)
+    # Group by base filename (strip page numbers for multi-page files)
     poke_locations = []
     
-    # Get unique files (processing runs)
-    unique_files = tracks_df['filename'].unique() if 'filename' in tracks_df.columns else ['unknown']
+    # Get base filenames (without page numbers)
+    if 'filename' in tracks_df.columns:
+        tracks_df = tracks_df.copy()
+        tracks_df['base_filename'] = tracks_df['filename'].str.replace(r' \(page \d+\)', '', regex=True)
+        unique_base_files = sorted(tracks_df['base_filename'].unique())
+        print(f"  → Found {len(unique_base_files)} unique base files (excluding page variants)")
+    else:
+        unique_base_files = ['unknown']
+        tracks_df['base_filename'] = 'unknown'
     
-    for filename in unique_files:
-        file_data = tracks_df[tracks_df['filename'] == filename] if 'filename' in tracks_df.columns else tracks_df
+    for base_file in unique_base_files:
+        file_data = tracks_df[tracks_df['base_filename'] == base_file].copy()
         
-        # Find early post-poke sparks (time_s > 0 and small)
-        early_sparks = file_data[
-            (file_data['time_s'] > 0) & 
-            (file_data['time_s'] <= time_window_s)
-        ].copy()
+        if len(file_data) == 0:
+            continue
         
-        if len(early_sparks) < min_sparks:
-            # Try to find sparks at exactly time_s = 0
-            zero_sparks = file_data[file_data['time_s'] == 0].copy()
-            if len(zero_sparks) >= min_sparks:
-                early_sparks = zero_sparks
-            else:
-                continue
+        # Find the first spark cluster(s) that appear in this file
+        # Use frame_idx to find the earliest frame, or time_s if frame_idx not available
+        if 'frame_idx' in file_data.columns:
+            min_frame = file_data['frame_idx'].min()
+            first_sparks = file_data[file_data['frame_idx'] == min_frame].copy()
+        elif 'time_s' in file_data.columns:
+            min_time = file_data['time_s'].min()
+            # Use first 10 seconds worth of data, or first frame's worth
+            first_sparks = file_data[file_data['time_s'] <= min_time + 10].copy()
+        else:
+            # No way to determine first - skip
+            continue
+        
+        if len(first_sparks) < 1:  # Changed from min_sparks to just need at least 1
+            continue
+        
+        # If we have multiple sparks in first frame, use the largest/earliest ones
+        # Sort by area (largest first) or by x,y position
+        if 'area' in first_sparks.columns:
+            first_sparks = first_sparks.sort_values('area', ascending=False)
+        
+        # Use first few sparks (or all if few)
+        n_to_use = min(min_sparks, len(first_sparks)) if min_sparks > 1 else len(first_sparks)
+        use_sparks = first_sparks.head(n_to_use)
         
         # Calculate weighted centroid (weight by area if available)
-        if 'area' in early_sparks.columns:
-            weights = early_sparks['area'].fillna(1)
+        if 'area' in use_sparks.columns:
+            weights = use_sparks['area'].fillna(1)
         else:
-            weights = pd.Series(1, index=early_sparks.index)
+            weights = pd.Series(1, index=use_sparks.index)
         
         total_weight = weights.sum()
         if total_weight == 0:
-            weights = pd.Series(1, index=early_sparks.index)
-            total_weight = len(early_sparks)
+            weights = pd.Series(1, index=use_sparks.index)
+            total_weight = len(use_sparks)
         
-        poke_x = (early_sparks['x'] * weights).sum() / total_weight
-        poke_y = (early_sparks['y'] * weights).sum() / total_weight
-        n_sparks = len(early_sparks)
+        poke_x = (use_sparks['x'] * weights).sum() / total_weight
+        poke_y = (use_sparks['y'] * weights).sum() / total_weight
+        n_sparks = len(use_sparks)
         
-        # Get the time range
-        min_time = early_sparks['time_s'].min()
-        max_time = early_sparks['time_s'].max()
+        # Get frame/time info
+        if 'frame_idx' in use_sparks.columns:
+            frame_info = f"frame {use_sparks['frame_idx'].min()}"
+        elif 'time_s' in use_sparks.columns:
+            min_time = use_sparks['time_s'].min()
+            max_time = use_sparks['time_s'].max()
+            frame_info = f"time {min_time:.2f}-{max_time:.2f}s"
+        else:
+            frame_info = "unknown"
         
         poke_locations.append({
-            'filename': filename,
+            'filename': base_file,
             'poke_x': poke_x,
             'poke_y': poke_y,
             'n_sparks': n_sparks,
-            'time_range_s': f"{min_time:.2f}-{max_time:.2f}",
-            'method': 'inferred_from_sparks'
+            'time_range_s': frame_info,
+            'method': 'inferred_from_first_cluster'
         })
     
     return pd.DataFrame(poke_locations)
@@ -211,8 +238,8 @@ def main():
     parser.add_argument(
         '--min-sparks',
         type=int,
-        default=3,
-        help='Minimum number of sparks needed to infer poke location (default: 3)'
+        default=1,
+        help='Minimum number of sparks to use from first cluster (default: 1)'
     )
     parser.add_argument(
         '--no-embryos',
@@ -245,9 +272,8 @@ def main():
         poke_df = None
     
     if poke_df is None:
-        print(f"\nInferring poke locations from early spark clusters...")
-        print(f"  → Time window: {args.time_window_s} seconds after poke")
-        print(f"  → Minimum sparks: {args.min_sparks}")
+        print(f"\nInferring poke locations from first spark cluster in each file...")
+        print(f"  → Using first cluster(s) in each file (min: {args.min_sparks})")
         poke_df = infer_poke_from_early_sparks(
             tracks_df, 
             time_window_s=args.time_window,

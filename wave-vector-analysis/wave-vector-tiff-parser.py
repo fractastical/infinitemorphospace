@@ -482,6 +482,19 @@ class SparkTracker:
                 print(f"  ⚠ Warning: Cannot determine head/tail from morphology for embryo {label}. "
                       f"Insufficient points. Using default assignment.")
 
+            # Validate that head and tail are different points
+            head_tail_dist = np.linalg.norm(head - tail)
+            if head_tail_dist < 5.0:  # Minimum reasonable distance between head and tail (5 pixels)
+                print(f"  ⚠ Warning: Embryo {label} has head and tail too close ({head_tail_dist:.2f} px). "
+                      f"This may cause numerical issues. Consider manual specification.")
+                # Ensure minimum separation
+                if head_tail_dist < 1e-3:
+                    # Head and tail are essentially the same point - use centroid as reference
+                    dir_vec = np.array([1.0, 0.0])  # Default direction
+                    head = centroid_pt - 50 * dir_vec
+                    tail = centroid_pt + 50 * dir_vec
+                    print(f"    → Adjusted to use centroid-based axis")
+
             self.embryos[label] = {
                 "id": label,
                 "mask": (mask == 255),
@@ -509,17 +522,41 @@ class SparkTracker:
             tail = np.array(emb["tail"], dtype=np.float32)
             axis = tail - head
             L = np.linalg.norm(axis)
-            if L < 1e-6:
-                u = np.array([1.0, 0.0], dtype=np.float32)
-            else:
-                u = axis / L
+            
+            # Skip AP/DV calculation if head and tail are too close (invalid axis)
+            if L < 1.0:  # Minimum reasonable axis length (1 pixel)
+                print(f"  ⚠ Warning: Embryo {label} has invalid axis (head and tail too close: L={L:.3f}). Skipping AP/DV mapping.")
+                # Mark all pixels as NaN for this embryo
+                self.ap_norm_map[mask] = np.nan
+                self.dv_map[mask] = np.nan
+                continue
+            
+            # Normalize axis vector (safe division since L >= 1.0)
+            u = axis / L
             u_perp = np.array([-u[1], u[0]], dtype=np.float32)
 
+            # Compute AP and DV coordinates
             ys, xs = np.where(mask)
+            if len(ys) == 0:
+                continue
+            
             pts = np.stack([xs, ys], axis=1).astype(np.float32)
             delta = pts - head.reshape(1, 2)
-            ap = (delta @ u.reshape(2, 1)).ravel() / (L + 1e-9)
-            dv = (delta @ u_perp.reshape(2, 1)).ravel()
+            
+            # Compute AP position (projection along axis, normalized by axis length)
+            # Use np.dot which is more stable than @ for 1D arrays
+            ap_proj = np.dot(delta, u)
+            ap = ap_proj / L
+            
+            # Compute DV position (perpendicular distance)
+            dv = np.dot(delta, u_perp)
+            
+            # Handle NaN/Inf values and clip extreme values to reasonable ranges
+            ap = np.nan_to_num(ap, nan=0.0, posinf=10.0, neginf=-10.0)
+            ap = np.clip(ap, -10.0, 10.0)
+            dv = np.nan_to_num(dv, nan=0.0, posinf=1000.0, neginf=-1000.0)
+            dv = np.clip(dv, -1000.0, 1000.0)
+            
             self.ap_norm_map[ys, xs] = ap
             self.dv_map[ys, xs] = dv
 
