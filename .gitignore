@@ -40,6 +40,11 @@ vector_clusters.csv
 wave-vector-analysis/plots/
 wave-vector-analysis/*.csv
 
+# Simulation outputs
+wave-vector-analysis/simulations/simulation_outputs/
+wave-vector-analysis/simulations/*.csv
+wave-vector-analysis/simulations/*_metadata.json
+
 # OS files
 .DS_Store
 Thumbs.db

@@ -347,6 +347,66 @@ def create_experiment_scenarios():
         'wave_config': WaveConfig(speed_px_per_s=4.0, duration_s=8.0, radial=True)
     }
     
+    # Scenario 5: Three embryos in a line
+    scenarios['three_embryos_line'] = {
+        'embryos': [
+            Embryo(id='A', center_x=400, center_y=1024, length=350, width=140,
+                  angle=0, head_x=225, head_y=1024, tail_x=575, tail_y=1024),
+            Embryo(id='B', center_x=1024, center_y=1024, length=350, width=140,
+                  angle=0, head_x=849, head_y=1024, tail_x=1199, tail_y=1024),
+            Embryo(id='C', center_x=1648, center_y=1024, length=350, width=140,
+                  angle=0, head_x=1473, head_y=1024, tail_x=1823, tail_y=1024)
+        ],
+        'pokes': [PokeConfig(x=400, y=1024, embryo_id='A', time=0.0)],
+        'wave_config': WaveConfig(speed_px_per_s=5.5, duration_s=12.0, radial=True)
+    }
+    
+    # Scenario 6: Four embryos in a square formation
+    scenarios['four_embryos_square'] = {
+        'embryos': [
+            Embryo(id='A', center_x=600, center_y=600, length=300, width=120,
+                  angle=0, head_x=450, head_y=600, tail_x=750, tail_y=600),
+            Embryo(id='B', center_x=1444, center_y=600, length=300, width=120,
+                  angle=0, head_x=1294, head_y=600, tail_x=1594, tail_y=600),
+            Embryo(id='C', center_x=600, center_y=1448, length=300, width=120,
+                  angle=0, head_x=450, head_y=1448, tail_x=750, tail_y=1448),
+            Embryo(id='D', center_x=1444, center_y=1448, length=300, width=120,
+                  angle=0, head_x=1294, head_y=1448, tail_x=1594, tail_y=1448)
+        ],
+        'pokes': [PokeConfig(x=600, y=600, embryo_id='A', time=0.0)],
+        'wave_config': WaveConfig(speed_px_per_s=6.0, duration_s=15.0, radial=True)
+    }
+    
+    # Scenario 7: Four embryos in a line
+    scenarios['four_embryos_line'] = {
+        'embryos': [
+            Embryo(id='A', center_x=320, center_y=1024, length=300, width=120,
+                  angle=0, head_x=170, head_y=1024, tail_x=470, tail_y=1024),
+            Embryo(id='B', center_x=682, center_y=1024, length=300, width=120,
+                  angle=0, head_x=532, head_y=1024, tail_x=832, tail_y=1024),
+            Embryo(id='C', center_x=1044, center_y=1024, length=300, width=120,
+                  angle=0, head_x=894, head_y=1024, tail_x=1194, tail_y=1024),
+            Embryo(id='D', center_x=1406, center_y=1024, length=300, width=120,
+                  angle=0, head_x=1256, head_y=1024, tail_x=1556, tail_y=1024)
+        ],
+        'pokes': [PokeConfig(x=320, y=1024, embryo_id='A', time=0.0)],
+        'wave_config': WaveConfig(speed_px_per_s=5.5, duration_s=15.0, radial=True)
+    }
+    
+    # Scenario 8: Three embryos, central one poked
+    scenarios['three_embryos_central_poke'] = {
+        'embryos': [
+            Embryo(id='A', center_x=500, center_y=1024, length=350, width=140,
+                  angle=0, head_x=325, head_y=1024, tail_x=675, tail_y=1024),
+            Embryo(id='B', center_x=1024, center_y=1024, length=350, width=140,
+                  angle=0, head_x=849, head_y=1024, tail_x=1199, tail_y=1024),
+            Embryo(id='C', center_x=1548, center_y=1024, length=350, width=140,
+                  angle=0, head_x=1373, head_y=1024, tail_x=1723, tail_y=1024)
+        ],
+        'pokes': [PokeConfig(x=1024, y=1024, embryo_id='B', time=0.0)],  # Poke middle embryo
+        'wave_config': WaveConfig(speed_px_per_s=5.5, duration_s=12.0, radial=True)
+    }
+    
     return scenarios
 
 
@@ -357,7 +417,9 @@ def main():
     parser.add_argument(
         '--scenario',
         choices=['two_embryos_head_head', 'three_embryos_triangle', 
-                'two_embryos_tail_tail', 'multiple_pokes_same_embryo', 'custom'],
+                'two_embryos_tail_tail', 'multiple_pokes_same_embryo',
+                'three_embryos_line', 'four_embryos_square', 'four_embryos_line',
+                'three_embryos_central_poke', 'custom'],
         default='two_embryos_head_head',
         help='Predefined experimental scenario'
     )
