@@ -2,6 +2,14 @@
 
 This repository is a collection of Python scripts for simulating and visualizing concepts in morphogenesis and theoretical biology. The scripts explore reaction-diffusion systems, procedural shape generation, and classic models from the field.
 
+## Analysis Tools
+
+### [Ca²⁺ Wave Vector Analysis](./wave-vector-analysis/)
+
+A complete pipeline for detecting and tracking Ca²⁺ signaling waves in time-lapse microscopy images of embryos. Processes multi-page TIFF images to detect bright spark events, track them across frames, segment embryos, and generate comprehensive analysis outputs. Includes visualization tools and supports 16-bit scientific imaging data.
+
+**See [`wave-vector-analysis/README.md`](./wave-vector-analysis/README.md) for full documentation.**
+
 
 
 
