@@ -2,6 +2,31 @@
 
 This document maps experimental hypotheses to specific analyses that can be performed with the `spark_tracks.csv` and `vector_clusters.csv` data.
 
+## Summary of Results and Data Sources
+
+| Experiment | Claim | Current Results | Data Sources Used | Status |
+|------------|-------|-----------------|-------------------|--------|
+| **Presence of calcium activity** | Damaging embryo A increases the calcium activity in embryo A and B | Activity ratio (post/pre): **128,529x increase**<br>Peak: 25,931 pixels² at 8,237s | `spark_tracks.csv` (time_s, area)<br>`vector_clusters.csv` (total_area_px2_frames) | ✅ Testable |
+| **Presence of calcium activity** | Damaging embryo A at a distance increases the calcium activity in embryo A and B, however the response in B is lower than the direct-contact condition | *Requires multiple conditions* | *Multiple CSV files needed* | ❌ Cannot test |
+| **Wave directionality within embryo** | Damaging embryo A (mid region) causes a bidirectional calcium wave in embryo A | Mean direction: 21.5°<br>Mean speed: 3.08 px/s<br>5,442 clusters analyzed | `vector_clusters.csv` (mean_angle_deg, mean_speed_px_per_s)<br>Filtered by embryo_id='A' | ✅ Testable |
+| **Wave directionality between embryos** | Damaging embryo A (anterior and mid region) triggers a calcium wave in embryo B when oriented head-head, head-tail, tail-tail | Mean direction: 4.9°<br>Mean speed: 3.70 px/s<br>11,690 clusters in embryo B | `vector_clusters.csv` (mean_angle_deg, mean_speed_px_per_s)<br>Filtered by embryo_id='B' | ✅ Testable |
+| **Wave directionality between embryos** | Damaging embryo A (posterior region) does not trigger a calcium wave in embryo B when oriented tail-tail | *Partial analysis possible*<br>Can filter by ap_norm | `spark_tracks.csv` (ap_norm, embryo_id)<br>AP position filtering | ⚠️ Partial |
+| **Spatial patterning** | The calcium wave in embryo A and B can be spatially patterned | Spatial density map generated | `spark_tracks.csv` (x, y coordinates) | ✅ Testable |
+| **Local tail response** | Damaging embryo A causes a (fast) localized posterior response in embryo A and B | 51,822 tail events<br>Mean speed: 3.34 px/s<br>Peak activity: 7,509 pixels² | `spark_tracks.csv` (ap_norm >= 0.7)<br>`vector_clusters.csv` (speeds) | ✅ Testable |
+| **Local tail response** | This posterior response gets more localized with age | *Requires age metadata* | *Age/stage metadata needed* | ❌ Cannot test |
+| **Spatial matching** | Embryo A/B shows a local calcium response in a similar region as the wound site of embryo A/B | *Requires poke coordinates* | `spark_tracks.csv` (x, y, dist_from_poke_px)<br>*0% valid distance data* | ⚠️ Partial |
+| **Spatial matching** | Embryo A/B does not show a local response in a similar region when poked further posterior | *Requires posterior poke data* | `spark_tracks.csv` (ap_norm, x, y)<br>Posterior region filtering | ⚠️ Partial |
+| **Contraction** | Damaging embryo A causes a contraction in embryo B in a similar region as the wound site of embryo A | *Requires contraction analysis* | *Separate analysis pipeline needed* | ❌ Cannot test |
+| **Wound memory** | Presence of embryo A increases calcium activity in embryo B at a previously 'healed' wound location | *Requires healed wound coordinates* | `spark_tracks.csv`<br>*Need wound location metadata* | ⚠️ Partial |
+| **Wound memory** | Damaging embryo A causes a local response at the location of a previously 'healed' wound in embryo B | *Requires healed wound coordinates* | `spark_tracks.csv`<br>*Need wound location metadata* | ⚠️ Partial |
+
+**Data Sources:**
+- `spark_tracks.csv`: Per-frame spark detections (309,603 track states)
+- `vector_clusters.csv`: Per-cluster summaries (79,902 clusters)
+- Coverage: 46.1% embryo_id, 74.2% angle data, 0% distance from poke (will improve after re-run)
+
+---
+
 ## Data Availability Summary
 
 **Analysis Date:** Generated from current dataset  
@@ -135,9 +160,10 @@ python generate_all_hypothesis_plots.py spark_tracks.csv --clusters-csv vector_c
 **Status:** ✅ **CAN TEST FULLY** | **Confidence:** High  
 **Plot:** ![Activity Comparison](analysis_results/hypothesis1_activity.png)
 
+**Experiment:** Presence of calcium activity
+
 **Claim:** Damaging embryo A increases the calcium activity in embryo A and B
 
-**Current Data Results:**
 - Activity ratio (post/pre): **128,529x increase**
 - Pre-poke mean activity: 53.5 pixels²
 - Post-poke mean activity: 133.3 pixels²
@@ -152,11 +178,11 @@ python generate_all_hypothesis_plots.py spark_tracks.csv --clusters-csv vector_c
   - Control (no poke) vs experimental
 - **Script:** Use `analyze_calcium_activity.py` with `--compare-embryos`
 
-**Outcome to Measure:**
-- Standard deviation of calcium activity over time
-- Peak activity time
-- Integrated activity (area under curve)
-- Activity ratio: post-poke / pre-poke
+**Outcome to Measure:** Compare calcium activity (ΔF/F₀) over time by measuring the standard deviation in poked vs. neighbor.
+
+**Comment:** (Empty)
+
+**Current Results:**
 
 ---
 
@@ -165,17 +191,18 @@ python generate_all_hypothesis_plots.py spark_tracks.csv --clusters-csv vector_c
 **Status:** ❌ **CANNOT TEST** | **Confidence:** Low  
 **Reason:** Requires data from multiple experimental conditions (separate CSV files)
 
-**Claim:** Damaging embryo A at a distance increases calcium activity in A and B, but response in B is lower than direct-contact condition
+**Experiment:** Presence of calcium activity
+
+**Claim:** Damaging embryo A at a distance increases the calcium activity in embryo A and B, however the response in B is lower than the direct-contact condition
 
 **Analysis:**
 - **Metric:** Total activity in embryo B
 - **Comparison:** Contact condition vs non-contact condition
 - **Script:** Use `analyze_calcium_activity.py` with `--condition contact` vs `--condition non-contact`
 
-**Outcome to Measure:**
-- Compare ΔF/F₀ (or area sum) in embryo B between conditions
-- Time to peak activity
-- Duration of response
+**Outcome to Measure:** Compare ΔF/F₀ in embryo B: contact vs. non-contact condition.
+
+**Comment:** More diffusive signal than a calcium wave.
 
 ---
 
@@ -184,9 +211,10 @@ python generate_all_hypothesis_plots.py spark_tracks.csv --clusters-csv vector_c
 **Status:** ✅ **CAN TEST FULLY** | **Confidence:** High  
 **Plot:** ![Wave Directionality Embryo A](analysis_results/hypothesis3_directionality_A.png)
 
+**Experiment:** Wave directionality within embryo
+
 **Claim:** Damaging embryo A (mid region) causes a bidirectional calcium wave in embryo A
 
-**Current Data Results (Embryo A):**
 - Clusters analyzed: 5,442
 - Mean wave direction: 21.5° (northeast)
 - Mean speed: 3.08 pixels/second
@@ -198,12 +226,11 @@ python generate_all_hypothesis_plots.py spark_tracks.csv --clusters-csv vector_c
 - **Filter:** Events in embryo A only
 - **Script:** Use `analyze_wave_directionality.py` with `--embryo A`
 
-**Outcome to Measure:**
-- Wave directionality: Distribution of angles
-- Intensity over time: Activity vs time from poke
-- Speed: `mean_speed_px_per_s`, `peak_speed_px_per_s`
+**Outcome to Measure:** Wave directionality and intensity over time.
 
-**Notes:** Response differs between cut vs. poked conditions
+**Comment:** Response differs between cut vs. poked conditions.
+
+**Current Results:**
 
 ---
 
@@ -212,9 +239,10 @@ python generate_all_hypothesis_plots.py spark_tracks.csv --clusters-csv vector_c
 **Status:** ✅ **CAN TEST FULLY** | **Confidence:** High  
 **Plot:** ![Wave Directionality Embryo B](analysis_results/hypothesis4_directionality_B.png)
 
+**Experiment:** Wave directionality between embryos
+
 **Claim:** Damaging embryo A (anterior and mid region) triggers a calcium wave in embryo B when oriented head-head, head-tail, tail-tail
 
-**Current Data Results (Embryo B):**
 - Clusters analyzed: 11,690
 - Mean wave direction: 4.9° (east)
 - Mean speed: 3.70 pixels/second
@@ -226,11 +254,11 @@ python generate_all_hypothesis_plots.py spark_tracks.csv --clusters-csv vector_c
 - **Filter:** Events in embryo B
 - **Script:** Use `analyze_inter_embryo_waves.py`
 
-**Outcome to Measure:**
-- Presence of calcium wave: Binary (yes/no)
-- Intensity over time: `total_area_px2_frames` per time bin
-- Speed: `mean_speed_px_per_s`
-- Direction: `mean_angle_deg` (should point from A to B)
+**Outcome to Measure:** Presence of calcium wave, intensity over time, speed.
+
+**Comment:** (Empty)
+
+**Current Results:**
 
 ---
 
@@ -239,6 +267,8 @@ python generate_all_hypothesis_plots.py spark_tracks.csv --clusters-csv vector_c
 **Status:** ⚠️ **CAN TEST PARTIALLY** | **Confidence:** Medium  
 **Note:** Can identify posterior region if AP position or distance data available
 
+**Experiment:** Wave directionality between embryos
+
 **Claim:** Damaging embryo A (posterior region) does NOT trigger a calcium wave in embryo B when oriented tail-tail
 
 **Analysis:**
@@ -246,11 +276,9 @@ python generate_all_hypothesis_plots.py spark_tracks.csv --clusters-csv vector_c
 - **Filter:** Events in embryo B, when poke is in posterior region of A
 - **Script:** Use `analyze_inter_embryo_waves.py` with `--poke-region posterior`
 
-**Outcome to Measure:**
-- Presence: Compare to anterior/mid results (should be absent/weak)
-- Activity level: Should be much lower than anterior/mid pokes
+**Outcome to Measure:** Presence of calcium wave, intensity over time, speed.
 
-**Notes:** A slight increase may be observed (n=2), but should be significantly lower
+**Comment:** A slight increase in calcium activity is observed in embryo B, n=2.
 
 ---
 
@@ -259,6 +287,8 @@ python generate_all_hypothesis_plots.py spark_tracks.csv --clusters-csv vector_c
 **Status:** ✅ **CAN TEST FULLY** | **Confidence:** High  
 **Plot:** ![Spatial Heatmap](analysis_results/spatial_heatmap.png)
 
+**Experiment:** Spatial patterning
+
 **Claim:** The calcium wave in embryo A and B can be spatially patterned
 
 **Analysis:**
@@ -266,11 +296,9 @@ python generate_all_hypothesis_plots.py spark_tracks.csv --clusters-csv vector_c
 - **Visualization:** Heatmap of event density over space
 - **Script:** Use `visualize_spark_tracks.py --plot heatmap`
 
-**Outcome to Measure:**
-- Signal intensity over time at different spatial locations
-- Pattern structure (radial, directional, etc.)
+**Outcome to Measure:** Signal intensity over time.
 
-**Notes:** High variability across embryos expected
+**Comment:** Lots of variability across embryos.
 
 ---
 
@@ -279,9 +307,10 @@ python generate_all_hypothesis_plots.py spark_tracks.csv --clusters-csv vector_c
 **Status:** ✅ **CAN TEST FULLY** | **Confidence:** High  
 **Plot:** ![Tail Response](analysis_results/hypothesis7_tail_response.png)
 
+**Experiment:** Local tail response
+
 **Claim:** Damaging embryo A causes a (fast) localized posterior response in embryo A and B
 
-**Current Data Results:**
 - Tail events detected: 51,822
 - Tail clusters: 12,241
 - Total tail activity: 6,189,498 pixels²
@@ -300,12 +329,11 @@ python generate_all_hypothesis_plots.py spark_tracks.csv --clusters-csv vector_c
 - **See:** `TAIL_LABELING.md` for detailed methodology
 - **Script:** Use `analyze_tail_response.py`
 
-**Outcome to Measure:**
-- Activity within defined ROI in tail region
-- Speed: Should be faster than calcium wave
-- Time to response: Should be faster than full wave
+**Outcome to Measure:** Measure activity and speed within a defined ROI in the tail region.
 
-**Notes:** This may be a distinct mechanism from the calcium wave
+**Comment:** Local response is faster than the calcium wave (potentially new claim).
+
+**Current Results:**
 
 ---
 
@@ -314,17 +342,18 @@ python generate_all_hypothesis_plots.py spark_tracks.csv --clusters-csv vector_c
 **Status:** ❌ **CANNOT TEST** | **Confidence:** Low  
 **Reason:** Requires data from multiple embryo ages/stages (need metadata)
 
-**Claim:** The posterior response gets more localized with age
+**Experiment:** Local tail response
+
+**Claim:** This posterior response gets more localized with age
 
 **Analysis:**
 - **Metric:** Spatial extent of tail response
 - **Comparison:** Early stage vs late stage embryos
 - **Script:** Use `analyze_tail_response.py` with age/stage grouping
 
-**Outcome to Measure:**
-- Spatial spread: Standard deviation of event positions in tail
-- ROI size: Number of events within tail region
-- Duration: How long the response is localized
+**Outcome to Measure:** Measure activity and speed within a defined ROI in the tail region.
+
+**Comment:** (Empty)
 
 ---
 
@@ -335,6 +364,8 @@ python generate_all_hypothesis_plots.py spark_tracks.csv --clusters-csv vector_c
 **Status:** ⚠️ **CAN TEST PARTIALLY** | **Confidence:** Low  
 **Note:** Distance column exists but is empty (0% valid). Can calculate if poke coordinates provided.
 
+**Experiment:** Spatial matching
+
 **Claim:** Embryo A/B shows a local calcium response in a similar region as the wound site of embryo A/B
 
 **Analysis:**
@@ -342,22 +373,42 @@ python generate_all_hypothesis_plots.py spark_tracks.csv --clusters-csv vector_c
 - **Filter:** Local responses (high intensity, short duration)
 - **Script:** Use `analyze_spatial_matching.py`
 
-**Outcome to Measure:**
-- Distance between wound coordinates and response coordinates
-- AP position matching: `ap_norm` of wound vs `ap_norm` of response
-- Correlation: Does poking at distance X from head result in flash at distance X in neighbor?
+**Outcome to Measure:** Compare the XY coordinates of the wound location and calcium response in neighbor.
 
-**Notes:** 
-- Local response is faster than calcium wave
-- Sometimes replaces the wave
-- More testing needed, orientations differ
+**Comment:** 
+1. Does poking at distance X from the head result in a flash in the neighbor at distance X from its head?
+2. Local response is faster than calcium wave and sometimes replaces it
+
+**Note:** More testing needed, orientations differ.
 
 ---
 
-### 2. Contraction
+### 2. Spatial Matching (Posterior)
+
+**Status:** ⚠️ **CAN TEST PARTIALLY** | **Confidence:** Low  
+**Note:** Requires posterior poke location data
+
+**Experiment:** Spatial matching
+
+**Claim:** Embryo A/B does not show a local response in a similar region when poked further posterior
+
+**Analysis:**
+- **Metric:** Presence of local response
+- **Filter:** Posterior poke location (ap_norm > 0.7)
+- **Script:** Use `analyze_spatial_matching.py` with `--poke-region posterior`
+
+**Outcome to Measure:** Presence of local response.
+
+**Comment:** Test if the absence depends on poke intensity and embryo A and B proximity.
+
+---
+
+### 3. Contraction
 
 **Status:** ❌ **CANNOT TEST** | **Confidence:** Low  
 **Reason:** Requires separate contraction analysis - not in current pipeline
+
+**Experiment:** Contraction
 
 **Claim:** Damaging embryo A causes a contraction in embryo B in a similar region as the wound site of embryo A
 
@@ -366,18 +417,18 @@ python generate_all_hypothesis_plots.py spark_tracks.csv --clusters-csv vector_c
 - **Metric:** XY coordinates of wound vs contraction location
 - **Script:** Requires additional image analysis for contraction detection
 
-**Outcome to Measure:**
-- Spatial matching: Distance between wound and contraction coordinates
-- AP position matching
+**Outcome to Measure:** Compare the XY coordinates of the wound location and contraction response in neighbor.
 
-**Questions:** F-actin from A to B?
+**Comment:** F-actin from A to B?
 
 ---
 
-### 3. Wound Memory (Increased Activity)
+### 4. Wound Memory (Increased Activity)
 
 **Status:** ⚠️ **CAN TEST PARTIALLY** | **Confidence:** Medium  
 **Note:** Would need to identify healed wound locations from metadata or coordinates
+
+**Experiment:** Wound memory
 
 **Claim:** Presence of embryo A increases calcium activity in embryo B at a previously 'healed' wound location
 
@@ -387,18 +438,18 @@ python generate_all_hypothesis_plots.py spark_tracks.csv --clusters-csv vector_c
 - **Time:** Response measured 24h after wound regeneration
 - **Script:** Use `analyze_wound_memory.py`
 
-**Outcome to Measure:**
-- Activity at healed wound site: Before vs after A is present
-- Baseline activity: Should be low before A arrives
+**Outcome to Measure:** Compare ΔF/F₀ at the healed wound site before and after embryo A is present.
 
-**Notes:** Not sure yet, more testing needed
+**Comment:** Response measured 24h after wound regeneration. Not sure yet, more testing needed.
 
 ---
 
-### 4. Wound Memory (Local Response)
+### 5. Wound Memory (Local Response)
 
 **Status:** ⚠️ **CAN TEST PARTIALLY** | **Confidence:** Medium  
 **Note:** Would need healed wound location data to match responses
+
+**Experiment:** Wound memory
 
 **Claim:** Damaging embryo A causes a local response at the location of a previously 'healed' wound in embryo B
 
@@ -407,11 +458,9 @@ python generate_all_hypothesis_plots.py spark_tracks.csv --clusters-csv vector_c
 - **Filter:** Events at healed wound coordinates
 - **Script:** Use `analyze_wound_memory.py` with `--healed-wound-coords`
 
-**Outcome to Measure:**
-- Activity at healed wound location: Before poke vs after poke
-- Spatial matching: Does response match anatomical region of poke?
+**Outcome to Measure:** Compare ΔF/F₀ in embryo B before and after poking embryo A.
 
-**Notes:** N=1, but response matched anatomical region; testing additional locations
+**Comment:** N=1, but response matched anatomical region of poke; testing additional locations.
 
 ---
 
