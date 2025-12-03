@@ -163,8 +163,8 @@ def analyze_spatial_matching(tracks_df, clusters_df=None, output_dir='analysis_r
     ax3 = fig.add_subplot(gs[0, 2])
     time_max = valid_data['time_s'].max()
     time_bins = np.linspace(0, time_max, 51)  # 51 edges = 50 bins
-    valid_data['time_bin'] = pd.cut(valid_data['time_s'], bins=time_bins, observed=False)
-    time_grouped = valid_data.groupby('time_bin', observed=False)['dist_from_poke_px'].agg(['mean', 'std', 'count'])
+    valid_data['time_bin'] = pd.cut(valid_data['time_s'], bins=time_bins)
+    time_grouped = valid_data.groupby('time_bin')['dist_from_poke_px'].agg(['mean', 'std', 'count'])
     time_centers = [(interval.left + interval.right) / 2 for interval in time_grouped.index]
     ax3.plot(time_centers, time_grouped['mean'], 'o-', color='steelblue', label='Mean distance')
     ax3.fill_between(time_centers, 
@@ -192,11 +192,13 @@ def analyze_spatial_matching(tracks_df, clusters_df=None, output_dir='analysis_r
         poke_locs = infer_poke_from_early_sparks(tracks_df)
         if len(poke_locs) > 0:
             # Match poke locations to visible data
-            for _, poke_row in poke_locs.iterrows():
+            for i, (_, poke_row) in enumerate(poke_locs.iterrows()):
+                # Only add label for the first poke location to avoid duplicate legend entries
+                label = 'Poke locations' if i == 0 else None
                 ax4.scatter(poke_row['poke_x'], poke_row['poke_y'], 
                            s=200, c='red', marker='X', 
                            edgecolors='black', linewidths=2, 
-                           label='Poke locations', zorder=10)
+                           label=label, zorder=10)
         ax4.set_xlabel('X (pixels)', fontsize=11)
         ax4.set_ylabel('Y (pixels)', fontsize=11)
         ax4.set_title('Poke Locations and Early Responses', fontweight='bold', fontsize=12)
@@ -233,7 +235,7 @@ def analyze_spatial_matching(tracks_df, clusters_df=None, output_dir='analysis_r
     valid_data['dist_bin'] = pd.cut(valid_data['dist_from_poke_px'], bins=distance_bins,
                                     labels=['0-25', '25-50', '50-100', '100-200', '200-500', '500+'])
     if 'area' in valid_data.columns:
-        activity_by_dist = valid_data.groupby('dist_bin', observed=False)['area'].agg(['sum', 'mean', 'count'])
+        activity_by_dist = valid_data.groupby('dist_bin')['area'].agg(['sum', 'mean', 'count'])
         x_pos = np.arange(len(activity_by_dist))
         ax6.bar(x_pos, activity_by_dist['sum'], alpha=0.7, color='steelblue', edgecolor='black')
         ax6.set_xticks(x_pos)
@@ -381,10 +383,18 @@ def analyze_posterior_poke_effect(tracks_df, clusters_df=None, output_dir='analy
         
         # Get AP position from nearest tracks
         if 'ap_norm' in file_tracks.columns:
+            # First try nearest tracks (most accurate)
             nearest_tracks = file_tracks.nsmallest(10, 'dist_to_poke')
             ap_values = nearest_tracks['ap_norm'].dropna()
+            
             if len(ap_values) > 0:
                 poke_ap_positions[base_file] = ap_values.mean()
+            else:
+                # Fallback: use ALL tracks with AP in this file (less precise but better than nothing)
+                all_ap_values = file_tracks['ap_norm'].dropna()
+                if len(all_ap_values) > 0:
+                    # Use the mean AP position from all tracks in the file
+                    poke_ap_positions[base_file] = all_ap_values.mean()
     
     print(f"  → Found AP positions for {len(poke_ap_positions)} poke locations")
     

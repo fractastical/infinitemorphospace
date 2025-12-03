@@ -14,7 +14,7 @@ This document maps experimental hypotheses to specific analyses that can be perf
 | **The calcium wave in embryo A and B can be spatially patterned** | Spatial density map generated | `spark_tracks.csv` (x, y coordinates) | ✅ Testable |
 | **Damaging embryo A causes a (fast) localized posterior response in embryo A and B** | 51,822 tail events<br>Mean speed: 3.34 px/s<br>Peak activity: 7,509 pixels² | `spark_tracks.csv` (ap_norm >= 0.7)<br>`vector_clusters.csv` (speeds) | ✅ Testable |
 | **This posterior response gets more localized with age** | *Requires age metadata* | *Age/stage metadata needed* | ❌ Cannot test |
-| **Embryo A/B shows a local calcium response in a similar region as the wound site of embryo A/B** | Mean distance: 612.9 px<br>Median: 464.6 px<br>100% distance data available | `spark_tracks.csv` (x, y, dist_from_poke_px)<br>**100% valid distance data** | ✅ Testable |
+| **Embryo A/B shows a local calcium response in a similar region as the wound site of embryo A/B** | Mean distance: 612.9 px<br>Median: 464.6 px<br>309,597 events analyzed | `spark_tracks.csv` (x, y, dist_from_poke_px)<br>Distance data available for all post-poke events | ✅ Testable |
 | **Embryo A/B does not show a local response in a similar region when poked further posterior** | *Can analyze with inferred pokes* | `spark_tracks.csv` (ap_norm, x, y, dist_from_poke_px)<br>Posterior region filtering | ✅ Testable |
 | **Damaging embryo A causes a contraction in embryo B in a similar region as the wound site of embryo A** | *Requires contraction analysis* | *Separate analysis pipeline needed* | ❌ Cannot test |
 | **Presence of embryo A increases calcium activity in embryo B at a previously 'healed' wound location** | *Requires healed wound coordinates* | `spark_tracks.csv`<br>*Need wound location metadata* | ⚠️ Partial |
@@ -23,7 +23,7 @@ This document maps experimental hypotheses to specific analyses that can be perf
 **Data Sources:**
 - `spark_tracks.csv`: Per-frame spark detections (309,603 track states)
 - `vector_clusters.csv`: Per-cluster summaries (79,902 clusters)
-- Coverage: 46.1% embryo_id, 74.2% angle data, **100% distance from poke** ✅
+- Coverage: 46.1% embryo_id, 74.2% angle data, 100% distance from poke
 
 ---
 
@@ -49,7 +49,7 @@ This document maps experimental hypotheses to specific analyses that can be perf
 - **Embryo IDs:** ⚠️ 46.1% valid (142,770/309,603 events)
 - **Angle data:** ✅ 74.2% valid (229,701/309,603 events)
 - **AP position:** ⚠️ 46.1% valid (142,770/309,603 events)
-- **Distance from poke:** ✅ **100% valid** (309,603/309,603 events) - **NOW FULLY AVAILABLE!**
+- **Distance from poke:** 100% valid (309,603/309,603 events)
 
 ### Generated Analysis Results
 
@@ -370,7 +370,7 @@ python generate_all_hypothesis_plots.py spark_tracks.csv --clusters-csv vector_c
 ### 1. Spatial Matching
 
 **Status:** ✅ **CAN TEST FULLY** | **Confidence:** High  
-**Note:** ✅ **Distance data now 100% available!** (309,603 events with valid distances)
+**Note:** Distance data available for 309,603 events (100% of post-poke events)
 
 **Experiment:** Spatial matching
 
@@ -394,19 +394,19 @@ python generate_all_hypothesis_plots.py spark_tracks.csv --clusters-csv vector_c
 2. Local response is faster than calcium wave and sometimes replaces it
 
 **Current Results:**
-- ✅ Distance calculations available for all 309,603 events
-- ✅ Analyzed 309,597 post-poke events with valid distances
-- ✅ Mean distance from poke: 612.9 px, Median: 464.6 px
-- ✅ Local responses (≤50px): 6,070 events (2.0%)
-- ✅ Distant responses (>50px): 303,527 events (98.0%)
-- ✅ **Plot:** ![Spatial Matching](analysis_results/spatial_matching_analysis.png)
+- Distance calculations available for 309,603 events
+- Analyzed 309,597 post-poke events with valid distances
+- Mean distance from poke: 612.9 px, Median: 464.6 px
+- Local responses (≤50px): 6,070 events (2.0%)
+- Distant responses (>50px): 303,527 events (98.0%)
+- **Plot:** ![Spatial Matching](analysis_results/spatial_matching_analysis.png)
 
 ---
 
 ### 2. Spatial Matching (Posterior)
 
 **Status:** ✅ **CAN TEST FULLY** | **Confidence:** Medium  
-**Note:** ✅ Can now analyze posterior poke effects using inferred poke locations and AP positions
+**Note:** Posterior poke effects can be analyzed using inferred poke locations and AP positions
 
 **Experiment:** Spatial matching
 
@@ -423,10 +423,11 @@ python generate_all_hypothesis_plots.py spark_tracks.csv --clusters-csv vector_c
 **Comment:** Test if the absence depends on poke intensity and embryo A and B proximity.
 
 **Current Results:**
-- ✅ Classified 39 poke locations with AP positions
-- ✅ Anterior pokes: 33, Posterior pokes: 6
-- ✅ Can compare responses to posterior vs anterior pokes
-- ✅ **Plot:** ![Posterior Poke Effect](analysis_results/posterior_poke_effect.png)
+- Classified 73 poke locations with AP positions (85.9% of all pokes)
+- Anterior pokes: 63, Posterior pokes: 10
+- Responses can be compared between posterior and anterior pokes
+- **Plot:** ![Posterior Poke Effect](analysis_results/posterior_poke_effect.png)
+- **Note:** 12 poke locations (14.1%) have no AP data because those files lack embryo segmentation data (no `embryo_id`). These are mostly special cases like "Contraction" or "after wound" visualization files.
 
 ---
 
