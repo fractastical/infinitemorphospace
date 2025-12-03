@@ -18,7 +18,9 @@ The simulation framework allows you to:
 - **`generate_simulated_data.py`**: Main script to generate simulated data
 - **`calibrate_from_real_data.py`**: Extract parameters from real experimental data to calibrate simulations
 - **`visualize_simulation.py`**: Visualize and compare simulated data
+- **`animate_simulation.py`**: Create animated heatmaps of signaling patterns (similar to experimental animations)
 - **`run_all_scenarios.sh`**: Batch script to generate all predefined scenarios
+- **`animate_all_simulations.sh`**: Batch script to generate animations for all scenarios
 - **`README.md`**: This file
 
 ## Quick Start
@@ -79,6 +81,20 @@ python3 visualize_simulation.py simulated_two_embryos.csv \
     --real-csv ../spark_tracks.csv \
     --compare \
     --output comparison.png
+```
+
+### Create Animation
+
+```bash
+# Animate a single simulation
+python3 animate_simulation.py simulated_three_embryos_line.csv \
+    --output three_embryos_animation.gif \
+    --time-window 30 \
+    --frame-interval 1 \
+    --fps 5
+
+# Generate animations for all scenarios
+./animate_all_simulations.sh
 ```
 
 ## Available Scenarios
