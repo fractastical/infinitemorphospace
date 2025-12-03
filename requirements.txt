@@ -4,4 +4,5 @@ tifffile>=2020.0.0
 pandas>=1.3.0
 matplotlib>=3.3.0
 scipy>=1.7.0
+Pillow>=8.0.0
 
