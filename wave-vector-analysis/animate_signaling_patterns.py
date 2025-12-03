@@ -74,6 +74,25 @@ def group_poke_locations_by_region(poke_locations_df, method='spatial', n_region
         poke_df['region'] = poke_df['region'].map(region_map)
         poke_df['region_label'] = poke_df['region'].apply(lambda x: f'Region {x+1}')
         
+        # Post-processing: Move pokes in the left third of Region 1 to Region 0
+        if n_regions == 3:
+            # Find Region 1's X range to determine left third of Region 1
+            region1_pokes = poke_df[poke_df['region'] == 1]
+            if len(region1_pokes) > 0:
+                r1_x_min = region1_pokes['poke_x'].min()
+                r1_x_max = region1_pokes['poke_x'].max()
+                r1_x_range = r1_x_max - r1_x_min
+                r1_left_third_boundary = r1_x_min + (r1_x_range / 3)
+                
+                # Find pokes in Region 1 that are in the left third of Region 1's range
+                region1_mask = (poke_df['region'] == 1) & (poke_df['poke_x'] < r1_left_third_boundary)
+                n_moved = region1_mask.sum()
+                
+                if n_moved > 0:
+                    print(f"  Moving {n_moved} pokes from Region 1 to Region 0 (left third of Region 1)")
+                    poke_df.loc[region1_mask, 'region'] = 0
+                    poke_df['region_label'] = poke_df['region'].apply(lambda x: f'Region {x+1}')
+        
         return poke_df
     
     elif method == 'density':
@@ -164,11 +183,32 @@ def create_animated_heatmap(tracks_df, poke_locations_df, output_path,
         region_files = poke_regions_df[poke_regions_df['region'] == region_id]
         print(f"  Region {region_id}: {len(region_files)} videos")
     
-    # Filter to post-poke data within time window
+    # Align videos by poke time only (keep absolute spatial coordinates)
     tracks_df = tracks_df.copy()
+    if 'filename' in tracks_df.columns:
+        tracks_df['base_filename'] = tracks_df['filename'].str.replace(r' \(page \d+\)', '', regex=True)
+    
+    # For each file, align time relative to poke (keep spatial coordinates absolute)
+    aligned_tracks = []
+    for base_file in tracks_df['base_filename'].unique():
+        file_data = tracks_df[tracks_df['base_filename'] == base_file].copy()
+        
+        if len(file_data) > 0 and 'time_s' in file_data.columns:
+            # Find the earliest time in this file (this is when poke occurs)
+            poke_time = file_data['time_s'].min()
+            # Shift all times to be relative to poke (poke_time becomes t=0)
+            file_data['time_s_aligned'] = file_data['time_s'] - poke_time
+            aligned_tracks.append(file_data)
+    
+    if len(aligned_tracks) > 0:
+        tracks_df = pd.concat(aligned_tracks, ignore_index=True)
+        tracks_df['time_s'] = tracks_df['time_s_aligned']
+        # Keep x and y as absolute coordinates (no spatial alignment)
+    
+    # Filter to post-poke data within time window (now aligned)
     post_poke = tracks_df[(tracks_df['time_s'] >= 0) & (tracks_df['time_s'] <= time_window_s)].copy()
     
-    print(f"\nPost-poke events in time window: {len(post_poke):,}")
+    print(f"\nPost-poke events in time window (aligned): {len(post_poke):,}")
     
     # Prepare data for each region
     region_data = {}
@@ -177,7 +217,7 @@ def create_animated_heatmap(tracks_df, poke_locations_df, output_path,
         region_data[region_id] = region_tracks
         print(f"  Region {region_id}: {len(region_tracks):,} events")
     
-    # Determine spatial extent for all regions combined
+    # Determine spatial extent using absolute coordinates (shared across all regions)
     all_x = post_poke['x'].dropna()
     all_y = post_poke['y'].dropna()
     
@@ -191,10 +231,14 @@ def create_animated_heatmap(tracks_df, poke_locations_df, output_path,
     # Add padding
     x_range = x_max - x_min
     y_range = y_max - y_min
-    x_min -= x_range * 0.1
-    x_max += x_range * 0.1
-    y_min -= y_range * 0.1
-    y_max += y_range * 0.1
+    x_min -= x_range * 0.05
+    x_max += x_range * 0.05
+    y_min -= y_range * 0.05
+    y_max += y_range * 0.05
+    
+    print(f"\nSpatial extent (absolute coordinates):")
+    print(f"  X: {x_min:.1f} to {x_max:.1f} pixels")
+    print(f"  Y: {y_min:.1f} to {y_max:.1f} pixels")
     
     # Create time bins
     time_bins = np.arange(0, time_window_s + frame_interval_s, frame_interval_s)
@@ -212,29 +256,39 @@ def create_animated_heatmap(tracks_df, poke_locations_df, output_path,
             t_start = time_bins[i]
             t_end = time_bins[i + 1]
             
-            # Filter tracks in this time window (cumulative from start)
+            # Filter tracks CUMULATIVELY from start (all sparks up to this time)
             frame_tracks = region_tracks[(region_tracks['time_s'] >= 0) & 
                                         (region_tracks['time_s'] <= t_end)].copy()
             
-            if len(frame_tracks) > 0:
-                # Create 2D histogram
-                H, xedges, yedges = np.histogram2d(
-                    frame_tracks['x'], frame_tracks['y'],
-                    bins=bins, range=[[x_min, x_max], [y_min, y_max]]
-                )
-                frames_data[region_id].append((H.T, t_end))
+            if len(frame_tracks) > 0 and frame_tracks['x'].notna().sum() > 0:
+                # Create 2D histogram of spark density (cumulative)
+                valid_tracks = frame_tracks[frame_tracks['x'].notna() & frame_tracks['y'].notna()]
+                if len(valid_tracks) > 0:
+                    H, xedges, yedges = np.histogram2d(
+                        valid_tracks['x'], valid_tracks['y'],
+                        bins=bins, range=[[x_min, x_max], [y_min, y_max]]
+                    )
+                    frames_data[region_id].append((H.T, t_end, len(valid_tracks)))
+                else:
+                    H = np.zeros((bins, bins))
+                    frames_data[region_id].append((H, t_end, 0))
             else:
                 # Empty frame
                 H = np.zeros((bins, bins))
-                frames_data[region_id].append((H, t_end))
+                frames_data[region_id].append((H, t_end, 0))
     
     # Determine color scale (use 98th percentile across all frames)
+    # Use the final frame of each region (maximum accumulation) to set scale
     all_values = []
     for region_id in unique_regions:
-        for H, _ in frames_data[region_id]:
+        if len(frames_data[region_id]) > 0:
+            # Use the last frame (maximum cumulative accumulation) for scaling
+            H, _, _ = frames_data[region_id][-1]
             all_values.extend(H.flatten())
     
     vmax = np.percentile(all_values, vmax_percentile) if len(all_values) > 0 else 1
+    if vmax == 0:
+        vmax = 1  # Avoid division by zero
     
     # Create figure with subplots for each region
     if n_regions == 1:
@@ -254,9 +308,10 @@ def create_animated_heatmap(tracks_df, poke_locations_df, output_path,
         fig, axes = plt.subplots(3, 3, figsize=(15, 15))
         axes = axes.flatten()
     
-    # Initialize images
+    # Initialize images and poke location markers
     images = []
     text_annotations = []
+    poke_markers = []  # Store poke location markers separately
     
     for idx, region_id in enumerate(unique_regions):
         ax = axes[idx]
@@ -269,30 +324,38 @@ def create_animated_heatmap(tracks_df, poke_locations_df, output_path,
         region_label = poke_regions_df[poke_regions_df['region'] == region_id]['region_label'].iloc[0] if 'region_label' in poke_regions_df.columns else f'Region {region_id}'
         ax.set_title(region_label, fontsize=12, fontweight='bold')
         
-        # Show poke locations for this region
+        # Show poke locations for this region at their absolute positions
         region_pokes = poke_regions_df[poke_regions_df['region'] == region_id]
+        poke_x_list = []
+        poke_y_list = []
         for _, poke_row in region_pokes.iterrows():
-            ax.scatter(poke_row['poke_x'], poke_row['poke_y'], 
-                      s=300, c='red', marker='X', 
-                      edgecolors='white', linewidths=2, zorder=10, alpha=0.8)
+            poke_x_list.append(poke_row['poke_x'])
+            poke_y_list.append(poke_row['poke_y'])
         
-        # Initial empty image
+        # Draw poke locations at their actual absolute positions
+        if len(poke_x_list) > 0:
+            ax.scatter(poke_x_list, poke_y_list, 
+                      s=40, c='cyan', marker='X', 
+                      edgecolors='darkblue', linewidths=1, 
+                      zorder=20, alpha=0.9, label='Poke locations')
+        
+        # Initial empty heatmap
         im = ax.imshow(np.zeros((bins, bins)), origin='lower',
                       extent=[x_min, x_max, y_min, y_max],
                       cmap=colormap, vmin=0, vmax=vmax,
-                      interpolation='bilinear', alpha=0.8)
+                      interpolation='bilinear', alpha=0.9)
         images.append(im)
         
         # Add colorbar for first subplot
         if idx == 0:
             cbar = plt.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
-            cbar.set_label('Event Density', fontsize=10)
+            cbar.set_label('Spark Count', fontsize=10)
         
         # Time annotation
         text = ax.text(0.02, 0.98, '', transform=ax.transAxes,
                       fontsize=11, fontweight='bold',
                       verticalalignment='top',
-                      bbox=dict(boxstyle='round', facecolor='white', alpha=0.8))
+                      bbox=dict(boxstyle='round', facecolor='white', alpha=0.9))
         text_annotations.append(text)
     
     # Remove extra subplots
@@ -303,26 +366,28 @@ def create_animated_heatmap(tracks_df, poke_locations_df, output_path,
     
     # Animation function
     def animate(frame):
+        if frame >= n_frames:
+            frame = n_frames - 1
+        
         t_end = time_bins[frame + 1]
         
         for idx, region_id in enumerate(unique_regions):
-            H, _ = frames_data[region_id][frame]
-            
-            if normalize_by_region:
-                # Normalize per region
-                region_vmax = np.percentile([h.flatten() for h, _ in frames_data[region_id]], vmax_percentile)
-                if region_vmax > 0:
-                    images[idx].set_data(H / region_vmax)
-                    images[idx].set_clim(0, 1)
-                else:
-                    images[idx].set_data(H)
-                    images[idx].set_clim(0, vmax)
+            if frame < len(frames_data[region_id]):
+                H, t, n_sparks = frames_data[region_id][frame]
             else:
-                images[idx].set_data(H)
-                images[idx].set_clim(0, vmax)
+                # Use last frame if index out of bounds
+                H, t, n_sparks = frames_data[region_id][-1]
             
-            # Update time annotation
-            text_annotations[idx].set_text(f't = {t_end:.1f}s')
+            # Display the heatmap (cumulative spark accumulation)
+            # H is the histogram of all sparks from t=0 to current time
+            images[idx].set_data(H)
+            
+            # Set color scale - use global vmax so all regions are comparable
+            images[idx].set_clim(0, vmax)
+            
+            # Update time annotation with spark count
+            text_annotations[idx].set_text(f't = {t:.1f}s\n{n_sparks:,} sparks')
+            text_annotations[idx].set_fontsize(10)
         
         return images + text_annotations
     
