@@ -1,0 +1,66 @@
+@prefix cito: <http://purl.org/spar/cito/> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix ex: <https://w3id.org/levin-kg/> .
+@prefix np: <http://www.nanopub.org/nschema#> .
+@prefix npx: <http://purl.org/nanopub/x/> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix sub: <https://w3id.org/levin-kg/np/np-CHERNET2016-C1-10.18632_oncotarget.8036/RAyh8rl5mn4ijR8RB5AwRR-HwkZI6NKJdlJqjWMYVV-s0/> .
+@prefix this: <https://w3id.org/levin-kg/np/np-CHERNET2016-C1-10.18632_oncotarget.8036/RAyh8rl5mn4ijR8RB5AwRR-HwkZI6NKJdlJqjWMYVV-s0> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+sub:pubinfo {
+    ex:assessment-CHERNET2016-C1 a ex:BayesianAssessment ;
+        dcterms:created "2025-11-04"^^xsd:date ;
+        dcterms:creator "GPT-5 Pro" ;
+        dcterms:description "Combined assuming independence across evidence items; exact/threshold p-values per figure legend." ;
+        prov:wasAttributedTo <https://w3id.org/levin-kg/agent/gpt-5-pro> ;
+        ex:assessmentAgent <https://w3id.org/levin-kg/agent/gpt-5-pro> ;
+        ex:bayesFactorCombined 223.581811 ;
+        ex:calibrationMethod "Vovk–Sellke p-value calibration (Sellke, Bayarri & Berger, 2001)" ;
+        ex:weightOfEvidence_deciban 23.494365 .
+
+    ex:np-CHERNET2016-C1-10.18632_oncotarget.8036 dcterms:bibliographicCitation "Brook T. Chernet; Dany S. Adams; Maria Lobikin; Michael Levin (2016). Use of genetically encoded, light-gated ion translocators to control tumorigenesis. https://doi.org/10.18632/oncotarget.8036" ;
+        dcterms:created "2025-10-01"^^xsd:date ;
+        dcterms:creator ex:generator ;
+        dcterms:identifier "26988909" ;
+        dcterms:source <https://doi.org/10.18632/oncotarget.8036> .
+
+    sub:sig npx:hasAlgorithm "RSA" ;
+        npx:hasPublicKey "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAyahzwBs2tuJ36eq6XmF5yrRSV4doWNUtbffIJhWttl5MJp0Sv9i6VtQo/AmiKqgfD07uK7ESz/isNX8qoFWq3peWTjzppXPZFsCk62GrPwLZMJ4PaCDd1G3ZHJxhl0DyuvLiDGBgEVf963IW28gCTICnrQcNlUqioaWfX+ME/sN7jWPPxR5S76riesxX/R/vwgwtF7BBnRko5zEP2sZyd3VlzdRcWfJa9NdJiEwdYHWshtclNE9Fz79L72Y4FxgNcBD4Kb6XuHL9+pPdkYbhnv1gCVpIBSp5/V1ILCvkzCuj5NUw874E4EPpKCOIsTUlCCi5wFSvPSCMzhY6wUDhLQIDAQAB" ;
+        npx:hasSignature "lKVE8PUfOZItxrn5NsCVqdEpnATVJfYpnMb++Yt2R2yDxuXAsp5ATh6oSbnOejA0YEfK2dFYRXr/DoLNzZu3NOWbSqysr/UXyBVtdO5kgpQTNQZ+4FNREcXBV8esROSqjuHp9Fm8Yp9i1/j8hR2isNDdMBGNqdJRHuTytU4h2b8PS1wIKW8ZVLBU/jSChkIaiAT/C41/C75Jt/rQrzwkWMjSAFqJmJ0tfl8cx+YtJ62EO/j7Qnr9DdZnkSKKfD+qi8NAtrDuC0qL9+l363lVVZzhRfhh1W/EW8yUJr8IWvT6iSd6e0d1ZDxwtY7ETa7CwwsMOwLNJ2OrR/kLIBVauw==" ;
+        npx:hasSignatureTarget this: ;
+        npx:signedBy <> .
+
+    ex:generator a prov:SoftwareAgent ;
+        dcterms:description "Constructs nanopublications with Bayesian weight-of-evidence estimates via Vovk–Sellke calibration." ;
+        dcterms:license "CC0-1.0" ;
+        dcterms:title "Levin-KG generator (wave Q)" .
+
+    this: dcterms:created "2025-11-04"^^xsd:date ;
+        dcterms:source <https://doi.org/10.18632/oncotarget.8036> .
+
+    <https://w3id.org/levin-kg/agent/gpt-5-pro> a prov:SoftwareAgent .
+}
+
+sub:provenance {
+    sub:assertion prov:wasDerivedFrom <https://doi.org/10.18632/oncotarget.8036> .
+}
+
+sub:Head {
+    this: a np:Nanopublication ;
+        dcterms:conformsTo <https://w3id.org/morphopkg/spc/1.0> ;
+        np:hasAssertion sub:assertion ;
+        np:hasProvenance sub:provenance ;
+        np:hasPublicationInfo sub:pubinfo .
+}
+
+sub:assertion {
+    ex:claim-CHERNET2016-C1 a ex:Assertion ;
+        dcterms:description "Optogenetic hyperpolarization (Arch or ChR2^{D156A}) significantly prevents KRAS^{G12D}-induced tumor-like structures (ITLS) and promotes regression (normalization) of existing tumors in vivo." ;
+        cito:citesAsEvidence <https://doi.org/10.18632/oncotarget.8036> ;
+        ex:context "Xenopus laevis tumor model; KRAS^{G12D}; Arch and ChR2^{D156A}; light stimulation regimens; incidence and normalization outcomes; qPCR marker normalization." ;
+        ex:hasAssessment ex:assessment-CHERNET2016-C1 ;
+        ex:hasEvidence ex:evidence-CHERNET2016-C1-E1,
+            ex:evidence-CHERNET2016-C1-E2 .
+}
+

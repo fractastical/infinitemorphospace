@@ -1,0 +1,66 @@
+@prefix cito: <http://purl.org/spar/cito/> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix ex: <https://w3id.org/levin-kg/> .
+@prefix np: <http://www.nanopub.org/nschema#> .
+@prefix npx: <http://purl.org/nanopub/x/> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix sub: <https://w3id.org/levin-kg/np/np-ADAMS2013-C1-10.1242_bio.20133665/RA20rj6Yo4cdjJvN_4kd2vRI2wKmyv-lIvIJOixAMdB6I/> .
+@prefix this: <https://w3id.org/levin-kg/np/np-ADAMS2013-C1-10.1242_bio.20133665/RA20rj6Yo4cdjJvN_4kd2vRI2wKmyv-lIvIJOixAMdB6I> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+sub:assertion {
+    ex:claim-ADAMS2013-C1 a ex:Assertion ;
+        dcterms:description "Optogenetic hyperpolarization (Arch activation) rescues tail regeneration during the refractory period and after non-regenerative wound epithelium formation." ;
+        cito:citesAsEvidence <https://doi.org/10.1242/bio.20133665> ;
+        ex:context "Xenopus laevis tadpoles; archaerhodopsin (Arch) expression; green light activation; refractory window; regeneration index (RI)." ;
+        ex:hasAssessment ex:assessment-ADAMS2013-C1 ;
+        ex:hasEvidence ex:evidence-ADAMS2013-C1-E1,
+            ex:evidence-ADAMS2013-C1-E2 .
+}
+
+sub:provenance {
+    sub:assertion prov:wasDerivedFrom <https://doi.org/10.1242/bio.20133665> .
+}
+
+sub:pubinfo {
+    ex:np-ADAMS2013-C1-10.1242_bio.20133665 dcterms:bibliographicCitation "Dany S. Adams; Ai-Sun Tseng; Michael Levin (2013). Light-activated archaerhodopsin reverses age-dependent loss of vertebrate regeneration via hyperpolarization. https://doi.org/10.1242/bio.20133665" ;
+        dcterms:created "2025-09-30"^^xsd:date ;
+        dcterms:creator ex:generator ;
+        dcterms:identifier "" ;
+        dcterms:source <https://doi.org/10.1242/bio.20133665> .
+
+    sub:sig npx:hasAlgorithm "RSA" ;
+        npx:hasPublicKey "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAyahzwBs2tuJ36eq6XmF5yrRSV4doWNUtbffIJhWttl5MJp0Sv9i6VtQo/AmiKqgfD07uK7ESz/isNX8qoFWq3peWTjzppXPZFsCk62GrPwLZMJ4PaCDd1G3ZHJxhl0DyuvLiDGBgEVf963IW28gCTICnrQcNlUqioaWfX+ME/sN7jWPPxR5S76riesxX/R/vwgwtF7BBnRko5zEP2sZyd3VlzdRcWfJa9NdJiEwdYHWshtclNE9Fz79L72Y4FxgNcBD4Kb6XuHL9+pPdkYbhnv1gCVpIBSp5/V1ILCvkzCuj5NUw874E4EPpKCOIsTUlCCi5wFSvPSCMzhY6wUDhLQIDAQAB" ;
+        npx:hasSignature "FcYwl9xWqdJFDLbjYx72h3hbtd0SGsfo3ZPLH0kpjS2E3/eYDm2OfFeYhQBRxK/eT2y8cdW8z7sKWbbI+r3ExG9OtYMkzWXAUYgq3Lncd9I7dD0qJnYE6j1of3P7Q2d9WMIKHPXpS/gwVWjwAgIHfKnl8wyhdA4/IlHhY0tm+keaENbrJJT1ATxFYt9XpJSv0pw3SXv3S3AnQrHhnZvC0gXh9xO0s2GGYh0s8x3hGcfXcb1vfrFHPG7+2ncuIfecCDtXy+/Rkj2KVJtB5EcVYjwh1cHT/VRLwaJe4IzYO1p7Z7L9vCGrvxeZM8RXNFziowEscRagVY3duC7rbi6PbA==" ;
+        npx:hasSignatureTarget this: ;
+        npx:signedBy <> .
+
+    ex:assessment-ADAMS2013-C1 a ex:BayesianAssessment ;
+        dcterms:created "2025-11-04"^^xsd:date ;
+        dcterms:creator "GPT-5 Pro" ;
+        dcterms:description "Combined assuming independence across evidence items; thresholds used where only p-bounds were reported." ;
+        prov:wasAttributedTo <https://w3id.org/levin-kg/agent/gpt-5-pro> ;
+        ex:assessmentAgent <https://w3id.org/levin-kg/agent/gpt-5-pro> ;
+        ex:bayesFactorCombined 425.430291 ;
+        ex:calibrationMethod "Vovk–Sellke p-value calibration (Sellke, Bayarri & Berger, 2001)" ;
+        ex:weightOfEvidence_deciban 26.288284 .
+
+    ex:generator a prov:SoftwareAgent ;
+        dcterms:description "Constructs nanopublications with Bayesian weight-of-evidence estimates via Vovk–Sellke calibration." ;
+        dcterms:license "CC0-1.0" ;
+        dcterms:title "Levin-KG generator (wave K)" .
+
+    this: dcterms:created "2025-11-04"^^xsd:date ;
+        dcterms:source <https://doi.org/10.1242/bio.20133665> .
+
+    <https://w3id.org/levin-kg/agent/gpt-5-pro> a prov:SoftwareAgent .
+}
+
+sub:Head {
+    this: a np:Nanopublication ;
+        dcterms:conformsTo <https://w3id.org/morphopkg/spc/1.0> ;
+        np:hasAssertion sub:assertion ;
+        np:hasProvenance sub:provenance ;
+        np:hasPublicationInfo sub:pubinfo .
+}
+

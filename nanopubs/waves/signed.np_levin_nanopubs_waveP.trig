@@ -1,0 +1,35 @@
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix ex: <https://w3id.org/levin-kg/> .
+@prefix np: <http://www.nanopub.org/nschema#> .
+@prefix npx: <http://purl.org/nanopub/x/> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix sub: <https://w3id.org/levin-kg/np/N4437811800bf45f9a68981193653906e/RAqqtlV1O_XQUVFecZ0JI6wQBWQsplmTD6GzM5IDAk7Iw/> .
+@prefix this: <https://w3id.org/levin-kg/np/N4437811800bf45f9a68981193653906e/RAqqtlV1O_XQUVFecZ0JI6wQBWQsplmTD6GzM5IDAk7Iw> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+sub:Head {
+    this: a np:Nanopublication ;
+        dcterms:conformsTo <https://w3id.org/morphopkg/spc/1.0> ;
+        np:hasAssertion sub:assertion ;
+        np:hasProvenance sub:provenance ;
+        np:hasPublicationInfo sub:pubinfo .
+}
+
+sub:assertion {
+    ex:claim-N4437811800bf45f9a68981193653906e a ex:Assertion .
+}
+
+sub:pubinfo {
+    sub:sig npx:hasAlgorithm "RSA" ;
+        npx:hasPublicKey "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAyahzwBs2tuJ36eq6XmF5yrRSV4doWNUtbffIJhWttl5MJp0Sv9i6VtQo/AmiKqgfD07uK7ESz/isNX8qoFWq3peWTjzppXPZFsCk62GrPwLZMJ4PaCDd1G3ZHJxhl0DyuvLiDGBgEVf963IW28gCTICnrQcNlUqioaWfX+ME/sN7jWPPxR5S76riesxX/R/vwgwtF7BBnRko5zEP2sZyd3VlzdRcWfJa9NdJiEwdYHWshtclNE9Fz79L72Y4FxgNcBD4Kb6XuHL9+pPdkYbhnv1gCVpIBSp5/V1ILCvkzCuj5NUw874E4EPpKCOIsTUlCCi5wFSvPSCMzhY6wUDhLQIDAQAB" ;
+        npx:hasSignature "TkDJQaRV6sFTQYaixla5BoJM4THO27urDGLYHNM7T1pUenKeL2hVU2Buktu3IK9iRi4YpyYPWLws831vAk6/Vpw/+AHL8I0ybAneYc51COorwnUbs2wqiuIiAjmkj2O4wbsh8+GT4B1nwB6/44stPLtuL9tFw/f0FUDDa7kt1KN8qSUB6rR73vNsF8EcI5EtZ+HA7ojDKtCiifCHRQ9JY7Iq8foGmhwqBSn/xBd6yusOS/BSAsIdnTf/HRl6wZOzo/PoGU0PtxXMrD9ImRc2v3L7uCnagJj97Z8e8C7RPw3QhEWYHw9RZhatPOroAb+rWtpYBZuuK3afd38TCo4nMA==" ;
+        npx:hasSignatureTarget this: ;
+        npx:signedBy <> .
+
+    this: dcterms:created "2025-11-04"^^xsd:date .
+}
+
+sub:provenance {
+    sub:assertion prov:wasGeneratedBy <https://w3id.org/levin-kg/activity/canonicalize-v1> .
+}
+

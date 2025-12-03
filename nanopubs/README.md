@@ -60,6 +60,18 @@ See [`SETUP_GUIDE.md`](./SETUP_GUIDE.md) for detailed setup instructions and tro
 
 ### Batch Publishing
 
+**Important Notes:**
+
+1. **Bulk uploading is not officially supported by nanopub registries by design.** The batch publishing script publishes one nanopub at a time with delays between publications. For future bulk publishing needs, consider setting up your own Registry node.
+
+2. **Production server restrictions:** The production registry (`registry.petapico.org`) may have stricter validation or reject publications that the test server accepts. If you encounter HTTP 400 errors on production, try:
+   - Publishing to the test server first (`--test`)
+   - Checking if the nanopub URI already exists (duplicate)
+   - Contacting the registry administrators about specific rejection reasons
+   - Publishing manually one at a time to identify problematic nanopubs
+
+3. **Only signed nanopubs are accepted:** All nanopubs must be signed before publishing. The script handles this automatically.
+
 To sign and publish all nanopublication files:
 
 ```bash
@@ -70,7 +82,10 @@ To sign and publish all nanopublication files:
 ./publish_batch.sh --test
 
 # Publish to PRODUCTION (be careful!)
-./publish_batch.sh --prod
+./publish_batch.sh --prod                    # Default: Petapico
+./publish_batch.sh --prod-kp                 # KnowledgePixels production
+./publish_batch.sh --prod-petapico           # Petapico production
+./publish_batch.sh --prod-trusty             # TrustyURI production
 
 # Publish only npi-waves files
 ./publish_batch.sh --test --include npi-waves/
@@ -88,8 +103,9 @@ python3 publish_all_nanopubs.py --publish test --include npi-waves/ waves/
 The script will:
 - Find all publishable .trig files in npi-waves/ and other directories
 - Skip files already listed in a manifest
-- Sign and publish each nanopublication
-- Track published files in a manifest for future runs
+- Sign each nanopublication (only signed nanopubs are accepted)
+- Publish each nanopublication one at a time with delays between requests
+- Track published files in separate manifests for test and production
 
 ### PlanformDB Nanopubs
 

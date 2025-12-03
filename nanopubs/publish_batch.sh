@@ -28,8 +28,20 @@ while [[ $# -gt 0 ]]; do
             PUBLISH_MODE="test"
             shift
             ;;
-        --prod)
+            --prod)
             PUBLISH_MODE="prod"
+            shift
+            ;;
+            --prod-kp)
+            PUBLISH_MODE="prod-kp"
+            shift
+            ;;
+            --prod-petapico)
+            PUBLISH_MODE="prod-petapico"
+            shift
+            ;;
+            --prod-trusty)
+            PUBLISH_MODE="prod-trusty"
             shift
             ;;
         --dry-run)
@@ -49,8 +61,11 @@ while [[ $# -gt 0 ]]; do
             echo ""
             echo "Options:"
             echo "  --test              Publish to test server"
-            echo "  --prod              Publish to production server"
-            echo "  --publish MODE      Publish mode: test or prod"
+            echo "  --prod              Publish to production server (default: petapico)"
+            echo "  --prod-kp           Publish to KnowledgePixels production server"
+            echo "  --prod-petapico     Publish to Petapico production server"
+            echo "  --prod-trusty       Publish to TrustyURI production server"
+            echo "  --publish MODE      Publish mode: test, prod, prod-kp, prod-petapico, or prod-trusty"
             echo "  --dry-run           Show what would be published (no actual publishing)"
             echo "  --include DIRS      Only include files in these directories (space-separated)"
             echo "  --limit N           Limit to first N files"
@@ -58,7 +73,9 @@ while [[ $# -gt 0 ]]; do
             echo "Examples:"
             echo "  $0 --dry-run                    # Preview what would be published"
             echo "  $0 --test                       # Publish to test server"
-            echo "  $0 --prod                       # Publish to production"
+            echo "  $0 --prod                       # Publish to production (petapico)"
+            echo "  $0 --prod-kp                    # Publish to KnowledgePixels production"
+            echo "  $0 --prod-trusty                # Publish to TrustyURI production"
             echo "  $0 --test --include npi-waves/  # Only publish npi-waves files"
             echo "  $0 --test --limit 5             # Test with first 5 files"
             exit 0

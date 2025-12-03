@@ -1,0 +1,66 @@
+@prefix cito: <http://purl.org/spar/cito/> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix ex: <https://w3id.org/levin-kg/> .
+@prefix np: <http://www.nanopub.org/nschema#> .
+@prefix npx: <http://purl.org/nanopub/x/> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix sub: <https://w3id.org/levin-kg/np/np-OVI2007-C1-10.1242_dev.006635/RAn_vyKBZ34rymZosz5RL7lBj4tFQRqimpQWa1Wq4S_HE/> .
+@prefix this: <https://w3id.org/levin-kg/np/np-OVI2007-C1-10.1242_dev.006635/RAn_vyKBZ34rymZosz5RL7lBj4tFQRqimpQWa1Wq4S_HE> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+sub:provenance {
+    sub:assertion prov:wasDerivedFrom <https://doi.org/10.1242/dev.006635> .
+}
+
+sub:pubinfo {
+    ex:assessment-OVI2007-C1 a ex:BayesianAssessment ;
+        dcterms:created "2025-11-04"^^xsd:date ;
+        dcterms:creator "GPT-5 Pro" ;
+        dcterms:description "Combined assuming independence across evidence items; thresholds used where only p-bounds were reported." ;
+        prov:wasAttributedTo <https://w3id.org/levin-kg/agent/gpt-5-pro> ;
+        ex:assessmentAgent <https://w3id.org/levin-kg/agent/gpt-5-pro> ;
+        ex:bayesFactorCombined 425.430291 ;
+        ex:calibrationMethod "Vovk–Sellke p-value calibration (Sellke, Bayarri & Berger, 2001)" ;
+        ex:weightOfEvidence_deciban 26.288284 .
+
+    ex:np-OVI2007-C1-10.1242_dev.006635 dcterms:bibliographicCitation "Néstor J. Oviedo; Michael Levin (2007). smedinx-11 is a planarian stem cell gap junction gene required for regeneration and homeostasis. https://doi.org/10.1242/dev.006635" ;
+        dcterms:created "2025-10-01"^^xsd:date ;
+        dcterms:creator ex:generator ;
+        dcterms:identifier "17670787" ;
+        dcterms:source <https://doi.org/10.1242/dev.006635> .
+
+    sub:sig npx:hasAlgorithm "RSA" ;
+        npx:hasPublicKey "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAyahzwBs2tuJ36eq6XmF5yrRSV4doWNUtbffIJhWttl5MJp0Sv9i6VtQo/AmiKqgfD07uK7ESz/isNX8qoFWq3peWTjzppXPZFsCk62GrPwLZMJ4PaCDd1G3ZHJxhl0DyuvLiDGBgEVf963IW28gCTICnrQcNlUqioaWfX+ME/sN7jWPPxR5S76riesxX/R/vwgwtF7BBnRko5zEP2sZyd3VlzdRcWfJa9NdJiEwdYHWshtclNE9Fz79L72Y4FxgNcBD4Kb6XuHL9+pPdkYbhnv1gCVpIBSp5/V1ILCvkzCuj5NUw874E4EPpKCOIsTUlCCi5wFSvPSCMzhY6wUDhLQIDAQAB" ;
+        npx:hasSignature "x63/+ObedindKTPMQQZs7VJtbPMDbP+0I048FJLzgXdcb1cNl4C9iSvIFTjjlFdwozwXoTsrlOeQObs9C/0Hek+FPEVgvEq1NvmEll3PA1YISEBs/+YfZdSlaUVAzl109iw0TuF4i10SkFF2UqcYqHWlZauCuh/YsPA77VsHk1gPxqyivYD5jCHtEcw+LxZB/D2umjVsGqoApO6Pg93yMOK2LuZ6kL+7udEEJ4No0HN/3TgtMpyT/f5GybkBKVgnweuMCcZs56V/ybDgS94u71c9qRtVfNQ4LQqapE/OLvVTBGyrVSascotbJ5Khsqw5JLklyI6g7v6W79BsbsnwEQ==" ;
+        npx:hasSignatureTarget this: ;
+        npx:signedBy <> .
+
+    ex:generator a prov:SoftwareAgent ;
+        dcterms:description "Constructs nanopublications with Bayesian weight-of-evidence estimates via Vovk–Sellke calibration." ;
+        dcterms:license "CC0-1.0" ;
+        dcterms:title "Levin-KG generator (wave O)" .
+
+    this: dcterms:created "2025-11-04"^^xsd:date ;
+        dcterms:source <https://doi.org/10.1242/dev.006635> .
+
+    <https://w3id.org/levin-kg/agent/gpt-5-pro> a prov:SoftwareAgent .
+}
+
+sub:Head {
+    this: a np:Nanopublication ;
+        dcterms:conformsTo <https://w3id.org/morphopkg/spc/1.0> ;
+        np:hasAssertion sub:assertion ;
+        np:hasProvenance sub:provenance ;
+        np:hasPublicationInfo sub:pubinfo .
+}
+
+sub:assertion {
+    ex:claim-OVI2007-C1 a ex:Assertion ;
+        dcterms:description "Innexin gap-junction gene smedinx-11 is required for planarian regeneration and homeostasis; RNAi reduces regenerative capacity and disrupts stem-cell maintenance." ;
+        cito:citesAsEvidence <https://doi.org/10.1242/dev.006635> ;
+        ex:context "Schmidtea mediterranea; RNAi knockdown of smedinx-11; regeneration success, homeostasis markers." ;
+        ex:hasAssessment ex:assessment-OVI2007-C1 ;
+        ex:hasEvidence ex:evidence-OVI2007-C1-E1,
+            ex:evidence-OVI2007-C1-E2 .
+}
+
