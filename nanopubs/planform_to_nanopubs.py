@@ -22,7 +22,7 @@ python planform_to_nanopubs.py --db planformDB_2.5.0.edb --publish prod --min-ye
 
 Before publishing, run once:
     pip install nanopub rdflib
-    setup_nanopub_profile   # interactive: sets RSA keys + ORCID
+    python3 -m nanopub setup   # interactive: sets RSA keys + ORCID
 """
 
 import argparse

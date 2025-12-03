@@ -3,9 +3,16 @@
 Batch script to sign and publish all nanopublication files.
 
 This script processes and publishes:
-- All .trig files in npi-waves/
+- All .trig files in waves/ (default)
 - All .trig files from planform_to_nanopubs.py output
 - Other publishable .trig files in the nanopubs directory
+
+IMPORTANT NOTES:
+- Only signed nanopubs are accepted by registries
+- Bulk uploading is not officially supported by nanopub registries by design
+- This script publishes one nanopub at a time with delays between requests
+- For future bulk publishing, consider setting up your own Registry node
+- Production servers may have stricter validation than test servers
 
 USAGE
 -----
@@ -18,11 +25,16 @@ python publish_all_nanopubs.py --publish test
 # Publish to PRODUCTION (be careful!)
 python publish_all_nanopubs.py --publish prod
 
+# Publish to different production servers:
+python publish_all_nanopubs.py --publish prod-kp        # KnowledgePixels production
+python publish_all_nanopubs.py --publish prod-petapico  # Petapico production (default)
+python publish_all_nanopubs.py --publish prod-trusty    # TrustyURI production
+
 # Publish specific directories only
-python publish_all_nanopubs.py --publish test --include npi-waves/
+python publish_all_nanopubs.py --publish test --include waves/
 
 # Skip files already in a manifest
-python publish_all_nanopubs.py --publish test --skip-manifest published.txt
+python publish_all_nanopubs.py --publish test --skip-manifest published_manifest_test.txt
 """
 
 import argparse
@@ -170,8 +182,8 @@ def main():
     
     parser.add_argument(
         '--publish',
-        choices=['test', 'prod'],
-        help='Publish destination: test or prod'
+        choices=['test', 'prod', 'prod-kp', 'prod-petapico', 'prod-trusty'],
+        help='Publish destination: test, prod (defaults to petapico), prod-kp (KnowledgePixels), prod-petapico, or prod-trusty'
     )
     parser.add_argument(
         '--dry-run',
@@ -219,9 +231,21 @@ def main():
     # Set default manifest file based on publish mode (test vs prod)
     if args.manifest is None:
         if args.publish:
-            args.manifest = f'published_manifest_{args.publish}.txt'
+            # Normalize prod variants to just 'prod' for manifest naming
+            manifest_mode = 'test' if args.publish == 'test' else 'prod'
+            args.manifest = f'published_manifest_{manifest_mode}.txt'
         else:
             args.manifest = 'published_manifest_test.txt'  # Default for dry-run
+    
+    # Determine server name for manifest entry
+    server_name_map = {
+        'test': 'test_server',
+        'prod': 'prod_petapico',
+        'prod-petapico': 'prod_petapico',
+        'prod-kp': 'prod_knowledgepixels',
+        'prod-trusty': 'prod_trustyuri'
+    }
+    server_name = server_name_map.get(args.publish, 'unknown') if args.publish else 'unknown'
     
     print(f"Using manifest file: {args.manifest}")
     
@@ -279,6 +303,12 @@ def main():
         rel_path = str(trig_file_original.relative_to(base_dir))
         print(f"\n[{i}/{len(files_to_publish)}] {rel_path}")
         
+        # Add a small delay between publications to avoid overwhelming the server
+        # Note: Bulk uploading is not officially supported by nanopub registries
+        if i > 1 and not args.dry_run:
+            import time
+            time.sleep(1)  # 1 second delay between publications
+        
         trig_file = trig_file_original  # Keep original for reference
         
         if args.dry_run:
@@ -329,9 +359,19 @@ def main():
                 
                 if args.publish == 'test':
                     client = NanopubClient(use_test_server=True)
-                    # Use the base server URL directly (library posts to use_server as-is)
+                    base_url = client.use_server
+                elif args.publish == 'prod-kp':
+                    # KnowledgePixels production server
+                    base_url = 'https://registry.knowledgepixels.com/np/'
+                elif args.publish == 'prod-trusty':
+                    # TrustyURI production server
+                    base_url = 'https://registry.np.trustyuri.net/np/'
+                elif args.publish == 'prod' or args.publish == 'prod-petapico':
+                    # Default: Petapico production server
+                    client = NanopubClient(use_test_server=False)
                     base_url = client.use_server
                 else:
+                    # Fallback to default production
                     client = NanopubClient(use_test_server=False)
                     base_url = client.use_server
                 
@@ -394,8 +434,7 @@ def main():
                 
                 # Save to manifest (use original path, not signed temp file)
                 # Include server info in the manifest entry
-                server_info = f"{args.publish}_server" if args.publish else "unknown"
-                save_to_manifest(args.manifest, rel_path, nanopub_uri, server_info)
+                save_to_manifest(args.manifest, rel_path, nanopub_uri, server_name)
                 
                 successful += 1
             except Exception as e:
