@@ -1,0 +1,66 @@
+@prefix cito: <http://purl.org/spar/cito/> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix ex: <https://w3id.org/levin-kg/> .
+@prefix np: <http://www.nanopub.org/nschema#> .
+@prefix npx: <http://purl.org/nanopub/x/> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix sub: <https://w3id.org/levin-kg/np/np-F2005-C1-10.1016_j.cub.2005.03.044/RANX_QO6Xy8mlgF4fny-Oze-aiGWaE_AfAwN86Z9joNtk/> .
+@prefix this: <https://w3id.org/levin-kg/np/np-F2005-C1-10.1016_j.cub.2005.03.044/RANX_QO6Xy8mlgF4fny-Oze-aiGWaE_AfAwN86Z9joNtk> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+sub:pubinfo {
+    ex:assessment-F2005-C1 a ex:BayesianAssessment ;
+        dcterms:created "2025-11-04"^^xsd:date ;
+        dcterms:creator "GPT-5 Pro" ;
+        dcterms:description "Combined assuming independence across evidence items; thresholds used where only p-bounds were reported." ;
+        prov:wasAttributedTo <https://w3id.org/levin-kg/agent/gpt-5-pro> ;
+        ex:assessmentAgent <https://w3id.org/levin-kg/agent/gpt-5-pro> ;
+        ex:bayesFactorCombined 425.430291 ;
+        ex:calibrationMethod "Vovk–Sellke p-value calibration (Sellke, Bayarri & Berger, 2001)" ;
+        ex:weightOfEvidence_deciban 26.288284 .
+
+    ex:np-F2005-C1-10.1016_j.cub.2005.03.044 dcterms:bibliographicCitation "Takahiro Fukumoto; Ido P. Kema; Michael Levin (2005). Serotonin signaling is a very early step in patterning of the left-right axis in chick and frog embryos. https://doi.org/10.1016/j.cub.2005.03.044" ;
+        dcterms:created "2025-09-30"^^xsd:date ;
+        dcterms:creator ex:generator ;
+        dcterms:identifier "15886096" ;
+        dcterms:source <https://doi.org/10.1016/j.cub.2005.03.044> .
+
+    sub:sig npx:hasAlgorithm "RSA" ;
+        npx:hasPublicKey "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAyahzwBs2tuJ36eq6XmF5yrRSV4doWNUtbffIJhWttl5MJp0Sv9i6VtQo/AmiKqgfD07uK7ESz/isNX8qoFWq3peWTjzppXPZFsCk62GrPwLZMJ4PaCDd1G3ZHJxhl0DyuvLiDGBgEVf963IW28gCTICnrQcNlUqioaWfX+ME/sN7jWPPxR5S76riesxX/R/vwgwtF7BBnRko5zEP2sZyd3VlzdRcWfJa9NdJiEwdYHWshtclNE9Fz79L72Y4FxgNcBD4Kb6XuHL9+pPdkYbhnv1gCVpIBSp5/V1ILCvkzCuj5NUw874E4EPpKCOIsTUlCCi5wFSvPSCMzhY6wUDhLQIDAQAB" ;
+        npx:hasSignature "AhXtMbrb1/gGK+QNgZa5rD9llY4XO7SvJoYXwIztAyyI3UXiO1Ws2twqtWD9CeY+W+B2gQXgy/+B2GlQxPlCJxN0AokMbBR9JHk0V51tJFA9QhMRX6aavdc0K3R1h394cx4Ne4Bu83X18LSrxIdp+sUP+PxqazIHtIlE2tH5kkabrbyo3jJbdPzRIWXhZwaRyXUnM0AeRgLK0YJZ1Bl3r78n1bhLwLu5YAKBDC9Yiy07TSPw03NS97zLVmkpyLE0f6jAL63E7iwhVq3g7hHPVWqiRpZqIih+MaQE3emU0stNEhFq3bMOso7sZQcnkMIem99zppL8A7BMRvVz4P7UPg==" ;
+        npx:hasSignatureTarget this: ;
+        npx:signedBy <> .
+
+    ex:generator a prov:SoftwareAgent ;
+        dcterms:description "Constructs nanopublications with Bayesian weight-of-evidence estimates via Vovk–Sellke calibration." ;
+        dcterms:license "CC0-1.0" ;
+        dcterms:title "Levin-KG generator (wave E)" .
+
+    this: dcterms:created "2025-11-04"^^xsd:date ;
+        dcterms:source <https://doi.org/10.1016/j.cub.2005.03.044> .
+
+    <https://w3id.org/levin-kg/agent/gpt-5-pro> a prov:SoftwareAgent .
+}
+
+sub:assertion {
+    ex:claim-F2005-C1 a ex:Assertion ;
+        dcterms:description "Serotonin signaling acts at very early cleavage stages to control left-right patterning; manipulating 5-HT/SERT randomizes organ situs and LR gene expression." ;
+        cito:citesAsEvidence <https://doi.org/10.1016/j.cub.2005.03.044> ;
+        ex:context "Xenopus laevis and Gallus gallus embryos; early cleavage/epiblast; SSRIs and transporter manipulations; situs and Nodal/Pitx2 readouts." ;
+        ex:hasAssessment ex:assessment-F2005-C1 ;
+        ex:hasEvidence ex:evidence-F2005-C1-E1,
+            ex:evidence-F2005-C1-E2 .
+}
+
+sub:provenance {
+    sub:assertion prov:wasDerivedFrom <https://doi.org/10.1016/j.cub.2005.03.044> .
+}
+
+sub:Head {
+    this: a np:Nanopublication ;
+        dcterms:conformsTo <https://w3id.org/morphopkg/spc/1.0> ;
+        np:hasAssertion sub:assertion ;
+        np:hasProvenance sub:provenance ;
+        np:hasPublicationInfo sub:pubinfo .
+}
+

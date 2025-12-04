@@ -1,0 +1,70 @@
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix ex: <https://w3id.org/levin-kg/> .
+@prefix np: <http://www.nanopub.org/nschema#> .
+@prefix npx: <http://purl.org/nanopub/x/> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix sub: <https://w3id.org/levin-kg/np/T2010-C1/RAs0FfEmHo2WEjRqjlTmnT-OLhnbvD9aiIQQkTh9TX-bo/> .
+@prefix this: <https://w3id.org/levin-kg/np/T2010-C1/RAs0FfEmHo2WEjRqjlTmnT-OLhnbvD9aiIQQkTh9TX-bo> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+sub:assertion {
+    ex:claim-T2010-C1 a ex:Assertion ;
+        dcterms:description "A brief, early Na+ current is sufficient to induce vertebrate tail regeneration; transient opto/ion-channel inputs push tissue into a sustained regenerative program." ;
+        ex:hasAssessment ex:assessment-T2010-C1 ;
+        ex:hasEvidence ex:evidence-T2010-C1-E1,
+            ex:evidence-T2010-C1-E2 ;
+        ex:hypothesisContribution 0.30,
+            0.70 ;
+        ex:supportsHypothesis ex:L3,
+            ex:L6 .
+
+    ex:evidence-T2010-C1-E1 a ex:EvidenceItem ;
+        dcterms:description "Incidence of full tail regeneration with Na+ current induction vs matched control." ;
+        ex:bayesFactorVS_MPR 7.988401 ;
+        ex:pValue 0.01 ;
+        ex:weightOfEvidence_deciban 9.02 .
+
+    ex:evidence-T2010-C1-E2 a ex:EvidenceItem ;
+        dcterms:description "Rescue/acceleration metrics at later timepoints consistent with a persistent program after brief induction." ;
+        ex:bayesFactorVS_MPR 53.256004 ;
+        ex:pValue 0.001 ;
+        ex:weightOfEvidence_deciban 17.26 .
+}
+
+sub:provenance {
+    <https://w3id.org/levin-kg/np/T2010-C1#assertion> prov:wasGeneratedBy ex:extraction-v1 .
+
+    sub:assertion prov:wasGeneratedBy <https://w3id.org/levin-kg/activity/canonicalize-v1> .
+}
+
+sub:Head {
+    this: a np:Nanopublication ;
+        dcterms:conformsTo <https://w3id.org/morphopkg/spc/1.0> ;
+        np:hasAssertion sub:assertion ;
+        np:hasProvenance sub:provenance ;
+        np:hasPublicationInfo sub:pubinfo .
+}
+
+sub:pubinfo {
+    <https://w3id.org/levin-kg/np/T2010-C1#> dcterms:created "2025-10-07"^^xsd:date .
+
+    sub:sig npx:hasAlgorithm "RSA" ;
+        npx:hasPublicKey "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAyahzwBs2tuJ36eq6XmF5yrRSV4doWNUtbffIJhWttl5MJp0Sv9i6VtQo/AmiKqgfD07uK7ESz/isNX8qoFWq3peWTjzppXPZFsCk62GrPwLZMJ4PaCDd1G3ZHJxhl0DyuvLiDGBgEVf963IW28gCTICnrQcNlUqioaWfX+ME/sN7jWPPxR5S76riesxX/R/vwgwtF7BBnRko5zEP2sZyd3VlzdRcWfJa9NdJiEwdYHWshtclNE9Fz79L72Y4FxgNcBD4Kb6XuHL9+pPdkYbhnv1gCVpIBSp5/V1ILCvkzCuj5NUw874E4EPpKCOIsTUlCCi5wFSvPSCMzhY6wUDhLQIDAQAB" ;
+        npx:hasSignature "WbCxzsmtmckxrlca1mvFHoo4wWCT1PGZIn8QPCMzilo9MOgfXa+VugWhgQxBsdN3PJl5DrD1YTTl/bc4H6PqcTDQ6p/MvGF4Q1X2y8r78TIETYB53GyVxibEBcIUt6q/QRLaNpoxizfc1aaBUBfGa+V1n3Rva2cXOqmLrDDIvJgiCNup0JRymeocquAtbwLTd0UomRve+Cnf7Bx/+tVAw8fW54sV3aKdERtwlneuS/VSsRzsEG+g1SgWo7ULWiz9/DlvCecLL7NNBRQuSIfcw1hUnqJpJ2c8jkCpd7Ha6gXePETVUsZII/gJyTUxEspWvSp5gq5DsLtJrtlw6Ue3Eg==" ;
+        npx:hasSignatureTarget this: ;
+        npx:signedBy <> .
+
+    ex:assessment-T2010-C1 a ex:BayesianAssessment ;
+        dcterms:created "2025-11-04"^^xsd:date ;
+        dcterms:creator "GPT-5 Pro" ;
+        dcterms:description "Combined multiplicatively from two independent lines (VS-calibrated)." ;
+        prov:wasAttributedTo <https://w3id.org/levin-kg/agent/gpt-5-pro> ;
+        ex:assessmentAgent <https://w3id.org/levin-kg/agent/gpt-5-pro> ;
+        ex:bayesFactorCombined 425.43 ;
+        ex:weightOfEvidence_deciban 26.29 .
+
+    <https://w3id.org/levin-kg/agent/gpt-5-pro> a prov:SoftwareAgent .
+
+    this: dcterms:created "2025-11-04"^^xsd:date .
+}
+

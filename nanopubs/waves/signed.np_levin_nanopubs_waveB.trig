@@ -1,0 +1,68 @@
+@prefix cito: <http://purl.org/spar/cito/> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix ex: <https://w3id.org/levin-kg/> .
+@prefix np: <http://www.nanopub.org/nschema#> .
+@prefix npx: <http://purl.org/nanopub/x/> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix sub: <https://w3id.org/levin-kg/np/np-AML2007-C1-10.1242_dev.02812/RAmpKybiUQDlyy8Mwt6d7g9iclAPOG91eV1VPTm_t1aEg/> .
+@prefix this: <https://w3id.org/levin-kg/np/np-AML2007-C1-10.1242_dev.02812/RAmpKybiUQDlyy8Mwt6d7g9iclAPOG91eV1VPTm_t1aEg> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+sub:assertion {
+    ex:claim-AML2007-C1 a ex:Assertion ;
+        dcterms:description "V-ATPase-driven H+ flux is necessary for tail regeneration, and a concanamycin-insensitive H+ pump (PMA) is sufficient to rescue regeneration under V-ATPase inhibition." ;
+        cito:citesAsEvidence <https://doi.org/10.1242/dev.02812> ;
+        ex:context "Xenopus laevis tadpole; amputation at stage 41; V-ATPase inhibition (concanamycin) and dominant-negative E-subunit; PMA H+ pump rescue; regeneration index (RI) at 7 dpa." ;
+        ex:hasAssessment ex:assessment-AML2007-C1 ;
+        ex:hasEvidence ex:evidence-AML2007-C1-E1,
+            ex:evidence-AML2007-C1-E2,
+            ex:evidence-AML2007-C1-E3,
+            ex:evidence-AML2007-C1-E4 .
+}
+
+sub:pubinfo {
+    ex:np-AML2007-C1-10.1242_dev.02812 dcterms:bibliographicCitation "Dany S. Adams; Alessio Masi; Michael Levin (2007). H+ pump-dependent changes in membrane voltage are an early mechanism necessary and sufficient to induce Xenopus tail regeneration. https://doi.org/10.1242/dev.02812" ;
+        dcterms:created "2025-09-30"^^xsd:date ;
+        dcterms:creator ex:generator ;
+        dcterms:identifier "17329365" ;
+        dcterms:source <https://doi.org/10.1242/dev.02812> .
+
+    sub:sig npx:hasAlgorithm "RSA" ;
+        npx:hasPublicKey "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAyahzwBs2tuJ36eq6XmF5yrRSV4doWNUtbffIJhWttl5MJp0Sv9i6VtQo/AmiKqgfD07uK7ESz/isNX8qoFWq3peWTjzppXPZFsCk62GrPwLZMJ4PaCDd1G3ZHJxhl0DyuvLiDGBgEVf963IW28gCTICnrQcNlUqioaWfX+ME/sN7jWPPxR5S76riesxX/R/vwgwtF7BBnRko5zEP2sZyd3VlzdRcWfJa9NdJiEwdYHWshtclNE9Fz79L72Y4FxgNcBD4Kb6XuHL9+pPdkYbhnv1gCVpIBSp5/V1ILCvkzCuj5NUw874E4EPpKCOIsTUlCCi5wFSvPSCMzhY6wUDhLQIDAQAB" ;
+        npx:hasSignature "UDcgOaqE9h7PBbWprkMr3q+rHEdqFPcDqopmBbbVAl4j4z3Q+hdHwSWLX5CTwELVYy5VIvfgUhLT+zOFg55tGE4Zh/7V7ogqjZQH3P5SNuVrb3fyY+HNrB/xIK8c5m1S20+BwdQHsMgCCHwGg/dMf/Nb+pdI77B/L5OJ4uFg/1pW4LxCr/s97sHAG7ms69lE3emzGwRCwL8ZJeVPIxni/bASyZpuywupmcI2xtGZ5wtIxvFnl8dm9qqF+yDkc6KTf4SYx7R1BsYckbf77FqhfuF9kRj4cpg7fwqLzwxqqXTdD3c8dgQaST8Uh1wsRqXdLuPbv9Gyl2zaqJjmw5pdGA==" ;
+        npx:hasSignatureTarget this: ;
+        npx:signedBy <> .
+
+    ex:assessment-AML2007-C1 a ex:BayesianAssessment ;
+        dcterms:created "2025-11-04"^^xsd:date ;
+        dcterms:creator "GPT-5 Pro" ;
+        dcterms:description "Combined assuming independence across evidence items; p-bounds used conservatively where only thresholds were reported." ;
+        prov:wasAttributedTo <https://w3id.org/levin-kg/agent/gpt-5-pro> ;
+        ex:assessmentAgent <https://w3id.org/levin-kg/agent/gpt-5-pro> ;
+        ex:bayesFactorCombined 100588.890510 ;
+        ex:calibrationMethod "Vovk–Sellke p-value calibration (Sellke, Bayarri & Berger, 2001)" ;
+        ex:weightOfEvidence_deciban 50.025500 .
+
+    ex:generator a prov:SoftwareAgent ;
+        dcterms:description "Constructs nanopublications with Bayesian weight-of-evidence estimates via Vovk–Sellke calibration." ;
+        dcterms:license "CC0-1.0" ;
+        dcterms:title "Levin-KG generator (wave B, parsed from main text)" .
+
+    this: dcterms:created "2025-11-04"^^xsd:date ;
+        dcterms:source <https://doi.org/10.1242/dev.02812> .
+
+    <https://w3id.org/levin-kg/agent/gpt-5-pro> a prov:SoftwareAgent .
+}
+
+sub:provenance {
+    sub:assertion prov:wasDerivedFrom <https://doi.org/10.1242/dev.02812> .
+}
+
+sub:Head {
+    this: a np:Nanopublication ;
+        dcterms:conformsTo <https://w3id.org/morphopkg/spc/1.0> ;
+        np:hasAssertion sub:assertion ;
+        np:hasProvenance sub:provenance ;
+        np:hasPublicationInfo sub:pubinfo .
+}
+
