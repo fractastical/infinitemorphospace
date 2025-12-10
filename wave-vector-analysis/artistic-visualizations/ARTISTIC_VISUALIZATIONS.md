@@ -44,6 +44,13 @@ Spatial mapping of propagation speeds with color and size encoding.
 
 **What it shows:** Scatter plot with points colored and sized by propagation speed. Useful for identifying fast vs slow regions and speed gradients across space.
 
+### 4. **Particle Trail Animations** (`particles`)
+Animated flowing particle trails showing wave propagation over time.
+
+**Scientific Value:** MEDIUM - Animated version of trajectory plots, useful for presentations and understanding temporal dynamics.
+
+**What it shows:** Individual tracks as flowing colored lines with particles moving along trajectories. Useful for visualizing wave propagation dynamics and temporal patterns.
+
 ## Usage
 
 ### Basic Usage
@@ -102,6 +109,7 @@ All visualizations are saved to the specified output directory:
 - `flow_field_{style}.png` - Flow field painting (spatial vector fields)
 - `3d_time_sculpture.png` - 3D time-space visualization (temporal-spatial dynamics)
 - `speed_gradient_flow.png` - Speed gradient visualization (spatial speed mapping)
+- `particle_trails.gif` - Animated particle trails (temporal dynamics)
 
 ## Tips for Best Results
 
@@ -115,7 +123,9 @@ All visualizations are saved to the specified output directory:
 
 3. **Performance**: The script automatically samples large datasets for performance. For very large datasets (>100K points), consider filtering your data first.
 
-4. **Time Windows**: For 3D visualizations, adjust the time window to focus on specific time periods of interest (e.g., immediate post-poke response).
+4. **Time Windows**: For 3D visualizations and particle animations, adjust the time window to focus on specific time periods of interest (e.g., immediate post-poke response).
+
+5. **Animations**: Particle trail animations can take a while to render. For faster previews, reduce the number of tracks or time window.
 
 ## Example Workflows
 
@@ -167,6 +177,7 @@ These visualizations provide insights not available in standard analysis tools:
 | **Flow Field** | Spatial vector fields | Rose plots show direction distributions, not spatial flow |
 | **3D Time-Space** | Combined temporal-spatial view | Existing tools show 2D spatial OR 1D temporal, not combined |
 | **Speed Gradient** | Spatial speed mapping | Speed histograms show distributions, not spatial patterns |
+| **Particle Trails** | Animated temporal dynamics | Static trajectory plots don't show temporal evolution |
 
 ## Customization
 

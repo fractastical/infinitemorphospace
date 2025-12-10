@@ -7,17 +7,20 @@ in standard analysis tools:
 1. Flow field paintings - spatial vector fields showing wave propagation directions
 2. 3D time-space sculptures - temporal-spatial dynamics with time as z-axis
 3. Speed gradient flow - spatial mapping of propagation speeds
+4. Particle trail animations - animated flowing particle trails showing wave propagation
 
 These visualizations complement existing analysis tools by providing:
 - Spatial vector field representations (not just direction distributions)
 - Combined temporal-spatial views (not just separate 2D/1D views)
 - Spatial speed mapping (not just speed histograms)
+- Animated temporal dynamics (useful for presentations and understanding wave propagation)
 """
 
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.colors import LinearSegmentedColormap
+import matplotlib.animation as animation
 from pathlib import Path
 import argparse
 from scipy.interpolate import griddata
@@ -140,42 +143,76 @@ def create_flow_field_painting(df_tracks, output_path, style='aurora'):
     plt.close()
 
 
-def create_3d_time_sculpture(df_tracks, output_path, time_window=60):
+def create_3d_time_sculpture(df_tracks, output_path, time_window=300):
     """
     Create a 3D visualization with time as the z-axis.
     """
     print("Creating 3D time-space sculpture...")
     
-    # Filter to time window
-    post_poke = df_tracks[(df_tracks['time_s'] >= 0) & (df_tracks['time_s'] <= time_window)].copy()
+    # Filter to valid data with x, y, and time
+    valid = df_tracks[(df_tracks['x'].notna()) & 
+                      (df_tracks['y'].notna()) & 
+                      (df_tracks['time_s'].notna())].copy()
     
-    if len(post_poke) == 0:
-        print("No data in time window")
+    if len(valid) == 0:
+        print("No valid spatial/time data found")
         return
     
-    # Sample for performance
-    if len(post_poke) > 100000:
-        post_poke = post_poke.sample(n=100000, random_state=42)
+    # Filter to time window (allow negative times for pre-poke data)
+    # If time_window is small and we don't have much data, expand it automatically
+    if time_window > 0:
+        time_filtered = valid[(valid['time_s'] >= -10) & (valid['time_s'] <= time_window)].copy()
+        # If we have very few points, expand the window to get more data for better visualization
+        if len(time_filtered) < 10000 and time_window < 5000:
+            print(f"  → Only {len(time_filtered)} events in window, expanding to 5000s for better visualization")
+            time_filtered = valid[(valid['time_s'] >= -10) & (valid['time_s'] <= 5000)].copy()
+    else:
+        time_filtered = valid.copy()
+    
+    if len(time_filtered) == 0:
+        print(f"No data in time window [-10, {time_window}]")
+        return
+    
+    print(f"  → {len(time_filtered):,} events in time window")
+    
+    # Sample for performance if too many points, but keep more points for better visualization
+    if len(time_filtered) > 100000:
+        print(f"  → Sampling to 100,000 points for performance")
+        time_filtered = time_filtered.sample(n=100000, random_state=42)
     
     fig = plt.figure(figsize=(16, 12), facecolor='black')
     ax = fig.add_subplot(111, projection='3d')
     ax.set_facecolor('black')
     
     # Color by time
-    times = post_poke['time_s'].values
-    colors = plt.cm.plasma(times / times.max())
+    times = time_filtered['time_s'].values
+    if times.max() > times.min():
+        time_norm = (times - times.min()) / (times.max() - times.min())
+        colors = plt.cm.plasma(time_norm)
+    else:
+        colors = plt.cm.plasma(0.5)
     
-    # Scatter plot
-    scatter = ax.scatter(post_poke['x'], post_poke['y'], post_poke['time_s'],
-                        c=colors, s=0.5, alpha=0.6, edgecolors='none')
+    # Scatter plot with larger, more visible points
+    # Use adaptive point size based on data density
+    point_size = max(5, min(20, 50000 / len(time_filtered)))
+    scatter = ax.scatter(time_filtered['x'], time_filtered['y'], time_filtered['time_s'],
+                        c=colors, s=point_size, alpha=0.9, edgecolors='none', depthshade=True)
     
     ax.set_xlabel('X (pixels)', color='white', fontsize=12)
     ax.set_ylabel('Y (pixels)', color='white', fontsize=12)
     ax.set_zlabel('Time (seconds)', color='white', fontsize=12)
     ax.tick_params(colors='white')
     
-    # Set viewing angle
+    # Set viewing angle for better visibility
     ax.view_init(elev=20, azim=45)
+    
+    # Add colorbar
+    sm = plt.cm.ScalarMappable(cmap=plt.cm.plasma, 
+                               norm=plt.Normalize(vmin=times.min(), vmax=times.max()))
+    sm.set_array([])
+    cbar = plt.colorbar(sm, ax=ax, pad=0.1)
+    cbar.set_label('Time (seconds)', color='white', fontsize=10)
+    cbar.ax.tick_params(colors='white')
     
     plt.tight_layout()
     plt.savefig(output_path, dpi=300, bbox_inches='tight', facecolor='black', edgecolor='none')
@@ -224,6 +261,114 @@ def create_speed_gradient_flow(df_tracks, output_path):
     plt.close()
 
 
+def create_particle_trail_animation(df_tracks, output_path, max_tracks=200, time_window=60):
+    """
+    Create an animated particle trail visualization showing wave propagation over time.
+    """
+    print(f"Creating particle trail animation ({max_tracks} tracks)...")
+    
+    # Filter to time window
+    post_poke = df_tracks[(df_tracks['time_s'] >= 0) & (df_tracks['time_s'] <= time_window)].copy()
+    
+    if len(post_poke) == 0:
+        print("No data in time window")
+        return
+    
+    # Sample tracks
+    unique_tracks = post_poke['track_id'].unique()
+    if len(unique_tracks) > max_tracks:
+        np.random.seed(42)
+        sampled_tracks = np.random.choice(unique_tracks, max_tracks, replace=False)
+        post_poke = post_poke[post_poke['track_id'].isin(sampled_tracks)]
+    
+    # Get spatial bounds
+    x_min, x_max = post_poke['x'].min(), post_poke['x'].max()
+    y_min, y_max = post_poke['y'].min(), post_poke['y'].max()
+    
+    x_range = x_max - x_min
+    y_range = y_max - y_min
+    x_min -= x_range * 0.1
+    x_max += x_range * 0.1
+    y_min -= y_range * 0.1
+    y_max += y_range * 0.1
+    
+    # Create time bins
+    time_bins = np.arange(0, time_window + 1, 0.5)
+    n_frames = len(time_bins) - 1
+    
+    fig, ax = plt.subplots(figsize=(16, 12), facecolor='black')
+    ax.set_facecolor('black')
+    ax.set_xlim(x_min, x_max)
+    ax.set_ylim(y_min, y_max)
+    ax.set_aspect('equal')
+    ax.axis('off')
+    
+    # Prepare track data
+    tracks_data = {}
+    for track_id, track_df in post_poke.groupby('track_id'):
+        track_sorted = track_df.sort_values('time_s')
+        tracks_data[track_id] = {
+            'x': track_sorted['x'].values,
+            'y': track_sorted['y'].values,
+            'time': track_sorted['time_s'].values,
+            'speed': track_sorted['speed'].fillna(0).values
+        }
+    
+    # Initialize plot elements
+    lines = []
+    points = []
+    colors = plt.cm.plasma(np.linspace(0, 1, len(tracks_data)))
+    
+    for i, (track_id, data) in enumerate(tracks_data.items()):
+        line, = ax.plot([], [], color=colors[i], alpha=0.6, linewidth=1.5)
+        point, = ax.plot([], [], 'o', color=colors[i], markersize=4, alpha=0.9)
+        lines.append((line, data))
+        points.append((point, data))
+    
+    time_text = ax.text(0.02, 0.98, '', transform=ax.transAxes,
+                       fontsize=16, fontweight='bold', color='white',
+                       verticalalignment='top',
+                       bbox=dict(boxstyle='round', facecolor='black', alpha=0.7))
+    
+    def animate(frame):
+        t_current = time_bins[frame + 1]
+        
+        # Clear and redraw
+        for line, data in lines:
+            mask = data['time'] <= t_current
+            if mask.sum() > 0:
+                line.set_data(data['x'][mask], data['y'][mask])
+            else:
+                line.set_data([], [])
+        
+        for point, data in points:
+            mask = data['time'] <= t_current
+            if mask.sum() > 0:
+                # Show most recent point
+                idx = np.where(mask)[0][-1]
+                point.set_data([data['x'][idx]], [data['y'][idx]])
+            else:
+                point.set_data([], [])
+        
+        time_text.set_text(f'Time: {t_current:.1f}s')
+        
+        return [l[0] for l in lines] + [p[0] for p in points] + [time_text]
+    
+    anim = animation.FuncAnimation(fig, animate, frames=n_frames,
+                                   interval=100, blit=True, repeat=True)
+    
+    output_path = Path(output_path)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    
+    if output_path.suffix.lower() == '.gif':
+        anim.save(output_path, writer='pillow', fps=10)
+    else:
+        anim.save(output_path, writer='ffmpeg', fps=10, bitrate=1800)
+    
+    print(f"✓ Saved to {output_path}")
+    plt.close()
+
+
 def main():
     parser = argparse.ArgumentParser(
         description='Create artistic visualizations from Ca²⁺ wave data'
@@ -233,7 +378,7 @@ def main():
     parser.add_argument('--output-dir', default='analysis_results/artistic',
                        help='Output directory for visualizations')
     parser.add_argument('--visualizations', nargs='+',
-                       choices=['all', 'flow', '3d', 'gradient'],
+                       choices=['all', 'flow', '3d', 'gradient', 'particles'],
                        default=['all'],
                        help='Which visualizations to create')
     parser.add_argument('--style', choices=['aurora', 'fire', 'ocean', 'neon'],
@@ -256,7 +401,7 @@ def main():
     
     visualizations = args.visualizations
     if 'all' in visualizations:
-        visualizations = ['flow', '3d', 'gradient']
+        visualizations = ['flow', '3d', 'gradient', 'particles']
     
     print(f"\nCreating {len(visualizations)} visualization(s)...\n")
     
@@ -268,6 +413,9 @@ def main():
     
     if 'gradient' in visualizations:
         create_speed_gradient_flow(df_tracks, output_dir / 'speed_gradient_flow.png')
+    
+    if 'particles' in visualizations:
+        create_particle_trail_animation(df_tracks, output_dir / 'particle_trails.gif')
     
     print("\n✓ All visualizations complete!")
 

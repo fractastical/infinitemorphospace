@@ -31,8 +31,9 @@ python wave-vector-analysis/artistic-visualizations/create_artistic_visualizatio
 1. **Flow Field Paintings** - Spatial vector fields showing wave propagation (scientifically useful)
 2. **3D Time-Space Sculptures** - Temporal-spatial dynamics with time as z-axis (scientifically useful)
 3. **Speed Gradient Flow** - Spatial mapping of propagation speeds (scientifically useful)
+4. **Particle Trail Animations** - Animated flowing particle trails (useful for presentations)
 
-These visualizations complement existing analysis tools by providing spatial vector fields, combined temporal-spatial views, and spatial speed mapping that aren't available in standard plots.
+These visualizations complement existing analysis tools by providing spatial vector fields, combined temporal-spatial views, spatial speed mapping, and animated temporal dynamics that aren't available in standard plots.
 
 See `ARTISTIC_VISUALIZATIONS.md` for detailed documentation.
 
