@@ -10,6 +10,14 @@ A complete pipeline for detecting and tracking Ca²⁺ signaling waves in time-l
 
 **See [`wave-vector-analysis/README.md`](./wave-vector-analysis/README.md) for full documentation.**
 
+#### Visualization Example
+
+Flow field visualization showing spatial vector fields of Ca²⁺ wave propagation:
+
+![Ca²⁺ Wave Flow Field](wave-vector-analysis/analysis_results/artistic/flow_field_aurora.png)
+
+*Spatial vector field showing wave propagation directions and speeds. This visualization complements standard analysis tools by providing spatial flow patterns not available in direction distribution plots.*
+
 ### [Nanopublications](./nanopubs/)
 
 Nanopublication-related files including wave files (.trig format), hypothesis mappings, and scripts for processing and canonicalizing nanopublications.
