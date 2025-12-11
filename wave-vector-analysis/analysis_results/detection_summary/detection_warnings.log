@@ -1,0 +1,164 @@
+================================================================================
+Embryo Detection Warnings and Validation Log
+================================================================================
+
+All warnings and validation messages from embryo detection:
+
+    ⚠ Volume mismatch: A area=53020, B area=84695, difference=46.0% (>30% threshold)
+    ⚠ B is 1.6x larger than A - B might encompass both embryos
+    ⚠ A volume unusual: area=53020 (3.81% of image), typical ~20895 (±30%)
+    ⚠ B volume unusual: area=84695 (6.08% of image), typical ~20895 (±30%)
+    ⚠ B head position warning: head at 1042.0 is in left half (center: 1132.5) - may need correction
+    ⚠ A volume unusual: area=428309 (16.44% of image), typical ~39072 (±30%)
+    ⚠ B volume unusual: area=494353 (18.98% of image), typical ~39072 (±30%)
+    ⚠ Volume mismatch: A area=699891, B area=321372, difference=74.1% (>30% threshold)
+    ⚠ A is 2.2x larger than B - A might encompass both embryos
+    ⚠ A volume unusual: area=699891 (26.99% of image), typical ~38894 (±30%)
+    ⚠ B volume unusual: area=321372 (12.39% of image), typical ~38894 (±30%)
+    ⚠ Skipping single-frame TIFF: C - color time scale.tif (1 frame(s))
+    ⚠ Skipping single-frame TIFF: TMR.tif (1 frame(s))
+    ⚠ A volume unusual: area=371044 (13.59% of image), typical ~40942 (±30%)
+    ⚠ B volume unusual: area=403748 (14.79% of image), typical ~40942 (±30%)
+    ⚠ Volume mismatch: A area=393166, B area=538680, difference=31.2% (>30% threshold)
+    ⚠ A volume unusual: area=393166 (14.86% of image), typical ~39694 (±30%)
+    ⚠ B volume unusual: area=538680 (20.36% of image), typical ~39694 (±30%)
+    ⚠ Volume mismatch: A area=149730, B area=611098, difference=121.3% (>30% threshold)
+    ⚠ B is 4.1x larger than A - B might encompass both embryos
+    ⚠ A volume unusual: area=149730 (5.28% of image), typical ~42538 (±30%)
+    ⚠ B volume unusual: area=611098 (21.55% of image), typical ~42538 (±30%)
+    ⚠ Volume mismatch: A area=344376, B area=494214, difference=35.7% (>30% threshold)
+    ⚠ A volume unusual: area=344376 (14.12% of image), typical ~36586 (±30%)
+    ⚠ B volume unusual: area=494214 (20.26% of image), typical ~36586 (±30%)
+    ⚠ Volume mismatch: A area=295314, B area=106418, difference=94.0% (>30% threshold)
+    ⚠ A is 2.8x larger than B - A might encompass both embryos
+    ⚠ A volume unusual: area=295314 (13.54% of image), typical ~32717 (±30%)
+    ⚠ B volume unusual: area=106418 (4.88% of image), typical ~32717 (±30%)
+    ⚠ Volume mismatch: A area=87156, B area=178774, difference=68.9% (>30% threshold)
+    ⚠ B is 2.1x larger than A - B might encompass both embryos
+    ⚠ A volume unusual: area=87156 (4.18% of image), typical ~31278 (±30%)
+    ⚠ B volume unusual: area=178774 (8.57% of image), typical ~31278 (±30%)
+    ⚠ B head position warning: head at 1383.0 is in left half (center: 1407.0) - may need correction
+    ⚠ Skipping single-frame TIFF: TMR.tif (1 frame(s))
+    ⚠ Volume mismatch: A area=45634, B area=529714, difference=168.3% (>30% threshold)
+    ⚠ B is 11.6x larger than A - B might encompass both embryos
+    ⚠ B volume unusual: area=529714 (19.95% of image), typical ~39836 (±30%)
+    ⚠ A volume unusual: area=565963 (20.00% of image), typical ~42451 (±30%)
+    ⚠ B volume unusual: area=541890 (19.15% of image), typical ~42451 (±30%)
+    ⚠ A volume unusual: area=603149 (21.36% of image), typical ~42358 (±30%)
+    ⚠ B volume unusual: area=526888 (18.66% of image), typical ~42358 (±30%)
+    ⚠ Volume mismatch: A area=155114, B area=215818, difference=32.7% (>30% threshold)
+    ⚠ A volume unusual: area=155114 (6.68% of image), typical ~34810 (±30%)
+    ⚠ B volume unusual: area=215818 (9.30% of image), typical ~34810 (±30%)
+    ⚠ B head position warning: head at 1299.0 is in left half (center: 1480.0) - may need correction
+    ⚠ Volume mismatch: A area=136120, B area=210180, difference=42.8% (>30% threshold)
+    ⚠ B is 1.5x larger than A - B might encompass both embryos
+    ⚠ A volume unusual: area=136120 (5.58% of image), typical ~36586 (±30%)
+    ⚠ B volume unusual: area=210180 (8.62% of image), typical ~36586 (±30%)
+    ⚠ B head position warning: head at 1292.0 is in left half (center: 1480.0) - may need correction
+    ⚠ Skipping single-frame TIFF: C1 - MAX_colored.tif (1 frame(s))
+    ⚠ A volume unusual: area=239969 (27.86% of image), typical ~12921 (±30%)
+    ⚠ B volume unusual: area=206950 (24.02% of image), typical ~12921 (±30%)
+    ⚠ Volume mismatch: A area=76362, B area=217978, difference=96.2% (>30% threshold)
+    ⚠ B is 2.9x larger than A - B might encompass both embryos
+    ⚠ A volume unusual: area=76362 (12.00% of image), typical ~9544 (±30%)
+    ⚠ B volume unusual: area=217978 (34.26% of image), typical ~9544 (±30%)
+    ⚠ Volume mismatch: A area=112618, B area=211365, difference=61.0% (>30% threshold)
+    ⚠ B is 1.9x larger than A - B might encompass both embryos
+    ⚠ A volume unusual: area=112618 (15.00% of image), typical ~11259 (±30%)
+    ⚠ B volume unusual: area=211365 (28.16% of image), typical ~11259 (±30%)
+    ⚠ Volume mismatch: A area=257226, B area=152442, difference=51.2% (>30% threshold)
+    ⚠ A is 1.7x larger than B - A might encompass both embryos
+    ⚠ A volume unusual: area=257226 (22.51% of image), typical ~17144 (±30%)
+    ⚠ B volume unusual: area=152442 (13.34% of image), typical ~17144 (±30%)
+    ⚠ Volume mismatch: A area=177132, B area=241900, difference=30.9% (>30% threshold)
+    ⚠ A volume unusual: area=177132 (16.92% of image), typical ~15702 (±30%)
+    ⚠ B volume unusual: area=241900 (23.11% of image), typical ~15702 (±30%)
+    ⚠ A volume unusual: area=213498 (17.36% of image), typical ~18449 (±30%)
+    ⚠ B volume unusual: area=254499 (20.69% of image), typical ~18449 (±30%)
+    ⚠ A volume unusual: area=225672 (22.72% of image), typical ~14898 (±30%)
+    ⚠ B volume unusual: area=202678 (20.41% of image), typical ~14898 (±30%)
+    ⚠ Volume mismatch: A area=136352, B area=312414, difference=78.5% (>30% threshold)
+    ⚠ B is 2.3x larger than A - B might encompass both embryos
+    ⚠ A volume unusual: area=136352 (12.35% of image), typical ~16561 (±30%)
+    ⚠ B volume unusual: area=312414 (28.30% of image), typical ~16561 (±30%)
+    ⚠ A volume unusual: area=395682 (17.82% of image), typical ~33300 (±30%)
+    ⚠ B volume unusual: area=415597 (18.72% of image), typical ~33300 (±30%)
+    ⚠ Volume mismatch: A area=447222, B area=643470, difference=36.0% (>30% threshold)
+    ⚠ A volume unusual: area=447222 (17.31% of image), typical ~38755 (±30%)
+    ⚠ B volume unusual: area=643470 (24.91% of image), typical ~38755 (±30%)
+    ⚠ A volume unusual: area=347947 (17.93% of image), typical ~29107 (±30%)
+    ⚠ B volume unusual: area=316292 (16.30% of image), typical ~29107 (±30%)
+    ⚠ A volume unusual: area=359950 (16.97% of image), typical ~31815 (±30%)
+    ⚠ B volume unusual: area=331390 (15.62% of image), typical ~31815 (±30%)
+    ⚠ Skipping single-frame TIFF: C after wound - MAX_colored.tif (1 frame(s))
+    ⚠ Volume mismatch: A area=634773, B area=332199, difference=62.6% (>30% threshold)
+    ⚠ A is 1.9x larger than B - A might encompass both embryos
+    ⚠ A volume unusual: area=634773 (30.84% of image), typical ~30873 (±30%)
+    ⚠ B volume unusual: area=332199 (16.14% of image), typical ~30873 (±30%)
+    ⚠ Skipping single-frame TIFF: TMR.tif (1 frame(s))
+    ⚠ Skipping single-frame TIFF: C after wound - MAX_Colored.tif (1 frame(s))
+    ⚠ B head position warning: head at 1056.0 is in left half (center: 1471.5) - may need correction
+    ⚠ Skipping single-frame TIFF: TMR.tif (1 frame(s))
+    ⚠ Volume mismatch: A area=145932, B area=49598, difference=98.5% (>30% threshold)
+    ⚠ A is 2.9x larger than B - A might encompass both embryos
+    ⚠ A volume unusual: area=145932 (16.80% of image), typical ~13030 (±30%)
+    ⚠ B volume unusual: area=49598 (5.71% of image), typical ~13030 (±30%)
+    ⚠ Volume mismatch: A area=143247, B area=9028, difference=176.3% (>30% threshold)
+    ⚠ A is 15.9x larger than B - A might encompass both embryos
+    ⚠ A volume unusual: area=143247 (37.42% of image), typical ~5742 (±30%)
+    ⚠ Skipping single-frame TIFF: TMR.tif (1 frame(s))
+    ⚠ A volume unusual: area=318744 (18.39% of image), typical ~26001 (±30%)
+    ⚠ B volume unusual: area=290285 (16.75% of image), typical ~26001 (±30%)
+    ⚠ A volume unusual: area=342644 (18.83% of image), typical ~27299 (±30%)
+    ⚠ B volume unusual: area=321298 (17.65% of image), typical ~27299 (±30%)
+    ⚠ A volume unusual: area=849424 (25.35% of image), typical ~50260 (±30%)
+    ⚠ B volume unusual: area=1063764 (31.75% of image), typical ~50260 (±30%)
+    ⚠ Skipping single-frame TIFF: TMR - adding media.tif (1 frame(s))
+    ⚠ Skipping single-frame TIFF: TMR.tif (1 frame(s))
+    ⚠ Volume mismatch: A area=386702, B area=847213, difference=74.6% (>30% threshold)
+    ⚠ B is 2.2x larger than A - B might encompass both embryos
+    ⚠ A volume unusual: area=386702 (15.84% of image), typical ~36614 (±30%)
+    ⚠ B volume unusual: area=847213 (34.71% of image), typical ~36614 (±30%)
+    ⚠ Volume mismatch: A area=450328, B area=757329, difference=50.8% (>30% threshold)
+    ⚠ B is 1.7x larger than A - B might encompass both embryos
+    ⚠ A volume unusual: area=450328 (20.12% of image), typical ~33566 (±30%)
+    ⚠ B volume unusual: area=757329 (33.84% of image), typical ~33566 (±30%)
+    ⚠ Volume mismatch: A area=488, B area=869, difference=56.2% (>30% threshold)
+    ⚠ B is 1.8x larger than A - B might encompass both embryos
+    ⚠ A volume unusual: area=488 (0.32% of image), typical ~2314 (±30%)
+    ⚠ B volume unusual: area=869 (0.56% of image), typical ~2314 (±30%)
+    ⚠ B head position warning: head at 162.0 is in left half (center: 190.0) - may need correction
+    ⚠ Volume mismatch: A area=161562, B area=244222, difference=40.7% (>30% threshold)
+    ⚠ B is 1.5x larger than A - B might encompass both embryos
+    ⚠ A volume unusual: area=161562 (9.90% of image), typical ~24482 (±30%)
+    ⚠ B volume unusual: area=244222 (14.96% of image), typical ~24482 (±30%)
+    ⚠ A volume unusual: area=187088 (11.22% of image), typical ~25005 (±30%)
+    ⚠ B volume unusual: area=238219 (14.29% of image), typical ~25005 (±30%)
+    ⚠ A volume unusual: area=192301 (12.55% of image), typical ~22993 (±30%)
+    ⚠ B volume unusual: area=254940 (16.63% of image), typical ~22993 (±30%)
+    ⚠ Volume mismatch: A area=782620, B area=462816, difference=51.4% (>30% threshold)
+    ⚠ A is 1.7x larger than B - A might encompass both embryos
+    ⚠ A volume unusual: area=782620 (28.41% of image), typical ~41323 (±30%)
+    ⚠ B volume unusual: area=462816 (16.80% of image), typical ~41323 (±30%)
+    ⚠ A volume unusual: area=399023 (18.62% of image), typical ~32149 (±30%)
+    ⚠ B volume unusual: area=522325 (24.37% of image), typical ~32149 (±30%)
+    ⚠ A volume unusual: area=424534 (19.14% of image), typical ~33272 (±30%)
+    ⚠ B volume unusual: area=492875 (22.22% of image), typical ~33272 (±30%)
+    ⚠ A volume unusual: area=404424 (20.23% of image), typical ~29989 (±30%)
+    ⚠ B volume unusual: area=487008 (24.36% of image), typical ~29989 (±30%)
+    ⚠ Volume mismatch: A area=178576, B area=125986, difference=34.5% (>30% threshold)
+    ⚠ A volume unusual: area=178576 (6.95% of image), typical ~38544 (±30%)
+    ⚠ B volume unusual: area=125986 (4.90% of image), typical ~38544 (±30%)
+    ⚠ Volume mismatch: A area=264608, B area=188426, difference=33.6% (>30% threshold)
+    ⚠ A volume unusual: area=264608 (8.98% of image), typical ~44222 (±30%)
+    ⚠ B volume unusual: area=188426 (6.39% of image), typical ~44222 (±30%)
+    ⚠ A volume unusual: area=534504 (19.40% of image), typical ~41334 (±30%)
+    ⚠ B volume unusual: area=643837 (23.36% of image), typical ~41334 (±30%)
+    ⚠ A volume unusual: area=429662 (18.33% of image), typical ~35151 (±30%)
+    ⚠ B volume unusual: area=402458 (17.17% of image), typical ~35151 (±30%)
+    ⚠ A volume unusual: area=430261 (15.66% of image), typical ~41203 (±30%)
+    ⚠ B volume unusual: area=436429 (15.89% of image), typical ~41203 (±30%)
+    ⚠ Volume mismatch: A area=495563, B area=216978, difference=78.2% (>30% threshold)
+    ⚠ A is 2.3x larger than B - A might encompass both embryos
+    ⚠ A volume unusual: area=495563 (19.74% of image), typical ~37651 (±30%)
+    ⚠ B volume unusual: area=216978 (8.64% of image), typical ~37651 (±30%)

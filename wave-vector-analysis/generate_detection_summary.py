@@ -26,6 +26,8 @@ try:
     from scipy.spatial import ConvexHull
     from scipy.signal import find_peaks
     from scipy.ndimage import gaussian_filter1d
+    from scipy.interpolate import griddata
+    from scipy.ndimage import gaussian_filter
     HAS_SCIPY = True
 except ImportError:
     HAS_SCIPY = False
@@ -57,7 +59,7 @@ def extract_folder_and_video(filename):
     return folder, video_name
 
 
-def detect_embryo_from_tiff(tiff_path, embryo_id=None):
+def detect_embryo_from_tiff(tiff_path, embryo_id=None, logger=None):
     """
     Detect embryo boundaries directly from TIFF file using the same method as the parser.
     Returns dict with 'contour', 'mask', 'head', 'tail', 'centroid' for each embryo.
@@ -72,7 +74,8 @@ def detect_embryo_from_tiff(tiff_path, embryo_id=None):
     try:
         # Read first page of TIFF
         with tiff.TiffFile(tiff_path) as tif:
-            if len(tif.pages) == 0:
+            # Skip single-frame TIFFs - only process multi-frame ones
+            if len(tif.pages) <= 1:
                 return None
             
             # Try to read as 16-bit first
@@ -914,22 +917,40 @@ def detect_embryo_from_tiff(tiff_path, embryo_id=None):
                     results['B']['tail'] = (float(contour_B_emergency[:, 0].min()), 
                                            float(contour_B_emergency[np.argmin(contour_B_emergency[:, 0]), 1]))
             
-            # Volume assessment: Check that each embryo's area is reasonable (within 30% of typical)
+            # Volume assessment: Check that each embryo's area is reasonable
+            # Compare A and B areas - they should be similar (within 30% of each other)
+            # Also check against typical single embryo area
+            contour_A = results['A']['contour']
+            contour_B = results['B']['contour']
+            area_A = cv2.contourArea(contour_A)
+            area_B = cv2.contourArea(contour_B)
+            
             # Typical single embryo area is roughly 0.01-0.02 of image area
-            typical_embryo_area = 0.015 * h * w  # Typical single embryo area
+            typical_embryo_area = 0.015 * h * w
             area_tolerance = 0.30  # 30% tolerance
             
-            for label in ['A', 'B']:
-                contour = results[label]['contour']
-                area = cv2.contourArea(contour)
+            # Check if A and B areas are similar (within 30% of each other)
+            avg_area = (area_A + area_B) / 2
+            area_diff_pct = abs(area_A - area_B) / avg_area if avg_area > 0 else 0
+            
+            if area_diff_pct > area_tolerance:
+                print(f"    ⚠ Volume mismatch: A area={area_A:.0f}, B area={area_B:.0f}, "
+                      f"difference={area_diff_pct*100:.1f}% (>30% threshold)")
+                # If one is much larger, it might be encompassing both embryos
+                if area_A > area_B * 1.5:
+                    print(f"    ⚠ A is {area_A/area_B:.1f}x larger than B - A might encompass both embryos")
+                elif area_B > area_A * 1.5:
+                    print(f"    ⚠ B is {area_B/area_A:.1f}x larger than A - B might encompass both embryos")
+            
+            # Check each against typical size
+            for label, area in [('A', area_A), ('B', area_B)]:
                 area_ratio = area / (h * w)
+                area_diff_from_typical_pct = abs(area - typical_embryo_area) / typical_embryo_area
                 
-                # Check if area is within 30% of typical
-                area_diff_pct = abs(area - typical_embryo_area) / typical_embryo_area
-                if area_diff_pct > area_tolerance:
-                    print(f"    ⚠ Volume check failed for {label}: area={area:.0f} ({area_ratio*100:.2f}% of image), "
-                          f"expected ~{typical_embryo_area:.0f} (±{area_tolerance*100:.0f}%)")
-                    # This is a warning, but we'll still use it (might be legitimate variation)
+                # Flag if significantly different from typical (but allow some variation)
+                if area_diff_from_typical_pct > area_tolerance * 2:  # 60% threshold for individual check
+                    print(f"    ⚠ {label} volume unusual: area={area:.0f} ({area_ratio*100:.2f}% of image), "
+                          f"typical ~{typical_embryo_area:.0f} (±{area_tolerance*100:.0f}%)")
             
             # B head/tail position check: B head should be in the right half of the image
             # If B's head is more than 20% into the left half, it's wrong
@@ -990,6 +1011,420 @@ def detect_embryo_from_tiff(tiff_path, embryo_id=None):
     
     if embryo_id:
         return results.get(embryo_id)
+    return results
+
+
+def detect_embryos_vector_first(df_tracks, tiff_path=None, image_width=None, image_height=None):
+    """
+    NEW APPROACH: Start with vector data if available, then refine with contours.
+    
+    Logic:
+    1. If vectors exist and cover significant area, use them to identify left/right regions
+    2. Find centroids in each region → assign A (left) and B (right)
+    3. Use contour detection to refine boundaries
+    4. Use vector directions to determine head/tail (waves propagate from head)
+    
+    Args:
+        df_tracks: DataFrame with spark data (x, y, vx, vy, speed, embryo_id)
+        tiff_path: Optional path to TIFF file for contour refinement
+        image_width: Optional image width (if None, calculated from data)
+        image_height: Optional image height (if None, calculated from data)
+    
+    Returns:
+        Dict with 'A' and 'B' keys, each containing:
+        - 'contour': boundary contour
+        - 'centroid': (x, y) centroid
+        - 'head': (x, y) head position
+        - 'tail': (x, y) tail position
+        - 'vector_region': bounding box of vector data region
+    """
+    results = {}
+    
+    # Get image dimensions
+    valid_xy = df_tracks[df_tracks['x'].notna() & df_tracks['y'].notna()]
+    if len(valid_xy) == 0:
+        return results
+    
+    if image_width is None:
+        image_width = valid_xy['x'].max() - valid_xy['x'].min()
+    if image_height is None:
+        image_height = valid_xy['y'].max() - valid_xy['y'].min()
+    
+    image_center_x = (valid_xy['x'].min() + valid_xy['x'].max()) / 2
+    
+    # Step 1: Check if we have vector data
+    valid_vectors = df_tracks[(df_tracks['vx'].notna()) & (df_tracks['vy'].notna()) & 
+                             (df_tracks['speed'].notna()) & (df_tracks['speed'] > 0)].copy()
+    
+    has_vectors = len(valid_vectors) > 100  # Need sufficient vector data
+    
+    # Step 2: Identify left vs right regions using available data
+    if has_vectors:
+        # Use vector data to identify regions
+        # Split into left and right halves
+        left_vectors = valid_vectors[valid_vectors['x'] < image_center_x].copy()
+        right_vectors = valid_vectors[valid_vectors['x'] >= image_center_x].copy()
+        
+        # Calculate centroids from vector data
+        left_centroid = None
+        right_centroid = None
+        left_bbox = None
+        right_bbox = None
+        
+        if len(left_vectors) > 50:
+            left_centroid = (left_vectors['x'].mean(), left_vectors['y'].mean())
+            # Calculate bounding box
+            left_bbox = {
+                'x_min': left_vectors['x'].min(),
+                'x_max': left_vectors['x'].max(),
+                'y_min': left_vectors['y'].min(),
+                'y_max': left_vectors['y'].max()
+            }
+        
+        if len(right_vectors) > 50:
+            right_centroid = (right_vectors['x'].mean(), right_vectors['y'].mean())
+            # Calculate bounding box
+            right_bbox = {
+                'x_min': right_vectors['x'].min(),
+                'x_max': right_vectors['x'].max(),
+                'y_min': right_vectors['y'].min(),
+                'y_max': right_vectors['y'].max()
+            }
+        
+        # Assign A (left) and B (right) based on vector centroids
+        if left_centroid and right_centroid and left_bbox and right_bbox:
+            results['A'] = {
+                'centroid': left_centroid,
+                'vector_region': left_bbox,
+                'vector_data': left_vectors,
+                'contour': None,  # Will be filled by contour detection
+                'head': None,
+                'tail': None
+            }
+            results['B'] = {
+                'centroid': right_centroid,
+                'vector_region': right_bbox,
+                'vector_data': right_vectors,
+                'contour': None,
+                'head': None,
+                'tail': None
+            }
+    
+    # If no vectors or insufficient data, fall back to spark location centroids
+    if len(results) == 0:
+        # Use all spark data, split by x-position
+        left_sparks = valid_xy[valid_xy['x'] < image_center_x].copy()
+        right_sparks = valid_xy[valid_xy['x'] >= image_center_x].copy()
+        
+        if len(left_sparks) > 20 and len(right_sparks) > 20:
+            left_centroid = (left_sparks['x'].mean(), left_sparks['y'].mean())
+            right_centroid = (right_sparks['x'].mean(), right_sparks['y'].mean())
+            
+            results['A'] = {
+                'centroid': left_centroid,
+                'vector_region': {
+                    'x_min': left_sparks['x'].min(),
+                    'x_max': left_sparks['x'].max(),
+                    'y_min': left_sparks['y'].min(),
+                    'y_max': left_sparks['y'].max()
+                },
+                'vector_data': None,
+                'contour': None,
+                'head': None,
+                'tail': None
+            }
+            results['B'] = {
+                'centroid': right_centroid,
+                'vector_region': {
+                    'x_min': right_sparks['x'].min(),
+                    'x_max': right_sparks['x'].max(),
+                    'y_min': right_sparks['y'].min(),
+                    'y_max': right_sparks['y'].max()
+                },
+                'vector_data': None,
+                'contour': None,
+                'head': None,
+                'tail': None
+            }
+    
+    # Step 3: Refine with contour detection if TIFF available
+    if tiff_path and tiff_path.exists() and len(results) > 0:
+        try:
+            # Get contours from TIFF
+            tiff_detections = detect_embryo_from_tiff(tiff_path, embryo_id=None)
+            
+            if tiff_detections:
+                # Match contours to our vector-based centroids
+                for label in ['A', 'B']:
+                    if label not in results:
+                        continue
+                    
+                    target_centroid = results[label]['centroid']
+                    
+                    # Find closest contour to this centroid
+                    best_contour = None
+                    best_dist = float('inf')
+                    best_detection = None
+                    
+                    for tiff_label, detection in tiff_detections.items():
+                        tiff_centroid = detection.get('centroid')
+                        if tiff_centroid:
+                            dist = np.sqrt((tiff_centroid[0] - target_centroid[0])**2 + 
+                                         (tiff_centroid[1] - target_centroid[1])**2)
+                            if dist < best_dist and dist < 300:  # Reasonable distance
+                                best_dist = dist
+                                best_contour = detection.get('contour')
+                                best_detection = detection
+                    
+                    if best_contour is not None:
+                        results[label]['contour'] = best_contour
+                        # Also get intermediate and old contours if available
+                        if best_detection:
+                            results[label]['contour_intermediate'] = best_detection.get('contour_intermediate')
+                            results[label]['contour_old'] = best_detection.get('contour_old')
+        except Exception as e:
+            print(f"    ⚠ Error refining with TIFF contours: {e}")
+    
+    # Step 4: Determine head/tail using vector directions
+    for label in ['A', 'B']:
+        if label not in results:
+            continue
+        
+        vector_data = results[label].get('vector_data')
+        centroid = results[label]['centroid']
+        contour = results[label].get('contour')
+        
+        # If we have vector data, use it to determine head/tail
+        if vector_data is not None and len(vector_data) > 50:
+            # Calculate average vector direction in this region
+            # Waves propagate from head outward
+            avg_vx = vector_data['vx'].mean()
+            avg_vy = vector_data['vy'].mean()
+            
+            # For A (left side): if vectors point rightward, head is on left
+            # For B (right side): if vectors point leftward, head is on right
+            if label == 'A':
+                # A is on left - head should be leftmost
+                # If vectors point rightward (positive vx), head is on left (correct)
+                # If vectors point leftward (negative vx), might need to check
+                if avg_vx > 0.3:  # Strong rightward flow
+                    # Head is on left, tail on right
+                    if contour is not None:
+                        contour_points = contour.reshape(-1, 2).astype(np.float32)
+                        x_coords = contour_points[:, 0]
+                        head = contour_points[np.argmin(x_coords)]
+                        tail = contour_points[np.argmax(x_coords)]
+                    else:
+                        # Use vector region bounds
+                        bbox = results[label].get('vector_region')
+                        if bbox:
+                            head = (bbox['x_min'], centroid[1])
+                            tail = (bbox['x_max'], centroid[1])
+                        else:
+                            # Fallback to centroid
+                            head = (centroid[0] - 50, centroid[1])
+                            tail = (centroid[0] + 50, centroid[1])
+                else:
+                    # Vectors point leftward - might be reversed or single embryo
+                    # Default to leftmost = head
+                    if contour is not None:
+                        contour_points = contour.reshape(-1, 2).astype(np.float32)
+                        x_coords = contour_points[:, 0]
+                        head = contour_points[np.argmin(x_coords)]
+                        tail = contour_points[np.argmax(x_coords)]
+                    else:
+                        bbox = results[label].get('vector_region')
+                        if bbox:
+                            head = (bbox['x_min'], centroid[1])
+                            tail = (bbox['x_max'], centroid[1])
+                        else:
+                            head = (centroid[0] - 50, centroid[1])
+                            tail = (centroid[0] + 50, centroid[1])
+            else:  # B (right side)
+                # B is on right - head should be rightmost
+                # If vectors point leftward (negative vx), head is on right (correct)
+                if avg_vx < -0.3:  # Strong leftward flow
+                    # Head is on right, tail on left
+                    if contour is not None:
+                        contour_points = contour.reshape(-1, 2).astype(np.float32)
+                        x_coords = contour_points[:, 0]
+                        head = contour_points[np.argmax(x_coords)]  # Rightmost
+                        tail = contour_points[np.argmin(x_coords)]  # Leftmost
+                    else:
+                        bbox = results[label]['vector_region']
+                        head = (bbox['x_max'], centroid[1])
+                        tail = (bbox['x_min'], centroid[1])
+                else:
+                    # Vectors point rightward - might be reversed
+                    # Default to rightmost = head
+                    if contour is not None:
+                        contour_points = contour.reshape(-1, 2).astype(np.float32)
+                        x_coords = contour_points[:, 0]
+                        head = contour_points[np.argmax(x_coords)]
+                        tail = contour_points[np.argmin(x_coords)]
+                    else:
+                        bbox = results[label]['vector_region']
+                        head = (bbox['x_max'], centroid[1])
+                        tail = (bbox['x_min'], centroid[1])
+            
+            results[label]['head'] = (float(head[0]), float(head[1]))
+            results[label]['tail'] = (float(tail[0]), float(tail[1]))
+        
+        # If no vector data, use contour-based head/tail (PCA + width analysis)
+        elif contour is not None:
+            # Use existing PCA + width analysis logic
+            contour_points = contour.reshape(-1, 2).astype(np.float32)
+            mean, eigenvectors, eigenvalues = cv2.PCACompute2(contour_points, mean=None)
+            v = eigenvectors[0]
+            v_norm = v / (np.linalg.norm(v) + 1e-9)
+            
+            proj = np.dot(contour_points - mean.reshape(1, 2), v_norm.reshape(2, 1)).ravel()
+            min_idx = np.argmin(proj)
+            max_idx = np.argmax(proj)
+            end1 = contour_points[min_idx]
+            end2 = contour_points[max_idx]
+            
+            # Simple: for A, leftmost = head; for B, rightmost = head
+            x_coords = contour_points[:, 0]
+            if label == 'A':
+                head = contour_points[np.argmin(x_coords)]
+                tail = contour_points[np.argmax(x_coords)]
+            else:
+                head = contour_points[np.argmax(x_coords)]
+                tail = contour_points[np.argmin(x_coords)]
+            
+            results[label]['head'] = (float(head[0]), float(head[1]))
+            results[label]['tail'] = (float(tail[0]), float(tail[1]))
+    
+    return results
+
+
+def validate_head_tail_with_vectors(df_tracks, results, image_width, image_height):
+    """
+    Validate and correct head/tail assignments using vector wave data.
+    
+    Uses the direction of Ca²⁺ wave propagation to validate:
+    - Waves typically propagate from head (poke location) outward
+    - Left half vectors pointing rightward → head should be on left (A)
+    - Right half vectors pointing leftward → head should be on right (B)
+    
+    Args:
+        df_tracks: DataFrame with velocity data (vx, vy, x, y)
+        results: Dict with 'A' and 'B' embryo detection results
+        image_width: Image width in pixels
+        image_height: Image height in pixels
+    
+    Returns:
+        Modified results dict with corrected assignments if needed
+    """
+    if len(results) != 2 or 'A' not in results or 'B' not in results:
+        return results
+    
+    # Filter to valid velocity data
+    valid_vectors = df_tracks[(df_tracks['vx'].notna()) & (df_tracks['vy'].notna()) & 
+                             (df_tracks['speed'].notna()) & (df_tracks['speed'] > 0)].copy()
+    
+    if len(valid_vectors) < 50:  # Need sufficient data
+        return results
+    
+    image_center_x = image_width / 2
+    
+    # Split vectors into left and right halves
+    left_vectors = valid_vectors[valid_vectors['x'] < image_center_x].copy()
+    right_vectors = valid_vectors[valid_vectors['x'] >= image_center_x].copy()
+    
+    corrections_made = []
+    
+    # Analyze left half vectors
+    if len(left_vectors) > 20:
+        # Calculate average x-direction of vectors in left half
+        # Positive vx = pointing right, negative vx = pointing left
+        avg_vx_left = left_vectors['vx'].mean()
+        
+        # If vectors point predominantly rightward (positive vx), head should be on left (A)
+        # If vectors point predominantly leftward (negative vx), head might be on right (B) - wrong!
+        if avg_vx_left < -0.5:  # Strong leftward flow in left half
+            # This suggests head is NOT on left - might be misassigned
+            a_head_x = results['A']['head'][0]
+            if a_head_x < image_center_x:
+                # A head is on left but vectors point leftward - suspicious
+                print(f"    ⚠ Vector validation: Left half vectors point leftward (avg_vx={avg_vx_left:.2f}), "
+                      f"but A head is at {a_head_x:.1f} (left side)")
+    
+    # Analyze right half vectors
+    if len(right_vectors) > 20:
+        # Calculate average x-direction of vectors in right half
+        avg_vx_right = right_vectors['vx'].mean()
+        
+        # If vectors point predominantly leftward (negative vx), head should be on right (B)
+        # If vectors point predominantly rightward (positive vx), head might be on left (A) - wrong!
+        if avg_vx_right > 0.5:  # Strong rightward flow in right half
+            # This suggests head is NOT on right - might be misassigned
+            b_head_x = results['B']['head'][0]
+            if b_head_x >= image_center_x:
+                # B head is on right but vectors point rightward - suspicious
+                print(f"    ⚠ Vector validation: Right half vectors point rightward (avg_vx={avg_vx_right:.2f}), "
+                      f"but B head is at {b_head_x:.1f} (right side)")
+        
+        # CRITICAL CHECK: If B head is on left side but right half vectors point leftward
+        # This strongly suggests B head should be on right
+        if avg_vx_right < -0.3 and b_head_x < image_center_x:
+            print(f"    ⚠ CRITICAL Vector validation: B head at {b_head_x:.1f} is on LEFT, "
+                  f"but right half vectors point LEFTWARD (avg_vx={avg_vx_right:.2f})")
+            print(f"    → This suggests B head should be on RIGHT - forcing correction")
+            
+            # Force B head to rightmost point of B's contour
+            contour_B = results['B']['contour']
+            if len(contour_B) > 2:
+                contour_points = contour_B.astype(np.float32)
+                x_coords = contour_points[:, 0]
+                rightmost_idx = np.argmax(x_coords)
+                new_b_head = contour_points[rightmost_idx]
+                results['B']['head'] = (float(new_b_head[0]), float(new_b_head[1]))
+                
+                # Also update tail to be leftmost
+                leftmost_idx = np.argmin(x_coords)
+                new_b_tail = contour_points[leftmost_idx]
+                results['B']['tail'] = (float(new_b_tail[0]), float(new_b_tail[1]))
+                
+                corrections_made.append("B head moved to rightmost (vector-based)")
+    
+    # Additional check: Compare vector directions near head positions
+    # Head regions should have vectors pointing AWAY from head (outward propagation)
+    for label in ['A', 'B']:
+        head_pos = results[label]['head']
+        if head_pos:
+            # Get vectors near head position (within 200 pixels)
+            head_x, head_y = head_pos[0], head_pos[1]
+            near_head = valid_vectors[
+                ((valid_vectors['x'] - head_x)**2 + (valid_vectors['y'] - head_y)**2) < 200**2
+            ].copy()
+            
+            if len(near_head) > 10:
+                # Calculate average direction away from head
+                # Vectors should point away from head
+                dx = near_head['x'] - head_x
+                dy = near_head['y'] - head_y
+                # Normalize direction vectors
+                dist = np.sqrt(dx**2 + dy**2)
+                dist[dist == 0] = 1e-9
+                dir_x = dx / dist
+                dir_y = dy / dist
+                
+                # Dot product of vector direction with direction away from head
+                # Positive = pointing away from head (correct)
+                # Negative = pointing toward head (wrong)
+                dot_products = near_head['vx'] * dir_x + near_head['vy'] * dir_y
+                avg_dot = dot_products.mean()
+                
+                if avg_dot < -0.2:  # Vectors point toward head (wrong!)
+                    print(f"    ⚠ Vector validation: {label} head at ({head_x:.1f}, {head_y:.1f}) "
+                          f"has vectors pointing TOWARD it (avg_dot={avg_dot:.2f})")
+                    print(f"    → This suggests head/tail might be reversed")
+    
+    if corrections_made:
+        print(f"    ✓ Vector-based corrections: {', '.join(corrections_made)}")
+    
     return results
 
 
@@ -1302,14 +1737,64 @@ def create_embryo_visualization(df_tracks, output_dir, folder_video_key, global_
     ax.set_facecolor('black')
     
     # Detect all embryos from TIFF once (if available)
+    # NEW APPROACH: Use vector-first detection
     tiff_detections = {}
-    if tiff_path and tiff_path.exists():
+    
+    # Get image dimensions for vector-first detection
+    if global_bounds:
+        x_min, x_max, y_min, y_max = global_bounds
+        img_width = x_max - x_min
+        img_height = y_max - y_min
+    else:
+        valid_xy = df_file[df_file['x'].notna() & df_file['y'].notna()]
+        if len(valid_xy) > 0:
+            img_width = valid_xy['x'].max() - valid_xy['x'].min()
+            img_height = valid_xy['y'].max() - valid_xy['y'].min()
+        else:
+            img_width = img_height = None
+    
+    # Use vector-first detection if we have data
+    if len(df_file) > 50 and img_width and img_height:
         try:
-            all_detections = detect_embryo_from_tiff(tiff_path, embryo_id=None)
-            if all_detections:
-                tiff_detections = all_detections
+            vector_first_results = detect_embryos_vector_first(
+                df_file, tiff_path=tiff_path, 
+                image_width=img_width, image_height=img_height
+            )
+            
+            if len(vector_first_results) >= 2:
+                # Convert to tiff_detections format for compatibility
+                tiff_detections = {}
+                for label in ['A', 'B']:
+                    if label in vector_first_results:
+                        result = vector_first_results[label]
+                        tiff_detections[label] = {
+                            'contour': result.get('contour'),
+                            'contour_intermediate': result.get('contour_intermediate'),
+                            'contour_old': result.get('contour_old'),
+                            'head': result.get('head'),
+                            'tail': result.get('tail'),
+                            'centroid': result.get('centroid')
+                        }
+                print(f"    ✓ Vector-first detection: Found {len(tiff_detections)} embryos")
         except Exception as e:
-            print(f"    ⚠ Error detecting embryos from TIFF: {e}")
+            print(f"    ⚠ Error in vector-first detection: {e}")
+            # Fallback to TIFF-only detection
+            if tiff_path and tiff_path.exists():
+                try:
+                    all_detections = detect_embryo_from_tiff(tiff_path, embryo_id=None)
+                    if all_detections:
+                        tiff_detections = all_detections
+                except Exception as e2:
+                    print(f"    ⚠ Error detecting embryos from TIFF: {e2}")
+    else:
+        # Fallback to TIFF-only if insufficient data
+        if tiff_path and tiff_path.exists():
+            try:
+                all_detections = detect_embryo_from_tiff(tiff_path, embryo_id=None)
+                if all_detections:
+                    tiff_detections = all_detections
+            except Exception as e:
+                print(f"    ⚠ Error detecting embryos from TIFF: {e}")
     
     # Match TIFF detections to spark data by centroid position
     # First, get spark data centroids for each embryo
@@ -1486,6 +1971,77 @@ def create_embryo_visualization(df_tracks, output_dir, folder_video_key, global_
                        markeredgecolor=colors['outline'], markeredgewidth=2,
                        alpha=spark_alpha, zorder=5)
     
+    # Add vector arrows for major waves (similar to flow_field_aurora)
+    if HAS_SCIPY:
+        # Filter to valid velocity data
+        valid_vectors = df_file[(df_file['vx'].notna()) & (df_file['vy'].notna()) & 
+                                (df_file['speed'].notna()) & (df_file['speed'] > 0)].copy()
+        
+        if len(valid_vectors) > 0:
+            # Sample for performance if too many points
+            if len(valid_vectors) > 20000:
+                valid_vectors = valid_vectors.sample(n=20000, random_state=42)
+            
+            # Create grid for interpolation
+            x_range = x_max - x_min
+            y_range = y_max - y_min
+            
+            # Grid resolution (adjust based on image size)
+            grid_res = min(100, int(max(x_range, y_range) / 20))
+            if grid_res < 20:
+                grid_res = 20
+            
+            xi = np.linspace(x_min, x_max, grid_res)
+            yi = np.linspace(y_min, y_max, grid_res)
+            xi_grid, yi_grid = np.meshgrid(xi, yi)
+            
+            # Sample grid for quiver (every Nth point)
+            sample_step = max(1, grid_res // 25)  # ~25 arrows per dimension
+            x_sample = xi[::sample_step]
+            y_sample = yi[::sample_step]
+            x_grid_sample, y_grid_sample = np.meshgrid(x_sample, y_sample)
+            
+            # Interpolate velocities onto sampled grid
+            try:
+                vx_grid = griddata(
+                    (valid_vectors['x'], valid_vectors['y']),
+                    valid_vectors['vx'],
+                    (x_grid_sample, y_grid_sample),
+                    method='cubic',
+                    fill_value=0
+                )
+                vy_grid = griddata(
+                    (valid_vectors['x'], valid_vectors['y']),
+                    valid_vectors['vy'],
+                    (x_grid_sample, y_grid_sample),
+                    method='cubic',
+                    fill_value=0
+                )
+                
+                # Normalize vectors for display (scale to reasonable arrow length)
+                magnitude = np.sqrt(vx_grid**2 + vy_grid**2)
+                magnitude[magnitude == 0] = 1  # Avoid division by zero
+                
+                # Scale arrows to be visible but not too large
+                arrow_scale = min(x_range, y_range) / grid_res * sample_step * 0.6
+                vx_norm = vx_grid / magnitude * arrow_scale
+                vy_norm = vy_grid / magnitude * arrow_scale
+                
+                # Only draw arrows where magnitude is significant (filter out noise)
+                min_magnitude = np.percentile(magnitude[magnitude > 0], 20)  # Bottom 20th percentile
+                mask = magnitude > min_magnitude
+                
+                # Draw vectors with white color, semi-transparent
+                ax.quiver(x_grid_sample[mask], y_grid_sample[mask], 
+                         vx_norm[mask], vy_norm[mask],
+                         angles='xy', scale_units='xy', scale=1,
+                         color='white', alpha=0.4, width=0.002, 
+                         headwidth=2.5, headlength=3, headaxislength=2.5,
+                         zorder=4)  # Above outlines but below labels
+            except Exception as e:
+                # If interpolation fails, skip vector arrows
+                pass
+    
     # Draw separation line between connected embryos (if they're close together)
     if len(tiff_detections) == 2:
         emb_A_det = tiff_detections.get('A')
@@ -1608,7 +2164,7 @@ def create_summary_table_page(summary_data, output_pdf_path):
     plt.close()
 
 
-def create_pdf_from_images(image_paths, output_pdf_path, images_per_page=1, summary_data=None):
+def create_pdf_from_images(image_paths, output_pdf_path, images_per_page=1, summary_data=None, warning_log_path=None):
     """
     Create a PDF from a list of image paths.
     
@@ -1617,6 +2173,7 @@ def create_pdf_from_images(image_paths, output_pdf_path, images_per_page=1, summ
         output_pdf_path: Path to output PDF
         images_per_page: Number of images per page (1 or 2)
         summary_data: Optional list of summary data dicts for first page
+        warning_log_path: Optional path to warning log file to append at end
     """
     with PdfPages(output_pdf_path) as pdf:
         # Add summary table as first page if provided
@@ -1703,11 +2260,41 @@ def create_pdf_from_images(image_paths, output_pdf_path, images_per_page=1, summ
             except Exception as e:
                 print(f"  ⚠ Warning: Could not add {img_path.name} to PDF: {e}")
                 continue
+        
+        # Append warning log at the end if provided
+        if warning_log_path and Path(warning_log_path).exists():
+            with open(warning_log_path, 'r') as log_file:
+                log_content = log_file.read()
+            
+            if log_content.strip() and 'No warnings detected' not in log_content:
+                # Create text pages with the log, split into multiple pages if needed
+                lines = log_content.split('\n')
+                max_lines_per_page = 50
+                
+                for page_start in range(0, len(lines), max_lines_per_page):
+                    page_lines = lines[page_start:page_start + max_lines_per_page]
+                    page_text = '\n'.join(page_lines)
+                    
+                    fig, ax = plt.subplots(figsize=(11, 8.5))
+                    ax.axis('off')
+                    if page_start == 0:
+                        ax.set_title('Detection Warnings and Validation Log', fontsize=16, fontweight='bold', pad=20)
+                    else:
+                        ax.set_title(f'Detection Warnings and Validation Log (continued {page_start//max_lines_per_page + 1})', 
+                                   fontsize=16, fontweight='bold', pad=20)
+                    
+                    ax.text(0.05, 0.95, page_text, transform=ax.transAxes,
+                           fontsize=7, family='monospace', verticalalignment='top',
+                           bbox=dict(boxstyle='round', facecolor='white', alpha=0.9))
+                    
+                    plt.tight_layout()
+                    pdf.savefig(fig, bbox_inches='tight')
+                    plt.close()
     
     print(f"✓ Generated PDF: {output_pdf_path}")
 
 
-def generate_summary_table(df_tracks, output_path, output_dir, image_paths_dict=None):
+def generate_summary_table(df_tracks, output_path, output_dir, image_paths_dict=None, tiff_base_path=None):
     """
     Generate markdown table summarizing all detections.
     
@@ -1716,16 +2303,41 @@ def generate_summary_table(df_tracks, output_path, output_dir, image_paths_dict=
         output_path: Path to output markdown file
         output_dir: Directory containing images
         image_paths_dict: Dict mapping (folder, video) to image path
+        tiff_base_path: Optional base path to check for single-frame TIFFs
     """
     # Group by folder and video
     df_tracks = df_tracks.copy()
     df_tracks['base_filename'] = df_tracks['filename'].str.replace(r' \(page \d+\)', '', regex=True)
     
-    # Extract folder and video
+    # Extract folder and video, filtering out single-frame TIFFs
     folder_video_data = []
     for base_file in df_tracks['base_filename'].unique():
         folder, video = extract_folder_and_video(base_file)
         if folder and video:
+            # Check if this is a single-frame TIFF and skip it
+            if video.endswith(('.tif', '.tiff')):
+                tiff_path = find_tiff_file(folder, video, tiff_base_path)
+                if not tiff_path or not tiff_path.exists():
+                    # Try direct paths
+                    if tiff_base_path:
+                        direct_path = Path(tiff_base_path) / folder / video
+                        if direct_path.exists():
+                            tiff_path = direct_path
+                    if not tiff_path or not tiff_path.exists():
+                        direct_path = Path(folder) / video
+                        if direct_path.exists():
+                            tiff_path = direct_path
+                
+                if tiff_path and tiff_path.exists():
+                    try:
+                        with tiff.TiffFile(tiff_path) as tif:
+                            if len(tif.pages) <= 1:
+                                # Skip single-frame TIFFs
+                                continue
+                    except:
+                        # If we can't read it, include it (might not be a TIFF issue)
+                        pass
+            
             folder_video_data.append((folder, video, base_file))
     
     # Sort by folder (numeric), then video
@@ -1846,6 +2458,38 @@ def main():
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
     
+    # Create log file for warnings - will capture all warning messages
+    log_file_path = output_dir / "detection_warnings.log"
+    warnings_log = []
+    
+    # Create a custom print function that captures warnings
+    import sys
+    from io import StringIO
+    
+    class WarningCapture:
+        def __init__(self, original_stdout, warnings_list):
+            self.original_stdout = original_stdout
+            self.warnings_list = warnings_list
+            self.buffer = StringIO()
+        
+        def write(self, text):
+            # Write to original stdout
+            self.original_stdout.write(text)
+            # Also capture if it's a warning
+            if '⚠' in text or 'WARNING' in text or 'CRITICAL' in text or 'FORCED' in text:
+                self.warnings_list.append(text.rstrip())
+            # Also write to buffer for full log
+            self.buffer.write(text)
+        
+        def flush(self):
+            self.original_stdout.flush()
+            self.buffer.flush()
+    
+    # Replace stdout temporarily (we'll restore it)
+    original_stdout = sys.stdout
+    warning_capture = WarningCapture(original_stdout, warnings_log)
+    sys.stdout = warning_capture
+    
     # Generate visualizations
     image_paths_dict = {}
     image_paths_for_pdf = []
@@ -1892,6 +2536,37 @@ def main():
         for folder_video_key in sorted(folder_video_keys, key=lambda x: (int(x[0]) if x[0].isdigit() else 999, x[1])):
             folder, video = folder_video_key
             print(f"  → Processing folder {folder}, video {video}...")
+            
+            # Check if TIFF is single-frame and skip it (check multiple possible locations)
+            tiff_path = None
+            if args.tiff_base_path:
+                tiff_path = find_tiff_file(folder, video, args.tiff_base_path)
+            else:
+                # Try to find TIFF even without base path
+                tiff_path = find_tiff_file(folder, video, None)
+            
+            # Also try direct paths if not found
+            if not tiff_path or not tiff_path.exists():
+                if args.tiff_base_path:
+                    direct_path = Path(args.tiff_base_path) / folder / video
+                    if direct_path.exists():
+                        tiff_path = direct_path
+                if not tiff_path or not tiff_path.exists():
+                    direct_path = Path(folder) / video
+                    if direct_path.exists():
+                        tiff_path = direct_path
+            
+            # Check frame count if we found a TIFF file
+            if tiff_path and tiff_path.exists() and video.endswith(('.tif', '.tiff')):
+                try:
+                    with tiff.TiffFile(tiff_path) as tif:
+                        if len(tif.pages) <= 1:
+                            print(f"    ⚠ Skipping single-frame TIFF: {video} ({len(tif.pages)} frame(s))")
+                            continue
+                except Exception as e:
+                    # If we can't read it, continue anyway (might not be a TIFF issue)
+                    pass
+            
             try:
                 output_path = create_embryo_visualization(df_tracks, output_dir, folder_video_key, global_bounds, args.tiff_base_path)
                 if output_path:
@@ -1916,9 +2591,10 @@ def main():
         if image_paths_for_pdf:
             print(f"\nCompiling {len(image_paths_for_pdf)} images into PDF...")
             pdf_path = output_dir / "detection_visualizations.pdf"
-            # Prepare summary data for PDF table
+            # Prepare summary data for PDF table (only include videos that have visualizations)
+            # Use image_paths_dict.keys() directly to ensure we only include multi-frame TIFFs
             summary_data = []
-            for folder, video in sorted(folder_video_keys, key=lambda x: (int(x[0]) if x[0].isdigit() else 999, x[1])):
+            for folder, video in sorted(image_paths_dict.keys(), key=lambda x: (int(x[0]) if x[0].isdigit() else 999, x[1])):
                 base_file = f"{folder}/{video}"
                 df_file = df_tracks[df_tracks['base_filename'] == base_file].copy()
                 if len(df_file) == 0:
@@ -1957,13 +2633,48 @@ def main():
                     'healed_wound': healed_wound
                 })
             
-            create_pdf_from_images(image_paths_for_pdf, pdf_path, images_per_page=1, summary_data=summary_data)
+            # Store image paths and summary data for later PDF creation with log included
+            # We'll create the PDF after warnings are collected
+            stored_image_paths = image_paths_for_pdf.copy()
+            stored_summary_data = summary_data.copy()
     
     # Generate summary table (after visualizations so we can include image references)
     print("\nGenerating summary table...")
-    generate_summary_table(df_tracks, output_dir / "detection_summary.md", output_dir, image_paths_dict)
+    generate_summary_table(df_tracks, output_dir / "detection_summary.md", output_dir, image_paths_dict, args.tiff_base_path)
     
-    print("\n✓ Complete!")
+    # Restore original stdout
+    sys.stdout = original_stdout
+    
+    # Write warnings to log file
+    if warnings_log:
+        with open(log_file_path, 'w') as log_file:
+            log_file.write("=" * 80 + "\n")
+            log_file.write("Embryo Detection Warnings and Validation Log\n")
+            log_file.write("=" * 80 + "\n\n")
+            log_file.write("All warnings and validation messages from embryo detection:\n\n")
+            for warning in warnings_log:
+                log_file.write(warning + "\n")
+        print(f"\n✓ Warning log saved to: {log_file_path} ({len(warnings_log)} warnings logged)")
+        
+        # Create PDF with log included (if we have stored image paths)
+        pdf_path = output_dir / "detection_visualizations.pdf"
+        if 'stored_image_paths' in locals() and stored_image_paths:
+            print(f"\nCreating PDF with {len(stored_image_paths)} images and warning log...")
+            # Always pass log file path if it exists (we just wrote it)
+            log_path_for_pdf = log_file_path if log_file_path.exists() else None
+            # Create PDF with everything included
+            create_pdf_from_images(stored_image_paths, pdf_path, images_per_page=1, 
+                                 summary_data=stored_summary_data, warning_log_path=log_path_for_pdf)
+    else:
+        # Create empty log file to indicate no warnings
+        with open(log_file_path, 'w') as log_file:
+            log_file.write("=" * 80 + "\n")
+            log_file.write("Embryo Detection Warnings and Validation Log\n")
+            log_file.write("=" * 80 + "\n\n")
+            log_file.write("No warnings detected.\n")
+        print(f"\n✓ Warning log saved to: {log_file_path} (no warnings)")
+    
+    print(f"\n✓ Complete!")
 
 
 if __name__ == '__main__':
