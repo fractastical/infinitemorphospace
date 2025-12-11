@@ -502,6 +502,63 @@ def detect_embryo_from_tiff(tiff_path, embryo_id=None, logger=None):
                     larger_idx = 0 if areas[0] > areas[1] else 1
                     emb_contours = [emb_contours[larger_idx]]
                     print(f"    → Centroids very close ({centroid_sep:.1f}px) - treating as single embryo")
+            
+            # CRITICAL CHECK: If both parts are unusually large, it's likely a single embryo that was incorrectly split
+            typical_embryo_area = 0.015 * h * w
+            area_A_ratio = areas[0] / (h * w)
+            area_B_ratio = areas[1] / (h * w)
+            
+            # If both are >15% of image area, they're both too large to be separate embryos
+            # A single large embryo might be 10-20% of image, but two separate embryos should each be ~1-2%
+            if area_A_ratio > 0.15 and area_B_ratio > 0.15:
+                # Both are very large - likely a single embryo incorrectly split
+                # Merge them back into one
+                print(f"    → Both contours unusually large (A: {area_A_ratio*100:.1f}%, B: {area_B_ratio*100:.1f}% of image)")
+                print(f"    → Likely single embryo incorrectly split - merging back")
+                
+                # Combine both contours into one
+                combined_points = np.vstack([
+                    emb_contours[0].reshape(-1, 2),
+                    emb_contours[1].reshape(-1, 2)
+                ])
+                
+                # Create a new contour from the combined points (convex hull approximation)
+                if HAS_SCIPY:
+                    try:
+                        from scipy.spatial import ConvexHull
+                        hull = ConvexHull(combined_points)
+                        combined_contour = combined_points[hull.vertices].reshape(-1, 1, 2).astype(np.int32)
+                        emb_contours = [combined_contour]
+                    except:
+                        # Fallback: use the larger one
+                        larger_idx = 0 if areas[0] > areas[1] else 1
+                        emb_contours = [emb_contours[larger_idx]]
+                else:
+                    # Fallback: use the larger one
+                    larger_idx = 0 if areas[0] > areas[1] else 1
+                    emb_contours = [emb_contours[larger_idx]]
+            
+            # Additional check: if total area of both is >25% of image, likely single embryo
+            elif total_area / (h * w) > 0.25:
+                # Total area is too large for two separate embryos
+                # Check if they overlap significantly or are connected
+                contour1_points = emb_contours[0].reshape(-1, 2)
+                contour2_points = emb_contours[1].reshape(-1, 2)
+                
+                # Check overlap in x-direction
+                x1_min, x1_max = contour1_points[:, 0].min(), contour1_points[:, 0].max()
+                x2_min, x2_max = contour2_points[:, 0].min(), contour2_points[:, 0].max()
+                
+                overlap_x = min(x1_max, x2_max) - max(x1_min, x2_min)
+                total_span_x = max(x1_max, x2_max) - min(x1_min, x2_min)
+                overlap_ratio = overlap_x / total_span_x if total_span_x > 0 else 0
+                
+                # If they overlap >50% in x-direction, likely same embryo
+                if overlap_ratio > 0.5:
+                    print(f"    → Contours overlap significantly ({overlap_ratio*100:.1f}%) - treating as single embryo")
+                    # Use the larger one or combine
+                    larger_idx = 0 if areas[0] > areas[1] else 1
+                    emb_contours = [emb_contours[larger_idx]]
     
     # Process embryos (1 or 2)
     results = {}
@@ -823,9 +880,9 @@ def detect_embryo_from_tiff(tiff_path, embryo_id=None, logger=None):
                         
                         # Log if there's still an issue
                         if label == 'B' and head[0] < split_x:
-                            print(f"    ⚠ WARNING: B head ({head[0]:.1f}) is still left of split_x ({split_x:.1f})!")
+                            print(f"    [Embryo B] ⚠ WARNING: Head ({head[0]:.1f}) is still left of split_x ({split_x:.1f})!")
                         if label == 'A' and head[0] > split_x:
-                            print(f"    ⚠ WARNING: A head ({head[0]:.1f}) is still right of split_x ({split_x:.1f})!")
+                            print(f"    [Embryo A] ⚠ WARNING: Head ({head[0]:.1f}) is still right of split_x ({split_x:.1f})!")
                         
                         # Recalculate centroid
                         M = cv2.moments(contour.astype(np.int32).reshape(-1, 1, 2))
@@ -883,18 +940,18 @@ def detect_embryo_from_tiff(tiff_path, embryo_id=None, logger=None):
             a_leftmost_x = contour_A_final[:, 0].min()
             if abs(a_head_x - a_leftmost_x) > 5:  # Allow small tolerance
                 results['A']['head'] = (float(a_leftmost_x), float(contour_A_final[np.argmin(contour_A_final[:, 0]), 1]))
-                print(f"    → FORCED A head to leftmost: {a_head_x:.1f} → {a_leftmost_x:.1f}")
+                print(f"    [Embryo A] → FORCED head to leftmost: {a_head_x:.1f} → {a_leftmost_x:.1f}")
             
             # B head MUST be the rightmost point of B's contour
             b_head_x = results['B']['head'][0]
             b_rightmost_x = contour_B_final[:, 0].max()
             if abs(b_head_x - b_rightmost_x) > 5:  # Allow small tolerance
                 results['B']['head'] = (float(b_rightmost_x), float(contour_B_final[np.argmax(contour_B_final[:, 0]), 1]))
-                print(f"    → FORCED B head to rightmost: {b_head_x:.1f} → {b_rightmost_x:.1f}")
+                print(f"    [Embryo B] → FORCED head to rightmost: {b_head_x:.1f} → {b_rightmost_x:.1f}")
             
             # CRITICAL CHECK: A's rightmost must be <= B's leftmost (or very close)
             if x_A_final_max > x_B_final_min + 10:  # Allow 10px tolerance
-                print(f"    ⚠ CRITICAL: A still extends into B! A max: {x_A_final_max:.1f}, B min: {x_B_final_min:.1f}")
+                print(f"    [Both Embryos] ⚠ CRITICAL: A still extends into B! A max: {x_A_final_max:.1f}, B min: {x_B_final_min:.1f}")
                 # Force split at midpoint and re-clip
                 emergency_split_x = (x_A_final_max + x_B_final_min) / 2
                 print(f"    → Emergency re-clipping at {emergency_split_x:.1f}")
@@ -934,13 +991,13 @@ def detect_embryo_from_tiff(tiff_path, embryo_id=None, logger=None):
             area_diff_pct = abs(area_A - area_B) / avg_area if avg_area > 0 else 0
             
             if area_diff_pct > area_tolerance:
-                print(f"    ⚠ Volume mismatch: A area={area_A:.0f}, B area={area_B:.0f}, "
+                print(f"    [Both Embryos] ⚠ Volume mismatch: A area={area_A:.0f}, B area={area_B:.0f}, "
                       f"difference={area_diff_pct*100:.1f}% (>30% threshold)")
                 # If one is much larger, it might be encompassing both embryos
                 if area_A > area_B * 1.5:
-                    print(f"    ⚠ A is {area_A/area_B:.1f}x larger than B - A might encompass both embryos")
+                    print(f"    [Both Embryos] ⚠ A is {area_A/area_B:.1f}x larger than B - A might encompass both embryos")
                 elif area_B > area_A * 1.5:
-                    print(f"    ⚠ B is {area_B/area_A:.1f}x larger than A - B might encompass both embryos")
+                    print(f"    [Both Embryos] ⚠ B is {area_B/area_A:.1f}x larger than A - B might encompass both embryos")
             
             # Check each against typical size
             for label, area in [('A', area_A), ('B', area_B)]:
@@ -949,7 +1006,7 @@ def detect_embryo_from_tiff(tiff_path, embryo_id=None, logger=None):
                 
                 # Flag if significantly different from typical (but allow some variation)
                 if area_diff_from_typical_pct > area_tolerance * 2:  # 60% threshold for individual check
-                    print(f"    ⚠ {label} volume unusual: area={area:.0f} ({area_ratio*100:.2f}% of image), "
+                    print(f"    [Embryo {label}] ⚠ Volume unusual: area={area:.0f} ({area_ratio*100:.2f}% of image), "
                           f"typical ~{typical_embryo_area:.0f} (±{area_tolerance*100:.0f}%)")
             
             # B head/tail position check: B head should be in the right half of the image
@@ -963,7 +1020,7 @@ def detect_embryo_from_tiff(tiff_path, embryo_id=None, logger=None):
             left_threshold = image_center_x - 0.20 * w  # 20% into left half
             
             if b_head_x < left_threshold:
-                print(f"    ⚠ B head position check FAILED: head at {b_head_x:.1f} is in left half "
+                print(f"    [Embryo B] ⚠ Head position check FAILED: head at {b_head_x:.1f} is in left half "
                       f"(threshold: {left_threshold:.1f}, center: {image_center_x:.1f})")
                 # B head is way too far left - definitely wrong
                 # Force correction: use rightmost point of B's contour
@@ -984,7 +1041,7 @@ def detect_embryo_from_tiff(tiff_path, embryo_id=None, logger=None):
             
             # Also check if B head is in the left half at all (shouldn't be)
             elif b_head_x < image_center_x:
-                print(f"    ⚠ B head position warning: head at {b_head_x:.1f} is in left half "
+                print(f"    [Embryo B] ⚠ Head position warning: head at {b_head_x:.1f} is in left half "
                       f"(center: {image_center_x:.1f}) - may need correction")
             
             # Store separation line info (for visualization)
@@ -1060,10 +1117,34 @@ def detect_embryos_vector_first(df_tracks, tiff_path=None, image_width=None, ima
     
     # Step 2: Identify left vs right regions using available data
     if has_vectors:
-        # Use vector data to identify regions
-        # Split into left and right halves
-        left_vectors = valid_vectors[valid_vectors['x'] < image_center_x].copy()
-        right_vectors = valid_vectors[valid_vectors['x'] >= image_center_x].copy()
+        # FIRST: Check if we have actual embryo_id labels in the data
+        # If so, use those to determine left/right instead of just splitting by center
+        has_embryo_labels = 'embryo_id' in valid_vectors.columns and valid_vectors['embryo_id'].notna().any()
+        
+        if has_embryo_labels:
+            # Use actual embryo labels to determine left/right
+            emb_A_data = valid_vectors[valid_vectors['embryo_id'] == 'A'].copy()
+            emb_B_data = valid_vectors[valid_vectors['embryo_id'] == 'B'].copy()
+            
+            # Only create B if it has substantial data (not just a few outliers)
+            if len(emb_A_data) > 50:
+                left_vectors = emb_A_data
+                # Only use B if it has substantial data
+                if len(emb_B_data) >= 100:  # Need at least 100 points for B
+                    right_vectors = emb_B_data
+                else:
+                    b_count = len(emb_B_data)
+                    right_vectors = pd.DataFrame()  # Empty - no B
+                    if b_count > 0:
+                        print(f"    → Embryo B has only {b_count} data points - treating as single embryo (A only)")
+            else:
+                # Not enough A data, fall back to center split
+                left_vectors = valid_vectors[valid_vectors['x'] < image_center_x].copy()
+                right_vectors = valid_vectors[valid_vectors['x'] >= image_center_x].copy()
+        else:
+            # No embryo labels - split by center
+            left_vectors = valid_vectors[valid_vectors['x'] < image_center_x].copy()
+            right_vectors = valid_vectors[valid_vectors['x'] >= image_center_x].copy()
         
         # Calculate centroids from vector data
         left_centroid = None
@@ -1091,61 +1172,139 @@ def detect_embryos_vector_first(df_tracks, tiff_path=None, image_width=None, ima
                 'y_max': right_vectors['y'].max()
             }
         
+        # CRITICAL VALIDATION: Right side must have substantial data to be a real embryo
+        # Check if right side has enough data points AND covers a reasonable area
+        right_side_valid = False
+        if right_centroid and right_bbox:
+            right_data_count = len(right_vectors)
+            right_x_span = right_bbox['x_max'] - right_bbox['x_min']
+            right_y_span = right_bbox['y_max'] - right_bbox['y_min']
+            right_area_span = right_x_span * right_y_span
+            total_area_span = image_width * image_height
+            
+            # Right side must have:
+            # 1. At least 100 data points (not just a few outliers)
+            # 2. Cover at least 5% of the image area (not just a tiny region)
+            if right_data_count >= 100 and (right_area_span / total_area_span) > 0.05:
+                right_side_valid = True
+            else:
+                print(f"    → Right side has insufficient data ({right_data_count} points, {right_area_span/total_area_span*100:.1f}% of image) - treating as single embryo")
+        
         # Assign A (left) and B (right) based on vector centroids
-        if left_centroid and right_centroid and left_bbox and right_bbox:
-            results['A'] = {
-                'centroid': left_centroid,
-                'vector_region': left_bbox,
-                'vector_data': left_vectors,
-                'contour': None,  # Will be filled by contour detection
-                'head': None,
-                'tail': None
-            }
-            results['B'] = {
-                'centroid': right_centroid,
-                'vector_region': right_bbox,
-                'vector_data': right_vectors,
-                'contour': None,
-                'head': None,
-                'tail': None
-            }
+        # Only create B if right side has substantial data
+        if left_centroid and left_bbox:
+            if right_side_valid and right_centroid and right_bbox:
+                # Two embryos: A (left) and B (right)
+                results['A'] = {
+                    'centroid': left_centroid,
+                    'vector_region': left_bbox,
+                    'vector_data': left_vectors,
+                    'contour': None,  # Will be filled by contour detection
+                    'head': None,
+                    'tail': None
+                }
+                results['B'] = {
+                    'centroid': right_centroid,
+                    'vector_region': right_bbox,
+                    'vector_data': right_vectors,
+                    'contour': None,
+                    'head': None,
+                    'tail': None
+                }
+            else:
+                # Only left side has substantial data - single embryo (A)
+                results['A'] = {
+                    'centroid': left_centroid,
+                    'vector_region': left_bbox,
+                    'vector_data': left_vectors,
+                    'contour': None,
+                    'head': None,
+                    'tail': None
+                }
     
     # If no vectors or insufficient data, fall back to spark location centroids
     if len(results) == 0:
-        # Use all spark data, split by x-position
-        left_sparks = valid_xy[valid_xy['x'] < image_center_x].copy()
-        right_sparks = valid_xy[valid_xy['x'] >= image_center_x].copy()
+        # FIRST: Check if we have actual embryo_id labels
+        has_embryo_labels = 'embryo_id' in valid_xy.columns and valid_xy['embryo_id'].notna().any()
         
-        if len(left_sparks) > 20 and len(right_sparks) > 20:
-            left_centroid = (left_sparks['x'].mean(), left_sparks['y'].mean())
-            right_centroid = (right_sparks['x'].mean(), right_sparks['y'].mean())
+        if has_embryo_labels:
+            # Use actual embryo labels
+            left_sparks = valid_xy[valid_xy['embryo_id'] == 'A'].copy()
+            right_sparks = valid_xy[valid_xy['embryo_id'] == 'B'].copy()
             
-            results['A'] = {
-                'centroid': left_centroid,
-                'vector_region': {
-                    'x_min': left_sparks['x'].min(),
-                    'x_max': left_sparks['x'].max(),
-                    'y_min': left_sparks['y'].min(),
-                    'y_max': left_sparks['y'].max()
-                },
-                'vector_data': None,
-                'contour': None,
-                'head': None,
-                'tail': None
-            }
-            results['B'] = {
-                'centroid': right_centroid,
-                'vector_region': {
-                    'x_min': right_sparks['x'].min(),
-                    'x_max': right_sparks['x'].max(),
-                    'y_min': right_sparks['y'].min(),
-                    'y_max': right_sparks['y'].max()
-                },
-                'vector_data': None,
-                'contour': None,
-                'head': None,
-                'tail': None
-            }
+            # Only create B if it has substantial data
+            b_count = len(right_sparks)
+            if b_count < 100:
+                right_sparks = pd.DataFrame()  # Empty - no B
+                if b_count > 0:
+                    print(f"    → Embryo B has only {b_count} spark points - treating as single embryo (A only)")
+        else:
+            # No labels - split by x-position
+            left_sparks = valid_xy[valid_xy['x'] < image_center_x].copy()
+            right_sparks = valid_xy[valid_xy['x'] >= image_center_x].copy()
+        
+        # CRITICAL: Right side must have substantial data (not just a few outliers)
+        right_side_valid = False
+        if len(right_sparks) > 20:
+            right_x_span = right_sparks['x'].max() - right_sparks['x'].min()
+            right_y_span = right_sparks['y'].max() - right_sparks['y'].min()
+            right_area_span = right_x_span * right_y_span
+            total_area_span = image_width * image_height
+            
+            # Right side must cover at least 5% of image area
+            if (right_area_span / total_area_span) > 0.05:
+                right_side_valid = True
+            else:
+                print(f"    → Right side sparks cover insufficient area ({right_area_span/total_area_span*100:.1f}% of image) - treating as single embryo")
+        
+        if len(left_sparks) > 20:
+            left_centroid = (left_sparks['x'].mean(), left_sparks['y'].mean())
+            
+            if right_side_valid and len(right_sparks) > 20:
+                # Two embryos: A (left) and B (right)
+                right_centroid = (right_sparks['x'].mean(), right_sparks['y'].mean())
+                
+                results['A'] = {
+                    'centroid': left_centroid,
+                    'vector_region': {
+                        'x_min': left_sparks['x'].min(),
+                        'x_max': left_sparks['x'].max(),
+                        'y_min': left_sparks['y'].min(),
+                        'y_max': left_sparks['y'].max()
+                    },
+                    'vector_data': None,
+                    'contour': None,
+                    'head': None,
+                    'tail': None
+                }
+                results['B'] = {
+                    'centroid': right_centroid,
+                    'vector_region': {
+                        'x_min': right_sparks['x'].min(),
+                        'x_max': right_sparks['x'].max(),
+                        'y_min': right_sparks['y'].min(),
+                        'y_max': right_sparks['y'].max()
+                    },
+                    'vector_data': None,
+                    'contour': None,
+                    'head': None,
+                    'tail': None
+                }
+            else:
+                # Only left side has substantial data - single embryo (A)
+                results['A'] = {
+                    'centroid': left_centroid,
+                    'vector_region': {
+                        'x_min': left_sparks['x'].min(),
+                        'x_max': left_sparks['x'].max(),
+                        'y_min': left_sparks['y'].min(),
+                        'y_max': left_sparks['y'].max()
+                    },
+                    'vector_data': None,
+                    'contour': None,
+                    'head': None,
+                    'tail': None
+                }
     
     # Step 3: Refine with contour detection if TIFF available
     if tiff_path and tiff_path.exists() and len(results) > 0:
@@ -1171,7 +1330,9 @@ def detect_embryos_vector_first(df_tracks, tiff_path=None, image_width=None, ima
                         if tiff_centroid:
                             dist = np.sqrt((tiff_centroid[0] - target_centroid[0])**2 + 
                                          (tiff_centroid[1] - target_centroid[1])**2)
-                            if dist < best_dist and dist < 300:  # Reasonable distance
+                            # Use larger threshold to account for coordinate system differences
+                            # TIFF centroids are in image pixels, spark centroids are in spark coordinates
+                            if dist < best_dist and dist < 1000:  # Increased threshold for coordinate system differences
                                 best_dist = dist
                                 best_contour = detection.get('contour')
                                 best_detection = detection
@@ -1295,6 +1456,26 @@ def detect_embryos_vector_first(df_tracks, tiff_path=None, image_width=None, ima
             
             results[label]['head'] = (float(head[0]), float(head[1]))
             results[label]['tail'] = (float(tail[0]), float(tail[1]))
+    
+    # Validate head-tail distances - filter out detections that are too short
+    # Minimum head-tail length should be at least 5% of image width or 50 pixels, whichever is larger
+    min_head_tail_length = max(image_width * 0.05, 50)
+    
+    for label in list(results.keys()):
+        head = results[label].get('head')
+        tail = results[label].get('tail')
+        
+        if head and tail:
+            head_tail_dist = np.sqrt((head[0] - tail[0])**2 + (head[1] - tail[1])**2)
+            
+            if head_tail_dist < min_head_tail_length:
+                print(f"    [Embryo {label}] ⚠ CRITICAL: Head-tail distance too short ({head_tail_dist:.1f}px < {min_head_tail_length:.1f}px threshold) - removing detection")
+                # Remove this embryo from results
+                del results[label]
+            else:
+                # Log if it's close to the threshold
+                if head_tail_dist < min_head_tail_length * 1.5:
+                    print(f"    [Embryo {label}] ⚠ Head-tail distance is short ({head_tail_dist:.1f}px, threshold: {min_head_tail_length:.1f}px)")
     
     return results
 
@@ -1440,10 +1621,23 @@ def get_embryo_boundary_from_tiff(tiff_path, embryo_id):
     return None
 
 
-def get_embryo_boundary_from_sparks(df_embryo):
+def get_embryo_boundary_from_sparks(df_embryo, method='density', alpha=None):
     """
-    Reconstruct approximate embryo boundary from spark locations (fallback method).
-    Uses convex hull or alpha shape approximation.
+    Reconstruct approximate embryo boundary from spark locations using multiple methods.
+    
+    Methods:
+    - 'density': Uses kernel density estimation to find high-density regions (best for sparse data)
+    - 'alpha': Uses alpha shapes (concave hull) for better boundary approximation
+    - 'convex': Simple convex hull (fast but less accurate)
+    - 'adaptive': Tries multiple methods and picks the best
+    
+    Args:
+        df_embryo: DataFrame with spark data (x, y columns)
+        method: Method to use ('density', 'alpha', 'convex', 'adaptive')
+        alpha: Alpha parameter for alpha shapes (if None, auto-calculated)
+    
+    Returns:
+        Boundary points as numpy array, or None if insufficient data
     """
     if len(df_embryo) == 0:
         return None
@@ -1454,18 +1648,221 @@ def get_embryo_boundary_from_sparks(df_embryo):
     if len(points) < 3:
         return None
     
-    # Use convex hull as approximation
-    if HAS_SCIPY:
+    if not HAS_SCIPY:
+        # Fallback: use bounding box with padding
+        x_min, y_min = points.min(axis=0)
+        x_max, y_max = points.max(axis=0)
+        padding = max((x_max - x_min) * 0.1, (y_max - y_min) * 0.1, 10)
+        return np.array([
+            [x_min - padding, y_min - padding],
+            [x_max + padding, y_min - padding],
+            [x_max + padding, y_max + padding],
+            [x_min - padding, y_max + padding],
+            [x_min - padding, y_min - padding]
+        ])
+    
+    # Method 1: Kernel Density Estimation (best for finding actual embryo boundaries)
+    if method in ['density', 'adaptive']:
+        try:
+            from scipy.stats import gaussian_kde
+            from scipy.ndimage import gaussian_filter
+            
+            # Create a grid for density estimation
+            x_min, y_min = points.min(axis=0)
+            x_max, y_max = points.max(axis=0)
+            x_range = x_max - x_min
+            y_range = y_max - y_min
+            
+            # Adaptive grid resolution based on data density
+            n_points = len(points)
+            grid_res = min(100, max(50, int(np.sqrt(n_points / 10))))
+            
+            xi = np.linspace(x_min - x_range * 0.1, x_max + x_range * 0.1, grid_res)
+            yi = np.linspace(y_min - y_range * 0.1, y_max + y_range * 0.1, grid_res)
+            xi_grid, yi_grid = np.meshgrid(xi, yi)
+            
+            # Estimate density
+            kde = gaussian_kde(points.T)
+            density = kde(np.vstack([xi_grid.ravel(), yi_grid.ravel()]))
+            density_grid = density.reshape(xi_grid.shape)
+            
+            # Smooth the density
+            density_smooth = gaussian_filter(density_grid, sigma=1.0)
+            
+            # Find threshold (e.g., 10th percentile of density in high-density regions)
+            high_density_mask = density_smooth > np.percentile(density_smooth[density_smooth > 0], 10)
+            
+            # Find contours at threshold
+            try:
+                from skimage import measure
+                HAS_SKIMAGE = True
+            except ImportError:
+                HAS_SKIMAGE = False
+            
+            if HAS_SKIMAGE:
+                contours = measure.find_contours(density_smooth, 
+                                                threshold=np.percentile(density_smooth[high_density_mask], 20))
+            else:
+                # Fallback: use OpenCV to find contours
+                # Normalize density to 0-255
+                density_norm = ((density_smooth - density_smooth.min()) / 
+                              (density_smooth.max() - density_smooth.min() + 1e-9) * 255).astype(np.uint8)
+                threshold_val = int(np.percentile(density_norm[high_density_mask], 20))
+                _, binary = cv2.threshold(density_norm, threshold_val, 255, cv2.THRESH_BINARY)
+                contours, _ = cv2.findContours(binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+                
+                if len(contours) == 0:
+                    raise ValueError("No contours found")
+                
+                # Convert OpenCV contours to same format as skimage
+                contours_list = []
+                for cnt in contours:
+                    cnt_reshaped = cnt.reshape(-1, 2)
+                    contours_list.append(cnt_reshaped)
+                contours = contours_list
+            
+            if len(contours) > 0:
+                # Use the largest contour
+                largest_contour = max(contours, key=len)
+                
+                # Convert from grid coordinates to actual coordinates
+                boundary_points = np.zeros_like(largest_contour)
+                boundary_points[:, 0] = np.interp(largest_contour[:, 0], 
+                                                 np.arange(len(yi)), yi)
+                boundary_points[:, 1] = np.interp(largest_contour[:, 1], 
+                                                  np.arange(len(xi)), xi)
+                
+                # Close the polygon
+                if not np.array_equal(boundary_points[0], boundary_points[-1]):
+                    boundary_points = np.vstack([boundary_points, boundary_points[0:1]])
+                
+                # Only return if it's a reasonable shape (not too small, not too large)
+                area = cv2.contourArea(boundary_points.astype(np.float32))
+                bbox_area = x_range * y_range
+                if 0.01 * bbox_area < area < 0.5 * bbox_area:
+                    return boundary_points
+        except ImportError:
+            # skimage not available, fall through to other methods
+            pass
+        except Exception as e:
+            print(f"    ⚠ Density-based boundary failed: {e}")
+    
+    # Method 2: Alpha shapes (concave hull) - better than convex hull
+    if method in ['alpha', 'adaptive']:
+        try:
+            # Calculate appropriate alpha value
+            if alpha is None:
+                # Use average nearest neighbor distance as basis for alpha
+                from scipy.spatial.distance import cdist
+                if len(points) > 10:
+                    # Sample points for speed
+                    sample_size = min(100, len(points))
+                    sample_points = points[np.random.choice(len(points), sample_size, replace=False)]
+                    distances = cdist(sample_points, sample_points)
+                    # Remove diagonal (self-distances)
+                    distances[distances == 0] = np.inf
+                    avg_nn_dist = np.min(distances, axis=1).mean()
+                    alpha = 1.0 / (avg_nn_dist * 2)  # Inverse of distance
+                else:
+                    alpha = 0.1
+            
+            # Simple alpha shape using Delaunay triangulation
+            from scipy.spatial import Delaunay
+            tri = Delaunay(points)
+            
+            # Find edges that form the alpha shape boundary
+            # (edges whose circumradius is < 1/alpha)
+            boundary_edges = []
+            for simplex in tri.simplices:
+                # Get triangle vertices
+                triangle = points[simplex]
+                # Calculate circumradius
+                a, b, c = triangle[0], triangle[1], triangle[2]
+                # Area of triangle
+                area = 0.5 * abs((b[0] - a[0]) * (c[1] - a[1]) - (c[0] - a[0]) * (b[1] - a[1]))
+                if area > 1e-9:
+                    # Circumradius = (a*b*c) / (4*area)
+                    side_lengths = [np.linalg.norm(b - c), np.linalg.norm(c - a), np.linalg.norm(a - b)]
+                    circumradius = np.prod(side_lengths) / (4 * area)
+                    
+                    if circumradius < 1.0 / alpha:
+                        # This triangle is part of alpha shape
+                        for i in range(3):
+                            edge = tuple(sorted([simplex[i], simplex[(i+1)%3]]))
+                            if edge in boundary_edges:
+                                boundary_edges.remove(edge)  # Interior edge
+                            else:
+                                boundary_edges.append(edge)
+            
+            if len(boundary_edges) > 0:
+                # Reconstruct boundary path from edges
+                edge_dict = {}
+                for e1, e2 in boundary_edges:
+                    if e1 not in edge_dict:
+                        edge_dict[e1] = []
+                    edge_dict[e1].append(e2)
+                    if e2 not in edge_dict:
+                        edge_dict[e2] = []
+                    edge_dict[e2].append(e1)
+                
+                # Find starting point (point with only one neighbor)
+                start = None
+                for p, neighbors in edge_dict.items():
+                    if len(neighbors) == 1:
+                        start = p
+                        break
+                
+                if start is None and len(edge_dict) > 0:
+                    start = list(edge_dict.keys())[0]
+                
+                if start is not None:
+                    # Traverse boundary
+                    boundary_path = [start]
+                    current = start
+                    visited_edges = set()
+                    
+                    while len(boundary_path) < len(edge_dict) * 2:  # Safety limit
+                        if current not in edge_dict or len(edge_dict[current]) == 0:
+                            break
+                        
+                        next_point = edge_dict[current][0]
+                        edge = tuple(sorted([current, next_point]))
+                        
+                        if edge in visited_edges:
+                            if len(edge_dict[current]) > 1:
+                                next_point = edge_dict[current][1]
+                                edge = tuple(sorted([current, next_point]))
+                            else:
+                                break
+                        
+                        visited_edges.add(edge)
+                        boundary_path.append(next_point)
+                        current = next_point
+                        
+                        if current == start and len(boundary_path) > 3:
+                            break
+                    
+                    if len(boundary_path) >= 3:
+                        boundary_points = points[boundary_path]
+                        # Close the polygon
+                        if not np.array_equal(boundary_points[0], boundary_points[-1]):
+                            boundary_points = np.vstack([boundary_points, boundary_points[0:1]])
+                        return boundary_points
+        except Exception as e:
+            print(f"    ⚠ Alpha shape boundary failed: {e}")
+    
+    # Method 3: Convex hull (fallback)
+    if method in ['convex', 'adaptive']:
         try:
             hull = ConvexHull(points)
             boundary_points = points[hull.vertices]
             # Close the polygon
             boundary_points = np.vstack([boundary_points, boundary_points[0]])
             return boundary_points
-        except:
-            pass
+        except Exception as e:
+            print(f"    ⚠ Convex hull boundary failed: {e}")
     
-    # Fallback: use bounding box with padding
+    # Final fallback: bounding box with padding
     x_min, y_min = points.min(axis=0)
     x_max, y_max = points.max(axis=0)
     padding = max((x_max - x_min) * 0.1, (y_max - y_min) * 0.1, 10)
@@ -1474,7 +1871,7 @@ def get_embryo_boundary_from_sparks(df_embryo):
         [x_max + padding, y_min - padding],
         [x_max + padding, y_max + padding],
         [x_min - padding, y_max + padding],
-        [x_min - padding, y_min - padding]  # Close the polygon
+        [x_min - padding, y_min - padding]
     ])
 
 
@@ -1834,11 +2231,42 @@ def create_embryo_visualization(df_tracks, output_dir, folder_video_key, global_
         'B': {'outline': 'orange', 'head': 'lime', 'tail': 'red', 'axis': 'yellow'}
     }
     
+    # First, draw ALL TIFF contours as reference (even if unmatched)
+    # This ensures greyscale data is always visible
+    if tiff_detections:
+        for tiff_label, detection in tiff_detections.items():
+            # Check if this TIFF detection is already matched
+            is_matched = any(tiff_label == mapped for mapped in tiff_to_spark_mapping.values())
+            
+            if not is_matched:
+                # Draw unmatched TIFF contours in a lighter color as reference
+                ref_contour = detection.get('contour')
+                ref_contour_intermediate = detection.get('contour_intermediate')
+                ref_contour_old = detection.get('contour_old')
+                
+                if ref_contour is not None:
+                    ref_contour = np.vstack([ref_contour, ref_contour[0:1]])
+                    poly_ref = Polygon(ref_contour, fill=False, edgecolor='gray', 
+                                     linewidth=1.5, alpha=0.4, linestyle=':')
+                    ax.add_patch(poly_ref)
+                
+                if ref_contour_intermediate is not None:
+                    ref_contour_intermediate = np.vstack([ref_contour_intermediate, ref_contour_intermediate[0:1]])
+                    poly_ref_int = Polygon(ref_contour_intermediate, fill=False, edgecolor='gray', 
+                                          linewidth=1.0, alpha=0.3, linestyle=':')
+                    ax.add_patch(poly_ref_int)
+    
+    # Create a context prefix for all warnings in this visualization
+    folder_video_prefix = f"[Folder {folder}, Video {video}]"
+    
     # Plot embryo outlines and labels
     for embryo_id in ['A', 'B']:
         df_embryo = df_file[df_file['embryo_id'] == embryo_id].copy()
         if len(df_embryo) == 0:
             continue
+        
+        # Print embryo identifier for warnings
+        print(f"    {folder_video_prefix} [Embryo {embryo_id}] Processing...")
         
         colors = embryo_colors.get(embryo_id, embryo_colors['A'])
         
@@ -1858,6 +2286,81 @@ def create_embryo_visualization(df_tracks, output_dir, folder_video_key, global_
                 boundary = detection.get('contour')
                 boundary_intermediate = detection.get('contour_intermediate')
                 boundary_old = detection.get('contour_old')
+                
+                # Transform TIFF pixel coordinates to spark data coordinates if needed
+                # TIFF contours are in image pixel coordinates, but plot uses spark data coordinates
+                if boundary is not None and tiff_path and tiff_path.exists():
+                    try:
+                        with tiff.TiffFile(tiff_path) as tif:
+                            tiff_img = tif.pages[0].asarray()
+                            tiff_h, tiff_w = tiff_img.shape[:2]
+                            
+                            # Get spark data bounds
+                            spark_x_min = df_file['x'].min()
+                            spark_x_max = df_file['x'].max()
+                            spark_y_min = df_file['y'].min()
+                            spark_y_max = df_file['y'].max()
+                            
+                            # Always transform TIFF pixel coordinates to spark data coordinates
+                            # TIFF contours are in image pixel coordinates [0, tiff_w] x [0, tiff_h]
+                            # Spark data is in a different coordinate system [spark_x_min, spark_x_max] x [spark_y_min, spark_y_max]
+                            # Check if transformation is needed by comparing coordinate ranges
+                            boundary_x_min = boundary[:, 0].min()
+                            boundary_x_max = boundary[:, 0].max()
+                            boundary_y_min = boundary[:, 1].min()
+                            boundary_y_max = boundary[:, 1].max()
+                            
+                            # If TIFF coords are in [0, tiff_w] range, they need transformation
+                            # If they're already in spark coordinate range, they might already be transformed
+                            needs_transform = (boundary_x_max <= tiff_w * 1.1 and boundary_x_min >= -tiff_w * 0.1 and
+                                            boundary_y_max <= tiff_h * 1.1 and boundary_y_min >= -tiff_h * 0.1)
+                            
+                            if needs_transform:
+                                # Transform: map TIFF [0, tiff_w] -> spark [spark_x_min, spark_x_max]
+                                # and TIFF [0, tiff_h] -> spark [spark_y_min, spark_y_max]
+                                scale_x = (spark_x_max - spark_x_min) / tiff_w
+                                scale_y = (spark_y_max - spark_y_min) / tiff_h
+                                
+                                boundary = boundary.copy()
+                                boundary[:, 0] = boundary[:, 0] * scale_x + spark_x_min
+                                boundary[:, 1] = boundary[:, 1] * scale_y + spark_y_min
+                                
+                                if boundary_intermediate is not None:
+                                    boundary_intermediate = boundary_intermediate.copy()
+                                    boundary_intermediate[:, 0] = boundary_intermediate[:, 0] * scale_x + spark_x_min
+                                    boundary_intermediate[:, 1] = boundary_intermediate[:, 1] * scale_y + spark_y_min
+                                
+                                if boundary_old is not None:
+                                    boundary_old = boundary_old.copy()
+                                    boundary_old[:, 0] = boundary_old[:, 0] * scale_x + spark_x_min
+                                    boundary_old[:, 1] = boundary_old[:, 1] * scale_y + spark_y_min
+                                
+                                # Also transform head/tail
+                                if detection.get('head'):
+                                    head = detection.get('head')
+                                    tiff_head = (head[0] * scale_x + spark_x_min, head[1] * scale_y + spark_y_min)
+                                else:
+                                    tiff_head = None
+                                
+                                if detection.get('tail'):
+                                    tail = detection.get('tail')
+                                    tiff_tail = (tail[0] * scale_x + spark_x_min, tail[1] * scale_y + spark_y_min)
+                                else:
+                                    tiff_tail = None
+                                
+                                print(f"    {folder_video_prefix} [Embryo {embryo_id}] → Transformed TIFF coordinates (scale: {scale_x:.3f}x, {scale_y:.3f}y)")
+                            else:
+                                # Coordinates already in spark coordinate system, use as-is
+                                tiff_head = detection.get('head')
+                                tiff_tail = detection.get('tail')
+                    except Exception as e:
+                        print(f"    {folder_video_prefix} [Embryo {embryo_id}] ⚠ Error transforming TIFF coordinates: {e}")
+                        tiff_head = detection.get('head')
+                        tiff_tail = detection.get('tail')
+                else:
+                    tiff_head = detection.get('head')
+                    tiff_tail = detection.get('tail')
+                
                 if boundary is not None:
                     # Close the contour
                     boundary = np.vstack([boundary, boundary[0:1]])
@@ -1867,38 +2370,303 @@ def create_embryo_visualization(df_tracks, output_dir, folder_video_key, global_
                 if boundary_old is not None:
                     # Close the old contour
                     boundary_old = np.vstack([boundary_old, boundary_old[0:1]])
-                tiff_head = detection.get('head')
-                tiff_tail = detection.get('tail')
+                
                 used_tiff_detection = True
+        
+        # If no match but we have TIFF detections, try to use the closest one anyway
+        # This ensures we show greyscale contours even if matching fails
+        if not used_tiff_detection and tiff_detections and len(df_embryo) > 0:
+            # Get this embryo's centroid
+            valid_xy = df_embryo[df_embryo['x'].notna() & df_embryo['y'].notna()]
+            if len(valid_xy) > 0:
+                emb_centroid = (valid_xy['x'].mean(), valid_xy['y'].mean())
+                
+                # Find closest TIFF detection (even if beyond normal threshold)
+                best_tiff_label = None
+                min_dist = float('inf')
+                for tiff_label, detection in tiff_detections.items():
+                    tiff_centroid = detection.get('centroid')
+                    if tiff_centroid:
+                        dist = np.sqrt((tiff_centroid[0] - emb_centroid[0])**2 + 
+                                     (tiff_centroid[1] - emb_centroid[1])**2)
+                        if dist < min_dist:
+                            min_dist = dist
+                            best_tiff_label = tiff_label
+                
+                # Use it if within reasonable distance (increased threshold for coordinate system differences)
+                if best_tiff_label and min_dist < 1000:  # More lenient threshold
+                    detection = tiff_detections[best_tiff_label]
+                    boundary = detection.get('contour')
+                    boundary_intermediate = detection.get('contour_intermediate')
+                    boundary_old = detection.get('contour_old')
+                    
+                    print(f"    {folder_video_prefix} [Embryo {embryo_id}] → Got TIFF detection, boundary is {'None' if boundary is None else f'shape {boundary.shape}'}, tiff_path={'None' if tiff_path is None else str(tiff_path)}")
+                    
+                    # Apply same coordinate transformation as above
+                    if boundary is not None:
+                        if tiff_path and tiff_path.exists():
+                            print(f"    {folder_video_prefix} [Embryo {embryo_id}] → Found boundary and TIFF path, applying transformation...")
+                            try:
+                                with tiff.TiffFile(tiff_path) as tif:
+                                    tiff_img = tif.pages[0].asarray()
+                                    tiff_h, tiff_w = tiff_img.shape[:2]
+                                    
+                                    spark_x_min = df_file['x'].min()
+                                    spark_x_max = df_file['x'].max()
+                                    spark_y_min = df_file['y'].min()
+                                    spark_y_max = df_file['y'].max()
+                                    
+                                    boundary_x_min = boundary[:, 0].min()
+                                    boundary_x_max = boundary[:, 0].max()
+                                    boundary_y_min = boundary[:, 1].min()
+                                    boundary_y_max = boundary[:, 1].max()
+                                    
+                                    needs_transform = (boundary_x_max <= tiff_w * 1.1 and boundary_x_min >= -tiff_w * 0.1 and
+                                                    boundary_y_max <= tiff_h * 1.1 and boundary_y_min >= -tiff_h * 0.1)
+                                    
+                                    if needs_transform:
+                                        print(f"    {folder_video_prefix} [Embryo {embryo_id}] → Applying coordinate transformation (boundary: X=[{boundary_x_min:.1f}, {boundary_x_max:.1f}], Y=[{boundary_y_min:.1f}, {boundary_y_max:.1f}], TIFF: {tiff_w}x{tiff_h})")
+                                        scale_x = (spark_x_max - spark_x_min) / tiff_w
+                                        scale_y = (spark_y_max - spark_y_min) / tiff_h
+                                        
+                                        boundary = boundary.copy()
+                                        boundary[:, 0] = boundary[:, 0] * scale_x + spark_x_min
+                                        boundary[:, 1] = boundary[:, 1] * scale_y + spark_y_min
+                                        
+                                        if boundary_intermediate is not None:
+                                            boundary_intermediate = boundary_intermediate.copy()
+                                            boundary_intermediate[:, 0] = boundary_intermediate[:, 0] * scale_x + spark_x_min
+                                            boundary_intermediate[:, 1] = boundary_intermediate[:, 1] * scale_y + spark_y_min
+                                        
+                                        if boundary_old is not None:
+                                            boundary_old = boundary_old.copy()
+                                            boundary_old[:, 0] = boundary_old[:, 0] * scale_x + spark_x_min
+                                            boundary_old[:, 1] = boundary_old[:, 1] * scale_y + spark_y_min
+                                        
+                                        if detection.get('head'):
+                                            head = detection.get('head')
+                                            tiff_head = (head[0] * scale_x + spark_x_min, head[1] * scale_y + spark_y_min)
+                                        else:
+                                            tiff_head = None
+                                        
+                                        if detection.get('tail'):
+                                            tail = detection.get('tail')
+                                            tiff_tail = (tail[0] * scale_x + spark_x_min, tail[1] * scale_y + spark_y_min)
+                                        else:
+                                            tiff_tail = None
+                                        
+                                        print(f"    {folder_video_prefix} [Embryo {embryo_id}] → Transformed TIFF coordinates (scale: {scale_x:.3f}x, {scale_y:.3f}y)")
+                                    else:
+                                        print(f"    {folder_video_prefix} [Embryo {embryo_id}] → TIFF coordinates already in spark system (no transform needed)")
+                                        tiff_head = detection.get('head')
+                                        tiff_tail = detection.get('tail')
+                            except Exception as e:
+                                print(f"    {folder_video_prefix} [Embryo {embryo_id}] ⚠ Error transforming TIFF coordinates: {e}")
+                                tiff_head = detection.get('head')
+                                tiff_tail = detection.get('tail')
+                        else:
+                            print(f"    {folder_video_prefix} [Embryo {embryo_id}] ⚠ Boundary found but TIFF path missing (tiff_path={tiff_path})")
+                            tiff_head = detection.get('head')
+                            tiff_tail = detection.get('tail')
+                    else:
+                        tiff_head = detection.get('head')
+                        tiff_tail = detection.get('tail')
+                    
+                    if boundary is not None:
+                        boundary = np.vstack([boundary, boundary[0:1]])
+                    if boundary_intermediate is not None:
+                        boundary_intermediate = np.vstack([boundary_intermediate, boundary_intermediate[0:1]])
+                    if boundary_old is not None:
+                        boundary_old = np.vstack([boundary_old, boundary_old[0:1]])
+                    used_tiff_detection = True
+                    print(f"    {folder_video_prefix} [Embryo {embryo_id}] → Using closest TIFF detection (distance: {min_dist:.1f}px)")
+        
+        # If still no match, show ALL TIFF contours as reference (even if not matched)
+        # This ensures greyscale data is always visible
+        if not used_tiff_detection and tiff_detections:
+            # For unmatched embryos, we'll draw all TIFF contours as reference
+            # But we'll only assign the closest one to this embryo
+            if len(df_embryo) > 0:
+                valid_xy = df_embryo[df_embryo['x'].notna() & df_embryo['y'].notna()]
+                if len(valid_xy) > 0:
+                    emb_centroid = (valid_xy['x'].mean(), valid_xy['y'].mean())
+                    best_tiff_label = None
+                    min_dist = float('inf')
+                    for tiff_label, detection in tiff_detections.items():
+                        tiff_centroid = detection.get('centroid')
+                        if tiff_centroid:
+                            dist = np.sqrt((tiff_centroid[0] - emb_centroid[0])**2 + 
+                                         (tiff_centroid[1] - emb_centroid[1])**2)
+                            if dist < min_dist:
+                                min_dist = dist
+                                best_tiff_label = tiff_label
+                    
+                    if best_tiff_label:
+                        detection = tiff_detections[best_tiff_label]
+                        boundary = detection.get('contour')
+                        boundary_intermediate = detection.get('contour_intermediate')
+                        boundary_old = detection.get('contour_old')
+                        
+                        # Apply coordinate transformation (same as above)
+                        if boundary is not None:
+                            if tiff_path and tiff_path.exists():
+                                print(f"    {folder_video_prefix} [Embryo {embryo_id}] → Applying coordinate transformation...")
+                                try:
+                                    with tiff.TiffFile(tiff_path) as tif:
+                                        tiff_img = tif.pages[0].asarray()
+                                        tiff_h, tiff_w = tiff_img.shape[:2]
+                                        
+                                        spark_x_min = df_file['x'].min()
+                                        spark_x_max = df_file['x'].max()
+                                        spark_y_min = df_file['y'].min()
+                                        spark_y_max = df_file['y'].max()
+                                        
+                                        boundary_x_min = boundary[:, 0].min()
+                                        boundary_x_max = boundary[:, 0].max()
+                                        boundary_y_min = boundary[:, 1].min()
+                                        boundary_y_max = boundary[:, 1].max()
+                                        
+                                        needs_transform = (boundary_x_max <= tiff_w * 1.1 and boundary_x_min >= -tiff_w * 0.1 and
+                                                        boundary_y_max <= tiff_h * 1.1 and boundary_y_min >= -tiff_h * 0.1)
+                                        
+                                        if needs_transform:
+                                            scale_x = (spark_x_max - spark_x_min) / tiff_w
+                                            scale_y = (spark_y_max - spark_y_min) / tiff_h
+                                            
+                                            boundary = boundary.copy()
+                                            boundary[:, 0] = boundary[:, 0] * scale_x + spark_x_min
+                                            boundary[:, 1] = boundary[:, 1] * scale_y + spark_y_min
+                                            
+                                            if boundary_intermediate is not None:
+                                                boundary_intermediate = boundary_intermediate.copy()
+                                                boundary_intermediate[:, 0] = boundary_intermediate[:, 0] * scale_x + spark_x_min
+                                                boundary_intermediate[:, 1] = boundary_intermediate[:, 1] * scale_y + spark_y_min
+                                            
+                                            if boundary_old is not None:
+                                                boundary_old = boundary_old.copy()
+                                                boundary_old[:, 0] = boundary_old[:, 0] * scale_x + spark_x_min
+                                                boundary_old[:, 1] = boundary_old[:, 1] * scale_y + spark_y_min
+                                            
+                                            if detection.get('head'):
+                                                head = detection.get('head')
+                                                tiff_head = (head[0] * scale_x + spark_x_min, head[1] * scale_y + spark_y_min)
+                                            else:
+                                                tiff_head = None
+                                            
+                                            if detection.get('tail'):
+                                                tail = detection.get('tail')
+                                                tiff_tail = (tail[0] * scale_x + spark_x_min, tail[1] * scale_y + spark_y_min)
+                                            else:
+                                                tiff_tail = None
+                                            
+                                            print(f"    {folder_video_prefix} [Embryo {embryo_id}] → Transformed TIFF coordinates (scale: {scale_x:.3f}x, {scale_y:.3f}y)")
+                                        else:
+                                            # Coordinates already in spark coordinate system
+                                            print(f"    {folder_video_prefix} [Embryo {embryo_id}] → TIFF coordinates already in spark system (no transform needed)")
+                                            tiff_head = detection.get('head')
+                                            tiff_tail = detection.get('tail')
+                                except Exception as e:
+                                    print(f"    {folder_video_prefix} [Embryo {embryo_id}] ⚠ Error transforming TIFF coordinates: {e}")
+                                    tiff_head = detection.get('head')
+                                    tiff_tail = detection.get('tail')
+                            else:
+                                # No TIFF path available - use coordinates as-is
+                                print(f"    {folder_video_prefix} [Embryo {embryo_id}] ⚠ No TIFF path for coordinate transformation")
+                                tiff_head = detection.get('head')
+                                tiff_tail = detection.get('tail')
+                        else:
+                            # No boundary from detection
+                            tiff_head = detection.get('head')
+                            tiff_tail = detection.get('tail')
+                        
+                        if boundary is not None:
+                            boundary = np.vstack([boundary, boundary[0:1]])
+                        if boundary_intermediate is not None:
+                            boundary_intermediate = np.vstack([boundary_intermediate, boundary_intermediate[0:1]])
+                        if boundary_old is not None:
+                            boundary_old = np.vstack([boundary_old, boundary_old[0:1]])
+                        used_tiff_detection = True
+                        print(f"    {folder_video_prefix} [Embryo {embryo_id}] → Using closest TIFF detection (unmatched, distance: {min_dist:.1f}px)")
         
         # Fallback to spark-based boundary if TIFF detection failed
         if boundary is None:
-            boundary = get_embryo_boundary_from_sparks(df_embryo)
+            # If we have very few sparks for this embryo, try using all sparks in the file
+            # and then extract the region near this embryo's centroid
+            if len(df_embryo) < 50:
+                # Use all sparks to get better density estimate
+                all_sparks = df_file[df_file['x'].notna() & df_file['y'].notna()].copy()
+                if len(all_sparks) > 100:
+                    # Get centroid of this embryo
+                    if len(df_embryo) > 0:
+                        emb_centroid = (df_embryo['x'].mean(), df_embryo['y'].mean())
+                        # Filter sparks near this centroid (within 2x the spread of embryo sparks)
+                        x_spread = df_embryo['x'].max() - df_embryo['x'].min() if len(df_embryo) > 1 else 100
+                        y_spread = df_embryo['y'].max() - df_embryo['y'].min() if len(df_embryo) > 1 else 100
+                        radius = max(x_spread, y_spread) * 2
+                        
+                        # Get sparks within radius
+                        nearby_sparks = all_sparks[
+                            ((all_sparks['x'] - emb_centroid[0])**2 + 
+                             (all_sparks['y'] - emb_centroid[1])**2) < radius**2
+                        ].copy()
+                        
+                        if len(nearby_sparks) > 50:
+                            # Use nearby sparks for better boundary
+                            boundary = get_embryo_boundary_from_sparks(nearby_sparks, method='adaptive')
+            
+            # If still no boundary, try with just this embryo's sparks
+            if boundary is None:
+                # Try adaptive method first (tries density, then alpha, then convex)
+                boundary = get_embryo_boundary_from_sparks(df_embryo, method='adaptive')
+                if boundary is None:
+                    # Fallback to density method
+                    boundary = get_embryo_boundary_from_sparks(df_embryo, method='density')
         
         if boundary is not None:
             # Draw triple outlines: inner (old), middle (intermediate), outer (new)
             if used_tiff_detection:
                 # Draw inner outline (old, restrictive) - lighter, thinner
                 if boundary_old is not None:
-                    poly_inner = Polygon(boundary_old, fill=False, edgecolor=colors['outline'], 
-                                        linewidth=1.5, alpha=0.6, linestyle='-')
-                    ax.add_patch(poly_inner)
+                    try:
+                        poly_inner = Polygon(boundary_old, fill=False, edgecolor=colors['outline'], 
+                                            linewidth=1.5, alpha=0.6, linestyle='-')
+                        ax.add_patch(poly_inner)
+                    except Exception as e:
+                        print(f"    [Embryo {embryo_id}] ⚠ Error drawing inner outline: {e}")
                 
                 # Draw middle outline (intermediate, better head capture) - medium, visible
                 if boundary_intermediate is not None:
-                    poly_middle = Polygon(boundary_intermediate, fill=False, edgecolor=colors['outline'], 
-                                        linewidth=2.0, alpha=0.8, linestyle='-')
-                    ax.add_patch(poly_middle)
+                    try:
+                        poly_middle = Polygon(boundary_intermediate, fill=False, edgecolor=colors['outline'], 
+                                            linewidth=2.0, alpha=0.8, linestyle='-')
+                        ax.add_patch(poly_middle)
+                    except Exception as e:
+                        print(f"    [Embryo {embryo_id}] ⚠ Error drawing middle outline: {e}")
                 
                 # Draw outer outline (new, inclusive) - thicker, more visible
-                poly_outer = Polygon(boundary, fill=False, edgecolor=colors['outline'], 
-                                    linewidth=2.5, alpha=0.9, linestyle='-')
-                ax.add_patch(poly_outer)
+                try:
+                    poly_outer = Polygon(boundary, fill=False, edgecolor=colors['outline'], 
+                                        linewidth=2.5, alpha=0.9, linestyle='-')
+                    ax.add_patch(poly_outer)
+                except Exception as e:
+                    print(f"    [Embryo {embryo_id}] ⚠ Error drawing outer outline: {e}")
+                    print(f"    [Embryo {embryo_id}] Boundary shape: {boundary.shape if boundary is not None else None}, dtype: {boundary.dtype if boundary is not None else None}")
             else:
                 # Reconstructed from sparks (approximate)
-                poly = Polygon(boundary, fill=False, edgecolor=colors['outline'], 
-                              linewidth=2, alpha=0.6, linestyle='--')
-                ax.add_patch(poly)
+                try:
+                    poly = Polygon(boundary, fill=False, edgecolor=colors['outline'], 
+                                  linewidth=2, alpha=0.6, linestyle='--')
+                    ax.add_patch(poly)
+                except Exception as e:
+                    print(f"    [Embryo {embryo_id}] ⚠ Error drawing spark-based outline: {e}")
+        else:
+            # Debug: why is boundary None?
+            if tiff_detections:
+                print(f"    [Embryo {embryo_id}] ⚠ No boundary despite {len(tiff_detections)} TIFF detections available")
+                if embryo_id in tiff_to_spark_mapping:
+                    print(f"    → Mapping exists: {embryo_id} -> {tiff_to_spark_mapping[embryo_id]}")
+                else:
+                    print(f"    → No mapping for {embryo_id}")
         
         # Get head/tail positions - prefer TIFF detection, fallback to spark data
         if tiff_head and tiff_tail:
