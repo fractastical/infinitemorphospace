@@ -1009,6 +1009,30 @@ def detect_embryo_from_tiff(tiff_path, embryo_id=None, logger=None):
                     print(f"    [Embryo {label}] ⚠ Volume unusual: area={area:.0f} ({area_ratio*100:.2f}% of image), "
                           f"typical ~{typical_embryo_area:.0f} (±{area_tolerance*100:.0f}%)")
             
+            # Head-tail length validation: filter out detections that are too short
+            # Minimum head-tail length should be at least 5% of image width or 50 pixels, whichever is larger
+            min_head_tail_length = max(w * 0.05, 50)
+            
+            for label in ['A', 'B']:
+                if label not in results:
+                    continue
+                head = results[label].get('head')
+                tail = results[label].get('tail')
+                
+                if head and tail:
+                    head_tail_dist = np.sqrt((head[0] - tail[0])**2 + (head[1] - tail[1])**2)
+                    
+                    if head_tail_dist < min_head_tail_length:
+                        print(f"    [Embryo {label}] ⚠ CRITICAL: Head-tail distance too short ({head_tail_dist:.1f}px < {min_head_tail_length:.1f}px threshold) - removing detection")
+                        # Remove this embryo from results
+                        del results[label]
+                    elif head_tail_dist < min_head_tail_length * 1.5:
+                        print(f"    [Embryo {label}] ⚠ Head-tail distance is short ({head_tail_dist:.1f}px, threshold: {min_head_tail_length:.1f}px)")
+            
+            # If we removed an embryo, return early (single embryo case)
+            if len(results) < 2:
+                return results
+            
             # B head/tail position check: B head should be in the right half of the image
             # If B's head is more than 20% into the left half, it's wrong
             image_center_x = w / 2
@@ -2203,22 +2227,56 @@ def create_embryo_visualization(df_tracks, output_dir, folder_video_key, global_
             if len(valid_xy) > 0:
                 spark_centroids[embryo_id] = (valid_xy['x'].mean(), valid_xy['y'].mean())
     
+    # Transform TIFF centroids to spark coordinate system before matching
+    # This ensures we're comparing coordinates in the same space
+    tiff_centroids_transformed = {}
+    if tiff_detections and tiff_path and tiff_path.exists():
+        try:
+            with tiff.TiffFile(tiff_path) as tif:
+                tiff_img = tif.pages[0].asarray()
+                tiff_h, tiff_w = tiff_img.shape[:2]
+                
+                spark_x_min = df_file['x'].min()
+                spark_x_max = df_file['x'].max()
+                spark_y_min = df_file['y'].min()
+                spark_y_max = df_file['y'].max()
+                
+                scale_x = (spark_x_max - spark_x_min) / tiff_w
+                scale_y = (spark_y_max - spark_y_min) / tiff_h
+                
+                for tiff_label, detection in tiff_detections.items():
+                    tiff_centroid = detection.get('centroid')
+                    if tiff_centroid:
+                        # Transform TIFF centroid from image pixels to spark coordinates
+                        transformed_x = tiff_centroid[0] * scale_x + spark_x_min
+                        transformed_y = tiff_centroid[1] * scale_y + spark_y_min
+                        tiff_centroids_transformed[tiff_label] = (transformed_x, transformed_y)
+        except Exception as e:
+            print(f"    ⚠ Error transforming TIFF centroids for matching: {e}")
+            # Fallback: use original TIFF centroids (will use larger threshold)
+            for tiff_label, detection in tiff_detections.items():
+                tiff_centroid = detection.get('centroid')
+                if tiff_centroid:
+                    tiff_centroids_transformed[tiff_label] = tiff_centroid
+    
     # Match TIFF detections to spark labels by closest centroid (one-to-one mapping)
     tiff_to_spark_mapping = {}
-    if tiff_detections and spark_centroids:
+    if tiff_centroids_transformed and spark_centroids:
         # For each spark label, find the closest unmatched TIFF detection
         used_tiff_labels = set()
         for spark_label in spark_centroids.keys():
             spark_centroid = spark_centroids[spark_label]
             min_dist = float('inf')
             best_tiff_label = None
-            for tiff_label in tiff_detections.keys():
+            for tiff_label in tiff_centroids_transformed.keys():
                 if tiff_label in used_tiff_labels:
                     continue  # Already matched
-                tiff_centroid = tiff_detections[tiff_label]['centroid']
+                tiff_centroid = tiff_centroids_transformed[tiff_label]
                 dist = np.sqrt((tiff_centroid[0] - spark_centroid[0])**2 + 
                               (tiff_centroid[1] - spark_centroid[1])**2)
-                if dist < min_dist and dist < 200:  # Reasonable distance threshold
+                # Use larger threshold if coordinates weren't transformed (fallback case)
+                threshold = 200 if tiff_path and tiff_path.exists() else 500
+                if dist < min_dist and dist < threshold:
                     min_dist = dist
                     best_tiff_label = tiff_label
             if best_tiff_label:
@@ -2231,30 +2289,75 @@ def create_embryo_visualization(df_tracks, output_dir, folder_video_key, global_
         'B': {'outline': 'orange', 'head': 'lime', 'tail': 'red', 'axis': 'yellow'}
     }
     
-    # First, draw ALL TIFF contours as reference (even if unmatched)
-    # This ensures greyscale data is always visible
-    if tiff_detections:
-        for tiff_label, detection in tiff_detections.items():
-            # Check if this TIFF detection is already matched
-            is_matched = any(tiff_label == mapped for mapped in tiff_to_spark_mapping.values())
-            
-            if not is_matched:
-                # Draw unmatched TIFF contours in a lighter color as reference
-                ref_contour = detection.get('contour')
-                ref_contour_intermediate = detection.get('contour_intermediate')
-                ref_contour_old = detection.get('contour_old')
+    # Draw ALL TIFF contours as reference outlines (dashed gray)
+    # This provides a consistent reference for greyscale data visibility
+    # We draw them even when matched, so users can see both the colored matched outlines
+    # and the reference TIFF outlines for comparison
+    if tiff_detections and tiff_path and tiff_path.exists():
+        try:
+            with tiff.TiffFile(tiff_path) as tif:
+                tiff_img = tif.pages[0].asarray()
+                tiff_h, tiff_w = tiff_img.shape[:2]
                 
-                if ref_contour is not None:
-                    ref_contour = np.vstack([ref_contour, ref_contour[0:1]])
-                    poly_ref = Polygon(ref_contour, fill=False, edgecolor='gray', 
-                                     linewidth=1.5, alpha=0.4, linestyle=':')
-                    ax.add_patch(poly_ref)
+                spark_x_min = df_file['x'].min()
+                spark_x_max = df_file['x'].max()
+                spark_y_min = df_file['y'].min()
+                spark_y_max = df_file['y'].max()
                 
-                if ref_contour_intermediate is not None:
-                    ref_contour_intermediate = np.vstack([ref_contour_intermediate, ref_contour_intermediate[0:1]])
-                    poly_ref_int = Polygon(ref_contour_intermediate, fill=False, edgecolor='gray', 
-                                          linewidth=1.0, alpha=0.3, linestyle=':')
-                    ax.add_patch(poly_ref_int)
+                scale_x = (spark_x_max - spark_x_min) / tiff_w
+                scale_y = (spark_y_max - spark_y_min) / tiff_h
+                
+                for tiff_label, detection in tiff_detections.items():
+                    # Draw all TIFF contours as reference (matched or unmatched)
+                    ref_contour = detection.get('contour')
+                    ref_contour_intermediate = detection.get('contour_intermediate')
+                    ref_contour_old = detection.get('contour_old')
+                    
+                    # Transform contours to spark coordinate system
+                    if ref_contour is not None:
+                        # Check if transformation is needed
+                        boundary_x_min = ref_contour[:, 0].min()
+                        boundary_x_max = ref_contour[:, 0].max()
+                        boundary_y_min = ref_contour[:, 1].min()
+                        boundary_y_max = ref_contour[:, 1].max()
+                        
+                        needs_transform = (boundary_x_max <= tiff_w * 1.1 and boundary_x_min >= -tiff_w * 0.1 and
+                                        boundary_y_max <= tiff_h * 1.1 and boundary_y_min >= -tiff_h * 0.1)
+                        
+                        if needs_transform:
+                            ref_contour = ref_contour.copy()
+                            ref_contour[:, 0] = ref_contour[:, 0] * scale_x + spark_x_min
+                            ref_contour[:, 1] = ref_contour[:, 1] * scale_y + spark_y_min
+                        
+                        ref_contour = np.vstack([ref_contour, ref_contour[0:1]])
+                        poly_ref = Polygon(ref_contour, fill=False, edgecolor='gray', 
+                                         linewidth=2.5, alpha=0.7, linestyle='--', zorder=5)
+                        ax.add_patch(poly_ref)
+                        print(f"    → Drawing reference TIFF outline for {tiff_label} (contour shape: {ref_contour.shape})")
+                    
+                    if ref_contour_intermediate is not None:
+                        # Transform intermediate contour
+                        boundary_x_min = ref_contour_intermediate[:, 0].min()
+                        boundary_x_max = ref_contour_intermediate[:, 0].max()
+                        boundary_y_min = ref_contour_intermediate[:, 1].min()
+                        boundary_y_max = ref_contour_intermediate[:, 1].max()
+                        
+                        needs_transform = (boundary_x_max <= tiff_w * 1.1 and boundary_x_min >= -tiff_w * 0.1 and
+                                        boundary_y_max <= tiff_h * 1.1 and boundary_y_min >= -tiff_h * 0.1)
+                        
+                        if needs_transform:
+                            ref_contour_intermediate = ref_contour_intermediate.copy()
+                            ref_contour_intermediate[:, 0] = ref_contour_intermediate[:, 0] * scale_x + spark_x_min
+                            ref_contour_intermediate[:, 1] = ref_contour_intermediate[:, 1] * scale_y + spark_y_min
+                        
+                        ref_contour_intermediate = np.vstack([ref_contour_intermediate, ref_contour_intermediate[0:1]])
+                        poly_ref_int = Polygon(ref_contour_intermediate, fill=False, edgecolor='lightgray', 
+                                              linewidth=2.0, alpha=0.6, linestyle='--', zorder=4)
+                        ax.add_patch(poly_ref_int)
+        except Exception as e:
+            import traceback
+            print(f"    ⚠ Error drawing reference TIFF contours: {e}")
+            print(f"    Traceback: {traceback.format_exc()}")
     
     # Create a context prefix for all warnings in this visualization
     folder_video_prefix = f"[Folder {folder}, Video {video}]"

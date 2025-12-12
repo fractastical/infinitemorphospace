@@ -102,7 +102,7 @@ We now have velocity vectors (`vx`, `vy`) from the spark data. These can help be
    - Instead of just using contour overlap, use vector field discontinuities
    - Where vectors change direction abruptly → likely boundary between embryos
 
-3. **Validate A/B Assignment with Vectors**:
+3. **Vazlidate A/B Assignment with Vectors**:
    - Calculate average vector direction in left half vs right half
    - If left half vectors point right → suggests head is on left (correct for A)
    - If right half vectors point left → suggests head is on right (correct for B)
