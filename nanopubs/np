@@ -1,0 +1,127 @@
+#!/bin/bash
+# Wrapper script for nanopub utilities
+# Provides convenient commands: check, mktrusty, sign, publish
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Try to activate virtual environment if it exists
+if [ -f "../venv/bin/activate" ]; then
+    source ../venv/bin/activate
+    PYTHON_CMD="../venv/bin/python3"
+elif [ -f "../../venv/bin/activate" ]; then
+    source ../../venv/bin/activate
+    PYTHON_CMD="../../venv/bin/python3"
+elif [ -n "$VIRTUAL_ENV" ]; then
+    PYTHON_CMD="$VIRTUAL_ENV/bin/python3"
+else
+    PYTHON_CMD="python3"
+fi
+
+# Check if nanopub is available
+if ! $PYTHON_CMD -c "import nanopub" 2>/dev/null; then
+    echo "ERROR: nanopub library not installed"
+    echo "Install with: pip install nanopub rdflib"
+    exit 1
+fi
+
+case "$1" in
+    check)
+        shift
+        $PYTHON_CMD -m nanopub check "$@"
+        ;;
+    sign)
+        shift
+        # If output not specified, use signed.<filename> convention
+        if [ "$1" = "-o" ] || [ "$1" = "--output" ]; then
+            $PYTHON_CMD -m nanopub sign "$@"
+        else
+            # Check if input file exists
+            if [ ! -f "$1" ]; then
+                echo "Error: File not found: $1"
+                exit 1
+            fi
+            # Generate output filename
+            INPUT="$1"
+            shift
+            DIR=$(dirname "$INPUT")
+            BASE=$(basename "$INPUT" .trig)
+            OUTPUT="$DIR/signed.$BASE.trig"
+            $PYTHON_CMD -m nanopub sign "$INPUT" -o "$OUTPUT" "$@"
+            echo "✓ Signed nanopub saved to: $OUTPUT"
+        fi
+        ;;
+    mktrusty)
+        shift
+        # Create trusty URI version of a nanopub
+        if [ ! -f "$1" ]; then
+            echo "Error: File not found: $1"
+            exit 1
+        fi
+        
+        INPUT="$1"
+        shift
+        
+        # Parse arguments
+        OUTPUT=""
+        while [[ $# -gt 0 ]]; do
+            case $1 in
+                -o|--output)
+                    OUTPUT="$2"
+                    shift 2
+                    ;;
+                *)
+                    echo "Unknown option: $1"
+                    exit 1
+                    ;;
+            esac
+        done
+        
+        # If no output specified, use trusty/ directory
+        if [ -z "$OUTPUT" ]; then
+            DIR=$(dirname "$INPUT")
+            BASE=$(basename "$INPUT")
+            mkdir -p "$DIR/trusty"
+            OUTPUT="$DIR/trusty/$BASE"
+        fi
+        
+        # Create trusty URI version
+        $PYTHON_CMD -c "
+from nanopub import Nanopub
+from pathlib import Path
+import sys
+
+try:
+    np = Nanopub(rdf=Path('$INPUT'))
+    # Generate trusty URI
+    np.update_from_signed()
+    # Save to output
+    np.rdf.serialize(destination='$OUTPUT', format='trig')
+    print(f'✓ Trusty URI nanopub saved to: $OUTPUT')
+except Exception as e:
+    print(f'Error: {e}', file=sys.stderr)
+    sys.exit(1)
+"
+        ;;
+    publish)
+        shift
+        $PYTHON_CMD -m nanopub publish "$@"
+        ;;
+    *)
+        echo "Usage: $0 {check|mktrusty|sign|publish} [options]"
+        echo ""
+        echo "Commands:"
+        echo "  check <file.trig>                    Check if a signed nanopub is valid"
+        echo "  mktrusty <file.trig> [-o output]     Create trusty URI version"
+        echo "  sign <file.trig> [-o output]         Sign a nanopub (default: signed.<file.trig>)"
+        echo "  publish <file.trig>                  Publish a nanopub"
+        echo ""
+        echo "Examples:"
+        echo "  $0 check file.trig"
+        echo "  $0 mktrusty file.trig -o trusty/file.trig"
+        echo "  $0 sign trusty/file.trig              # Creates signed.file.trig"
+        echo "  $0 check signed.file.trig"
+        echo "  $0 publish signed.file.trig"
+        exit 1
+        ;;
+esac
+
