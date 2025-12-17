@@ -3280,10 +3280,23 @@ def create_pdf_from_images(image_paths, output_pdf_path, images_per_page=1, summ
         # Add region summary page at the end if spark tracks data is provided
         if df_tracks is not None:
             try:
-                create_region_summary_page(df_tracks, pdf)
-                print(f"  → Added region summary page to PDF")
+                if 'region' in df_tracks.columns:
+                    df_with_regions = df_tracks[
+                        df_tracks['region'].notna() & 
+                        (df_tracks['region'] != '') & 
+                        (df_tracks['region'] != 'unknown')
+                    ]
+                    if len(df_with_regions) > 0:
+                        create_region_summary_page(df_tracks, pdf)
+                        print(f"  → Added region summary page to PDF ({len(df_with_regions):,} events with regions)")
+                    else:
+                        print(f"  → Skipping region summary: no valid region data found")
+                else:
+                    print(f"  → Skipping region summary: 'region' column not found in data")
             except Exception as e:
+                import traceback
                 print(f"  ⚠ Warning: Could not add region summary page: {e}")
+                print(f"    Traceback: {traceback.format_exc()}")
     
     print(f"✓ Generated PDF: {output_pdf_path}")
 
@@ -3631,6 +3644,10 @@ def main():
             # We'll create the PDF after warnings are collected
             stored_image_paths = image_paths_for_pdf.copy()
             stored_summary_data = summary_data.copy()
+        else:
+            # Initialize empty lists if no images were created
+            stored_image_paths = []
+            stored_summary_data = []
     
     # Generate summary table (after visualizations so we can include image references)
     print("\nGenerating summary table...")
@@ -3649,17 +3666,6 @@ def main():
             for warning in warnings_log:
                 log_file.write(warning + "\n")
         print(f"\n✓ Warning log saved to: {log_file_path} ({len(warnings_log)} warnings logged)")
-        
-        # Create PDF with log included (if we have stored image paths)
-        pdf_path = output_dir / "detection_visualizations.pdf"
-        if 'stored_image_paths' in locals() and stored_image_paths:
-            print(f"\nCreating PDF with {len(stored_image_paths)} images and warning log...")
-            # Always pass log file path if it exists (we just wrote it)
-            log_path_for_pdf = log_file_path if log_file_path.exists() else None
-            # Create PDF with everything included (including region summary)
-            create_pdf_from_images(stored_image_paths, pdf_path, images_per_page=1, 
-                                 summary_data=stored_summary_data, warning_log_path=log_path_for_pdf,
-                                 df_tracks=df_tracks)
     else:
         # Create empty log file to indicate no warnings
         with open(log_file_path, 'w') as log_file:
@@ -3668,6 +3674,35 @@ def main():
             log_file.write("=" * 80 + "\n\n")
             log_file.write("No warnings detected.\n")
         print(f"\n✓ Warning log saved to: {log_file_path} (no warnings)")
+    
+    # Create PDF if we have images (regardless of warnings)
+    pdf_path = output_dir / "detection_visualizations.pdf"
+    if stored_image_paths and len(stored_image_paths) > 0:
+        log_path_for_pdf = log_file_path if log_file_path.exists() else None
+        print(f"\nCreating PDF with {len(stored_image_paths)} images...")
+        if warnings_log:
+            print(f"  → Including warning log ({len(warnings_log)} warnings)")
+        # Check if region data is available
+        if 'region' in df_tracks.columns:
+            df_with_regions = df_tracks[
+                df_tracks['region'].notna() & 
+                (df_tracks['region'] != '') & 
+                (df_tracks['region'] != 'unknown')
+            ]
+            if len(df_with_regions) > 0:
+                print(f"  → Will include region summary ({len(df_with_regions):,} events with regions)")
+            else:
+                print(f"  → No valid region data found - skipping region summary")
+        else:
+            print(f"  → 'region' column not found in data - skipping region summary")
+            print(f"    (Re-run wave-vector-tiff-parser.py to generate region data)")
+        
+        # Create PDF with everything included (including region summary)
+        create_pdf_from_images(stored_image_paths, pdf_path, images_per_page=1, 
+                             summary_data=stored_summary_data, warning_log_path=log_path_for_pdf,
+                             df_tracks=df_tracks)
+    else:
+        print(f"\n⚠ No images to include in PDF - skipping PDF creation")
     
     print(f"\n✓ Complete!")
 
