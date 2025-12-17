@@ -148,6 +148,18 @@ def process_tracks_to_clusters(csv_path, output_path=None):
                 dist_from_poke_start = poke_dists.iloc[0]
                 dist_from_poke_end = poke_dists.iloc[-1]
         
+        # Region information (if available)
+        primary_region = ""
+        region_counts = {}
+        if 'region' in df_track.columns:
+            regions = df_track['region'].dropna()
+            regions = regions[regions != ""]  # Filter out empty strings
+            if len(regions) > 0:
+                # Count occurrences of each region
+                region_counts = regions.value_counts().to_dict()
+                # Primary region is the most common one
+                primary_region = regions.value_counts().index[0] if len(regions) > 0 else ""
+        
         cluster = {
             'cluster_id': track_id,
             'n_frames': n_frames,
@@ -177,6 +189,14 @@ def process_tracks_to_clusters(csv_path, output_path=None):
             cluster['dist_from_poke_start_px'] = dist_from_poke_start
         if not np.isnan(dist_from_poke_end):
             cluster['dist_from_poke_end_px'] = dist_from_poke_end
+        
+        # Add region information if available
+        if primary_region:
+            cluster['primary_region'] = primary_region
+            # Add region distribution as a string (for CSV compatibility)
+            if region_counts:
+                region_str = "; ".join([f"{r}:{c}" for r, c in sorted(region_counts.items(), key=lambda x: -x[1])])
+                cluster['region_distribution'] = region_str
         
         clusters.append(cluster)
     

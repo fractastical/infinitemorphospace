@@ -3035,7 +3035,121 @@ def create_summary_table_page(summary_data, output_pdf_path):
     plt.close()
 
 
-def create_pdf_from_images(image_paths, output_pdf_path, images_per_page=1, summary_data=None, warning_log_path=None):
+def create_region_summary_page(df_tracks, pdf):
+    """
+    Create a summary page showing spark counts by region and add it to the PDF.
+    
+    Args:
+        df_tracks: DataFrame with spark track data (must have 'region' column)
+        pdf: PdfPages object (already open)
+    """
+    if 'region' not in df_tracks.columns:
+        return  # No region data available
+    
+    # Filter out empty/unknown regions
+    df_with_regions = df_tracks[
+        df_tracks['region'].notna() & 
+        (df_tracks['region'] != '') & 
+        (df_tracks['region'] != 'unknown')
+    ].copy()
+    
+    if len(df_with_regions) == 0:
+        return  # No valid region data
+    
+    fig, axes = plt.subplots(2, 2, figsize=(11, 8.5))
+    fig.suptitle('Sparks Summary by Anatomical Region', fontsize=16, fontweight='bold', y=0.98)
+    
+    # 1. Event count by region (bar chart)
+    region_counts = df_with_regions['region'].value_counts().sort_values(ascending=True)
+    axes[0, 0].barh(range(len(region_counts)), region_counts.values, color='steelblue')
+    axes[0, 0].set_yticks(range(len(region_counts)))
+    axes[0, 0].set_yticklabels(region_counts.index)
+    axes[0, 0].set_xlabel('Number of Events', fontsize=10)
+    axes[0, 0].set_title('Total Events by Region', fontsize=12, fontweight='bold')
+    axes[0, 0].grid(True, alpha=0.3, axis='x')
+    
+    # Add value labels on bars
+    for i, v in enumerate(region_counts.values):
+        axes[0, 0].text(v, i, f' {v:,}', va='center', fontsize=9)
+    
+    # 2. Mean speed by region
+    if 'speed' in df_with_regions.columns:
+        speed_per_region = df_with_regions.groupby('region')['speed'].mean().sort_values(ascending=True)
+        axes[0, 1].barh(range(len(speed_per_region)), speed_per_region.values, color='coral')
+        axes[0, 1].set_yticks(range(len(speed_per_region)))
+        axes[0, 1].set_yticklabels(speed_per_region.index)
+        axes[0, 1].set_xlabel('Mean Speed (pixels/second)', fontsize=10)
+        axes[0, 1].set_title('Mean Speed by Region', fontsize=12, fontweight='bold')
+        axes[0, 1].grid(True, alpha=0.3, axis='x')
+        
+        # Add value labels
+        for i, v in enumerate(speed_per_region.values):
+            axes[0, 1].text(v, i, f' {v:.2f}', va='center', fontsize=9)
+    else:
+        axes[0, 1].text(0.5, 0.5, 'Speed data not available', 
+                        ha='center', va='center', transform=axes[0, 1].transAxes)
+        axes[0, 1].set_title('Mean Speed by Region', fontsize=12, fontweight='bold')
+    
+    # 3. Region distribution by embryo
+    if 'embryo_id' in df_with_regions.columns:
+        region_embryo = pd.crosstab(df_with_regions['region'], df_with_regions['embryo_id'])
+        region_embryo.plot(kind='barh', ax=axes[1, 0], color=['#4CAF50', '#FF9800'], width=0.8)
+        axes[1, 0].set_xlabel('Number of Events', fontsize=10)
+        axes[1, 0].set_ylabel('Region', fontsize=10)
+        axes[1, 0].set_title('Events by Region and Embryo', fontsize=12, fontweight='bold')
+        axes[1, 0].legend(title='Embryo', fontsize=9)
+        axes[1, 0].grid(True, alpha=0.3, axis='x')
+    else:
+        axes[1, 0].text(0.5, 0.5, 'Embryo ID data not available', 
+                        ha='center', va='center', transform=axes[1, 0].transAxes)
+        axes[1, 0].set_title('Events by Region and Embryo', fontsize=12, fontweight='bold')
+    
+    # 4. Summary statistics table
+    axes[1, 1].axis('off')
+    
+    # Calculate statistics
+    total_events = len(df_with_regions)
+    unique_regions = df_with_regions['region'].nunique()
+    events_with_region = len(df_with_regions)
+    events_total = len(df_tracks)
+    region_coverage = (events_with_region / events_total * 100) if events_total > 0 else 0
+    
+    # Create summary text
+    summary_text = f"""
+SUMMARY STATISTICS
+
+Total Events: {events_total:,}
+Events with Region: {events_with_region:,} ({region_coverage:.1f}%)
+Unique Regions: {unique_regions}
+
+TOP 5 REGIONS BY EVENT COUNT:
+"""
+    
+    top_regions = region_counts.tail(5)
+    for i, (region, count) in enumerate(top_regions.items(), 1):
+        pct = (count / events_with_region * 100) if events_with_region > 0 else 0
+        summary_text += f"{i}. {region}: {count:,} ({pct:.1f}%)\n"
+    
+    if 'speed' in df_with_regions.columns:
+        summary_text += f"\n\nSPEED STATISTICS:\n"
+        summary_text += f"Overall Mean Speed: {df_with_regions['speed'].mean():.2f} px/s\n"
+        summary_text += f"Overall Median Speed: {df_with_regions['speed'].median():.2f} px/s\n"
+        fastest_region = df_with_regions.groupby('region')['speed'].mean().idxmax()
+        fastest_speed = df_with_regions.groupby('region')['speed'].mean().max()
+        summary_text += f"Fastest Region: {fastest_region} ({fastest_speed:.2f} px/s)\n"
+    
+    axes[1, 1].text(0.1, 0.95, summary_text, transform=axes[1, 1].transAxes,
+                    fontsize=10, family='monospace', verticalalignment='top',
+                    bbox=dict(boxstyle='round', facecolor='lightgray', alpha=0.8))
+    
+    plt.tight_layout(rect=[0, 0, 1, 0.96])
+    
+    # Add to PDF
+    pdf.savefig(fig, bbox_inches='tight')
+    plt.close()
+
+
+def create_pdf_from_images(image_paths, output_pdf_path, images_per_page=1, summary_data=None, warning_log_path=None, df_tracks=None):
     """
     Create a PDF from a list of image paths.
     
@@ -3045,6 +3159,7 @@ def create_pdf_from_images(image_paths, output_pdf_path, images_per_page=1, summ
         images_per_page: Number of images per page (1 or 2)
         summary_data: Optional list of summary data dicts for first page
         warning_log_path: Optional path to warning log file to append at end
+        df_tracks: Optional DataFrame with spark track data for region summary
     """
     with PdfPages(output_pdf_path) as pdf:
         # Add summary table as first page if provided
@@ -3161,6 +3276,14 @@ def create_pdf_from_images(image_paths, output_pdf_path, images_per_page=1, summ
                     plt.tight_layout()
                     pdf.savefig(fig, bbox_inches='tight')
                     plt.close()
+        
+        # Add region summary page at the end if spark tracks data is provided
+        if df_tracks is not None:
+            try:
+                create_region_summary_page(df_tracks, pdf)
+                print(f"  → Added region summary page to PDF")
+            except Exception as e:
+                print(f"  ⚠ Warning: Could not add region summary page: {e}")
     
     print(f"✓ Generated PDF: {output_pdf_path}")
 
@@ -3533,9 +3656,10 @@ def main():
             print(f"\nCreating PDF with {len(stored_image_paths)} images and warning log...")
             # Always pass log file path if it exists (we just wrote it)
             log_path_for_pdf = log_file_path if log_file_path.exists() else None
-            # Create PDF with everything included
+            # Create PDF with everything included (including region summary)
             create_pdf_from_images(stored_image_paths, pdf_path, images_per_page=1, 
-                                 summary_data=stored_summary_data, warning_log_path=log_path_for_pdf)
+                                 summary_data=stored_summary_data, warning_log_path=log_path_for_pdf,
+                                 df_tracks=df_tracks)
     else:
         # Create empty log file to indicate no warnings
         with open(log_file_path, 'w') as log_file:

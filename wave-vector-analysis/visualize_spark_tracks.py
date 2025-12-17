@@ -17,6 +17,7 @@ import matplotlib.patches as patches
 from pathlib import Path
 import sys
 import argparse
+import matplotlib
 
 
 def plot_trajectories(df_tracks, output_path=None, max_tracks=100):
@@ -226,12 +227,123 @@ def plot_embryo_comparison(df_tracks, output_path=None):
         plt.show()
 
 
+def plot_region_distribution(df_tracks, output_path=None):
+    """Plot distribution of sparks across anatomical regions."""
+    if 'region' not in df_tracks.columns:
+        print("No region column found. Skipping region distribution plot.")
+        return
+    
+    fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+    
+    # Filter out empty/unknown regions
+    df_with_regions = df_tracks[df_tracks['region'].notna() & (df_tracks['region'] != '') & (df_tracks['region'] != 'unknown')]
+    
+    if len(df_with_regions) == 0:
+        print("No valid region data found. Skipping region plots.")
+        return
+    
+    # Count events per region
+    region_counts = df_with_regions['region'].value_counts()
+    axes[0, 0].barh(range(len(region_counts)), region_counts.values)
+    axes[0, 0].set_yticks(range(len(region_counts)))
+    axes[0, 0].set_yticklabels(region_counts.index)
+    axes[0, 0].set_xlabel('Number of Events')
+    axes[0, 0].set_title('Event Count by Region')
+    axes[0, 0].grid(True, alpha=0.3, axis='x')
+    
+    # Mean speed per region
+    if 'speed' in df_with_regions.columns:
+        speed_per_region = df_with_regions.groupby('region')['speed'].mean().sort_values(ascending=False)
+        axes[0, 1].barh(range(len(speed_per_region)), speed_per_region.values)
+        axes[0, 1].set_yticks(range(len(speed_per_region)))
+        axes[0, 1].set_yticklabels(speed_per_region.index)
+        axes[0, 1].set_xlabel('Mean Speed (pixels/second)')
+        axes[0, 1].set_title('Mean Speed by Region')
+        axes[0, 1].grid(True, alpha=0.3, axis='x')
+    
+    # Activity over time by region (top 5 regions)
+    top_regions = region_counts.head(5).index
+    for region in top_regions:
+        df_region = df_with_regions[df_with_regions['region'] == region]
+        tracks_per_frame = df_region.groupby('time_s')['track_id'].nunique()
+        axes[1, 0].plot(tracks_per_frame.index, tracks_per_frame.values, 
+                       label=region, alpha=0.7)
+    axes[1, 0].axvline(x=0, color='r', linestyle='--', alpha=0.5)
+    axes[1, 0].set_xlabel('Time (seconds)')
+    axes[1, 0].set_ylabel('Active Tracks')
+    axes[1, 0].set_title('Activity Over Time by Region (Top 5)')
+    axes[1, 0].legend()
+    axes[1, 0].grid(True, alpha=0.3)
+    
+    # Region distribution by embryo
+    if 'embryo_id' in df_with_regions.columns:
+        region_embryo = pd.crosstab(df_with_regions['region'], df_with_regions['embryo_id'])
+        region_embryo.plot(kind='bar', ax=axes[1, 1], stacked=False)
+        axes[1, 1].set_xlabel('Region')
+        axes[1, 1].set_ylabel('Number of Events')
+        axes[1, 1].set_title('Region Distribution by Embryo')
+        axes[1, 1].legend(title='Embryo')
+        axes[1, 1].tick_params(axis='x', rotation=45)
+        axes[1, 1].grid(True, alpha=0.3, axis='y')
+    
+    plt.tight_layout()
+    
+    if output_path:
+        plt.savefig(output_path, dpi=150, bbox_inches='tight')
+        print(f"Saved region distribution to {output_path}")
+    else:
+        plt.show()
+
+
+def plot_spatial_regions(df_tracks, output_path=None):
+    """Plot spatial distribution of sparks colored by region."""
+    if 'region' not in df_tracks.columns or 'x' not in df_tracks.columns or 'y' not in df_tracks.columns:
+        print("Missing required columns (region, x, y). Skipping spatial region plot.")
+        return
+    
+    fig, ax = plt.subplots(figsize=(12, 10))
+    
+    # Filter out empty/unknown regions
+    df_with_regions = df_tracks[df_tracks['region'].notna() & (df_tracks['region'] != '') & (df_tracks['region'] != 'unknown')]
+    
+    if len(df_with_regions) == 0:
+        print("No valid region data found. Skipping spatial region plot.")
+        return
+    
+    # Get unique regions and assign colors
+    unique_regions = df_with_regions['region'].unique()
+    colors = plt.cm.tab20(np.linspace(0, 1, len(unique_regions)))
+    region_colors = dict(zip(unique_regions, colors))
+    
+    # Plot points colored by region
+    for region in unique_regions:
+        df_region = df_with_regions[df_with_regions['region'] == region]
+        ax.scatter(df_region['x'], df_region['y'], 
+                  c=[region_colors[region]], label=region, 
+                  alpha=0.3, s=10)
+    
+    ax.set_xlabel('X (pixels)')
+    ax.set_ylabel('Y (pixels)')
+    ax.set_title('Spatial Distribution of Sparks by Region')
+    ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left', fontsize=8)
+    ax.set_aspect('equal')
+    ax.grid(True, alpha=0.3)
+    
+    plt.tight_layout()
+    
+    if output_path:
+        plt.savefig(output_path, dpi=150, bbox_inches='tight')
+        print(f"Saved spatial regions plot to {output_path}")
+    else:
+        plt.show()
+
+
 def main():
     parser = argparse.ArgumentParser(description='Visualize spark track data')
     parser.add_argument('tracks_csv', help='Path to spark_tracks.csv')
     parser.add_argument('--clusters-csv', help='Path to vector_clusters.csv (optional)')
     parser.add_argument('--output-dir', help='Directory to save plots (default: show plots)')
-    parser.add_argument('--plot', choices=['all', 'trajectories', 'speed', 'time', 'heatmap', 'embryo'],
+    parser.add_argument('--plot', choices=['all', 'trajectories', 'speed', 'time', 'heatmap', 'embryo', 'regions', 'spatial_regions'],
                        default='all', help='Which plot to generate')
     
     args = parser.parse_args()
@@ -270,6 +382,14 @@ def main():
         'embryo': lambda: plot_embryo_comparison(
             df_tracks,
             output_path=output_dir / 'embryo_comparison.png' if output_dir else None
+        ),
+        'regions': lambda: plot_region_distribution(
+            df_tracks,
+            output_path=output_dir / 'region_distribution.png' if output_dir else None
+        ),
+        'spatial_regions': lambda: plot_spatial_regions(
+            df_tracks,
+            output_path=output_dir / 'spatial_regions.png' if output_dir else None
         ),
     }
     

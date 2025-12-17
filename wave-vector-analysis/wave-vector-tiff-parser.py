@@ -5,6 +5,11 @@ import csv
 import os
 import re
 import tifffile as tiff
+from embryo_region_map import (
+    load_region_map,
+    create_embryo_transform,
+    get_region_for_point,
+)
 
 
 def natural_key(s):
@@ -77,6 +82,8 @@ class SparkTracker:
         self.poke_xy = None            # (x,y) of poke location if known/detected
         self.poke_detection_frame = None  # frame index where poke was detected (if different from specified)
         self.files_with_embryos = 0    # Count of files that had embryos detected
+        self.region_map = None         # List of region definitions
+        self.embryo_transforms = {}    # Dict mapping embryo_id -> transform dict
 
     # ---------- TIFF reading helper ----------
     
@@ -407,6 +414,9 @@ class SparkTracker:
         embryo_masks = []
 
         labels = ["A", "B"]
+        # Store temporary data for both embryos before finalizing
+        embryo_data = []
+        
         for idx, contour in enumerate(emb_contours[:2]):
             label = labels[idx] if idx < len(labels) else f"E{idx}"
             mask = np.zeros((h, w), dtype=np.uint8)
@@ -461,29 +471,26 @@ class SparkTracker:
                 if width_diff_ratio > 0.1:  # At least 10% difference
                     if avg_width1 > avg_width2:
                         head = end1
-                        tail = end2
+                        initial_tail = end2
                     else:
                         head = end2
-                        tail = end1
+                        initial_tail = end1
                 else:
                     # Widths too similar, use area near endpoint as fallback
-                    # Calculate area in region around each endpoint
-                    head_candidate1 = end1
-                    head_candidate2 = end2
                     # Can't determine from width, keep as-is but warn
                     head = end1  # Default assignment
-                    tail = end2
+                    initial_tail = end2
                     print(f"  ⚠ Warning: Cannot determine head/tail from morphology for embryo {label}. "
                           f"Using default assignment. Consider manual specification.")
             else:
                 # Not enough points in regions, use default
                 head = end1
-                tail = end2
+                initial_tail = end2
                 print(f"  ⚠ Warning: Cannot determine head/tail from morphology for embryo {label}. "
                       f"Insufficient points. Using default assignment.")
 
-            # Validate that head and tail are different points
-            head_tail_dist = np.linalg.norm(head - tail)
+            # Validate that head and initial tail are different points
+            head_tail_dist = np.linalg.norm(head - initial_tail)
             if head_tail_dist < 5.0:  # Minimum reasonable distance between head and tail (5 pixels)
                 print(f"  ⚠ Warning: Embryo {label} has head and tail too close ({head_tail_dist:.2f} px). "
                       f"This may cause numerical issues. Consider manual specification.")
@@ -492,18 +499,69 @@ class SparkTracker:
                     # Head and tail are essentially the same point - use centroid as reference
                     dir_vec = np.array([1.0, 0.0])  # Default direction
                     head = centroid_pt - 50 * dir_vec
-                    tail = centroid_pt + 50 * dir_vec
+                    initial_tail = centroid_pt + 50 * dir_vec
                     print(f"    → Adjusted to use centroid-based axis")
+                    head_tail_dist = np.linalg.norm(head - initial_tail)
+
+            # Store temporary data for later processing
+            embryo_data.append({
+                "label": label,
+                "mask": (mask == 255),
+                "head": head.copy(),
+                "initial_tail": initial_tail.copy(),
+                "centroid": (float(cx), float(cy)),
+                "axis_direction": v_norm.copy(),  # PCA axis direction
+                "head_tail_dist": head_tail_dist,
+            })
+
+        # Step 2: Calculate consistent head-tail distance
+        # Find both heads first, then use consistent distance for tails
+        if len(embryo_data) >= 2:
+            # Calculate standard head-tail length from both embryos
+            head_tail_distances = [emb["head_tail_dist"] for emb in embryo_data]
+            standard_head_tail_length = np.mean(head_tail_distances)
+            print(f"\n  → Standard head-tail length: {standard_head_tail_length:.1f}px "
+                  f"(from {len(head_tail_distances)} embryo(s))")
+        elif len(embryo_data) == 1:
+            # Only one embryo, use its distance as standard
+            standard_head_tail_length = embryo_data[0]["head_tail_dist"]
+            print(f"\n  → Using single embryo head-tail length: {standard_head_tail_length:.1f}px")
+        else:
+            standard_head_tail_length = None
+
+        # Step 3: Recalculate tails using consistent distance
+        for emb_data in embryo_data:
+            label = emb_data["label"]
+            head = emb_data["head"]
+            axis_direction = emb_data["axis_direction"]
+            
+            # Calculate tail using standard distance along PCA axis
+            if standard_head_tail_length is not None and standard_head_tail_length > 1e-3:
+                # Direction from head to initial tail (to determine orientation)
+                initial_tail = emb_data["initial_tail"]
+                initial_axis = initial_tail - head
+                initial_axis_norm = initial_axis / (np.linalg.norm(initial_axis) + 1e-9)
+                
+                # Use PCA axis direction, but ensure it points in same direction as initial tail
+                if np.dot(axis_direction, initial_axis_norm) < 0:
+                    axis_direction = -axis_direction
+                
+                # Calculate new tail position
+                tail = head + axis_direction * standard_head_tail_length
+            else:
+                # Fallback to initial tail if standard length is invalid
+                tail = emb_data["initial_tail"]
+                print(f"  ⚠ Warning: Using initial tail for embryo {label} (standard length invalid)")
 
             self.embryos[label] = {
                 "id": label,
-                "mask": (mask == 255),
+                "mask": emb_data["mask"],
                 "head": (float(head[0]), float(head[1])),
                 "tail": (float(tail[0]), float(tail[1])),
-                "centroid": (float(cx), float(cy)),
+                "centroid": emb_data["centroid"],
             }
             self.embryo_labels.append(label)
-            embryo_masks.append(mask == 255)
+            embryo_masks.append(emb_data["mask"])
 
         # Precompute label / AP / DV maps
         self.embryo_label_map = np.full((h, w), -1, dtype=np.int8)
@@ -559,6 +617,33 @@ class SparkTracker:
             
             self.ap_norm_map[ys, xs] = ap
             self.dv_map[ys, xs] = dv
+
+        # Initialize region map and create transforms for each embryo
+        self.region_map = load_region_map()  # Load default region map
+        self.embryo_transforms = {}
+        
+        for label in self.embryo_labels:
+            emb = self.embryos[label]
+            head = emb['head']
+            tail = emb['tail']
+            # Create transform for this embryo (map coordinates default to left-to-right)
+            # For embryo A (left side), head should map to left side of map
+            # For embryo B (right side), head should map to right side of map
+            if label == 'A':
+                # A is on left, so head maps to left (tail region), tail maps to right
+                map_head = (0.1, 0.5)  # Left side, middle (Tail region)
+                map_tail = (0.95, 0.1)  # Right side, top (Brain region)
+            else:
+                # B is on right, so head maps to right (brain region), tail maps to left
+                map_head = (0.95, 0.1)  # Right side, top (Brain region)
+                map_tail = (0.1, 0.5)   # Left side, middle (Tail region)
+            
+            transform = create_embryo_transform(
+                head, tail,
+                map_head=map_head,
+                map_tail=map_tail
+            )
+            self.embryo_transforms[label] = transform
 
         # Print embryo geometry summary
         if self.embryo_labels:
@@ -715,7 +800,7 @@ class SparkTracker:
 
     def _annotate_state(self, state):
         """
-        Attach embryo_id, ap_norm, dv_px, and dist_from_poke_px to a track state.
+        Attach embryo_id, ap_norm, dv_px, dist_from_poke_px, and region to a track state.
         """
         x = state["x"]
         y = state["y"]
@@ -723,6 +808,7 @@ class SparkTracker:
         embryo_id = ""
         ap_norm = ""
         dv_px = ""
+        region = ""
 
         if (self.embryo_label_map is not None and
                 self.ap_norm_map is not None and
@@ -740,10 +826,18 @@ class SparkTracker:
                     dv_val = float(self.dv_map[iy, ix])
                     ap_norm = ap_norm_val
                     dv_px = dv_val
+                    
+                    # Add region mapping if transform is available
+                    if (self.embryo_transforms is not None and 
+                        embryo_id in self.embryo_transforms and
+                        self.region_map is not None):
+                        transform = self.embryo_transforms[embryo_id]
+                        region = get_region_for_point(x, y, transform, self.region_map)
 
         state["embryo_id"] = embryo_id
         state["ap_norm"] = ap_norm if ap_norm != "" else ""
         state["dv_px"] = dv_px if dv_px != "" else ""
+        state["region"] = region if region != "" else ""
 
         if self.poke_xy is not None:
             px, py = self.poke_xy
@@ -1299,6 +1393,7 @@ class SparkTracker:
                 "ap_norm",
                 "dv_px",
                 "dist_from_poke_px",
+                "region",
                 "filename",
             ],
         )
