@@ -3038,6 +3038,7 @@ def create_summary_table_page(summary_data, output_pdf_path):
 def create_region_summary_page(df_tracks, pdf):
     """
     Create a summary page showing spark counts by region and add it to the PDF.
+    Uses pixel-based counting (each spark = 1 pixel).
     
     Args:
         df_tracks: DataFrame with spark track data (must have 'region' column)
@@ -3057,19 +3058,20 @@ def create_region_summary_page(df_tracks, pdf):
         return  # No valid region data
     
     fig, axes = plt.subplots(2, 2, figsize=(11, 8.5))
-    fig.suptitle('Sparks Summary by Anatomical Region', fontsize=16, fontweight='bold', y=0.98)
+    fig.suptitle('Sparks Summary by Anatomical Region (Pixel-Based)', fontsize=16, fontweight='bold', y=0.98)
     
-    # 1. Event count by region (bar chart)
-    region_counts = df_with_regions['region'].value_counts().sort_values(ascending=True)
-    axes[0, 0].barh(range(len(region_counts)), region_counts.values, color='steelblue')
-    axes[0, 0].set_yticks(range(len(region_counts)))
-    axes[0, 0].set_yticklabels(region_counts.index)
-    axes[0, 0].set_xlabel('Number of Events', fontsize=10)
-    axes[0, 0].set_title('Total Events by Region', fontsize=12, fontweight='bold')
+    # 1. Pixel count by region (bar chart) - each spark = 1 pixel
+    # Count unique track_ids per region (each track_id = 1 activated pixel)
+    region_pixel_counts = df_with_regions.groupby('region')['track_id'].nunique().sort_values(ascending=True)
+    axes[0, 0].barh(range(len(region_pixel_counts)), region_pixel_counts.values, color='steelblue')
+    axes[0, 0].set_yticks(range(len(region_pixel_counts)))
+    axes[0, 0].set_yticklabels(region_pixel_counts.index)
+    axes[0, 0].set_xlabel('Number of Activated Pixels', fontsize=10)
+    axes[0, 0].set_title('Total Activated Pixels by Region\n(Each spark = 1 pixel)', fontsize=12, fontweight='bold')
     axes[0, 0].grid(True, alpha=0.3, axis='x')
     
     # Add value labels on bars
-    for i, v in enumerate(region_counts.values):
+    for i, v in enumerate(region_pixel_counts.values):
         axes[0, 0].text(v, i, f' {v:,}', va='center', fontsize=9)
     
     # 2. Mean speed by region
@@ -3090,45 +3092,47 @@ def create_region_summary_page(df_tracks, pdf):
                         ha='center', va='center', transform=axes[0, 1].transAxes)
         axes[0, 1].set_title('Mean Speed by Region', fontsize=12, fontweight='bold')
     
-    # 3. Region distribution by embryo
+    # 3. Region distribution by embryo (pixel counts)
     if 'embryo_id' in df_with_regions.columns:
-        region_embryo = pd.crosstab(df_with_regions['region'], df_with_regions['embryo_id'])
-        region_embryo.plot(kind='barh', ax=axes[1, 0], color=['#4CAF50', '#FF9800'], width=0.8)
-        axes[1, 0].set_xlabel('Number of Events', fontsize=10)
+        # Count unique pixels (track_ids) per region and embryo
+        region_embryo_pixels = df_with_regions.groupby(['region', 'embryo_id'])['track_id'].nunique().unstack(fill_value=0)
+        region_embryo_pixels.plot(kind='barh', ax=axes[1, 0], color=['#4CAF50', '#FF9800'], width=0.8)
+        axes[1, 0].set_xlabel('Number of Activated Pixels', fontsize=10)
         axes[1, 0].set_ylabel('Region', fontsize=10)
-        axes[1, 0].set_title('Events by Region and Embryo', fontsize=12, fontweight='bold')
+        axes[1, 0].set_title('Activated Pixels by Region and Embryo\n(Each spark = 1 pixel)', fontsize=12, fontweight='bold')
         axes[1, 0].legend(title='Embryo', fontsize=9)
         axes[1, 0].grid(True, alpha=0.3, axis='x')
     else:
         axes[1, 0].text(0.5, 0.5, 'Embryo ID data not available', 
                         ha='center', va='center', transform=axes[1, 0].transAxes)
-        axes[1, 0].set_title('Events by Region and Embryo', fontsize=12, fontweight='bold')
+        axes[1, 0].set_title('Activated Pixels by Region and Embryo', fontsize=12, fontweight='bold')
     
     # 4. Summary statistics table
     axes[1, 1].axis('off')
     
-    # Calculate statistics
-    total_events = len(df_with_regions)
+    # Calculate statistics using pixel counts
+    total_pixels = df_tracks['track_id'].nunique()  # Total unique pixels across all data
+    pixels_with_region = df_with_regions['track_id'].nunique()  # Pixels with region annotation
     unique_regions = df_with_regions['region'].nunique()
-    events_with_region = len(df_with_regions)
-    events_total = len(df_tracks)
-    region_coverage = (events_with_region / events_total * 100) if events_total > 0 else 0
+    events_total = len(df_tracks)  # Total detection events (for reference)
+    region_coverage = (pixels_with_region / total_pixels * 100) if total_pixels > 0 else 0
     
     # Create summary text
     summary_text = f"""
-SUMMARY STATISTICS
+SUMMARY STATISTICS (Pixel-Based)
 
-Total Events: {events_total:,}
-Events with Region: {events_with_region:,} ({region_coverage:.1f}%)
+Total Activated Pixels: {total_pixels:,}
+Pixels with Region: {pixels_with_region:,} ({region_coverage:.1f}%)
+Total Detection Events: {events_total:,}
 Unique Regions: {unique_regions}
 
-TOP 5 REGIONS BY EVENT COUNT:
+TOP 5 REGIONS BY PIXEL COUNT:
 """
     
-    top_regions = region_counts.tail(5)
-    for i, (region, count) in enumerate(top_regions.items(), 1):
-        pct = (count / events_with_region * 100) if events_with_region > 0 else 0
-        summary_text += f"{i}. {region}: {count:,} ({pct:.1f}%)\n"
+    top_regions = region_pixel_counts.tail(5)
+    for i, (region, pixel_count) in enumerate(top_regions.items(), 1):
+        pct = (pixel_count / pixels_with_region * 100) if pixels_with_region > 0 else 0
+        summary_text += f"{i}. {region}: {pixel_count:,} pixels ({pct:.1f}%)\n"
     
     if 'speed' in df_with_regions.columns:
         summary_text += f"\n\nSPEED STATISTICS:\n"

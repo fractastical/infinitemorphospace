@@ -281,28 +281,31 @@ def compare_conditions(tracks_df1, tracks_df2, label1="Condition 1", label2="Con
 def plot_activity_comparison(tracks_df, output_path=None):
     """
     Plot activity comparison between embryos and pre/post poke.
+    Uses pixel-based counting (each spark = 1 pixel).
     Tests: Hypothesis 1 (Presence of calcium activity)
     """
     fig, axes = plt.subplots(2, 1, figsize=(12, 8))
     
-    # Activity over time per embryo
+    # Activity over time per embryo (pixel counts)
     if 'embryo_id' in tracks_df.columns:
         for embryo_id in tracks_df['embryo_id'].dropna().unique():
             df_emb = tracks_df[tracks_df['embryo_id'] == embryo_id]
-            activity = df_emb.groupby('time_s')['area'].sum()
+            # Count unique pixels (track_ids) per time point
+            activity = df_emb.groupby('time_s')['track_id'].nunique()
             axes[0].plot(activity.index, activity.values, label=f'Embryo {embryo_id}', alpha=0.7, linewidth=2)
     else:
-        activity = tracks_df.groupby('time_s')['area'].sum()
+        # Count unique pixels per time point
+        activity = tracks_df.groupby('time_s')['track_id'].nunique()
         axes[0].plot(activity.index, activity.values, label='All embryos', alpha=0.7, linewidth=2)
     
     axes[0].axvline(x=0, color='r', linestyle='--', alpha=0.5, linewidth=2, label='Poke time')
     axes[0].set_xlabel('Time (seconds, relative to poke)', fontsize=11)
-    axes[0].set_ylabel('Total Activity (pixels²)', fontsize=11)
-    axes[0].set_title('Calcium Activity Over Time: Pre-poke vs Post-poke', fontsize=12, fontweight='bold')
+    axes[0].set_ylabel('Activated Pixels', fontsize=11)
+    axes[0].set_title('Calcium Activity Over Time: Pre-poke vs Post-poke\n(Each spark = 1 pixel)', fontsize=12, fontweight='bold')
     axes[0].legend()
     axes[0].grid(True, alpha=0.3)
     
-    # Pre/post comparison
+    # Pre/post comparison (pixel counts)
     pre_poke = tracks_df[tracks_df['time_s'] < 0]
     post_poke = tracks_df[tracks_df['time_s'] > 0]
     
@@ -311,20 +314,21 @@ def plot_activity_comparison(tracks_df, output_path=None):
         x_pos = np.arange(len(embryos))
         width = 0.35
         
-        pre_means = [pre_poke[pre_poke['embryo_id'] == e]['area'].mean() if len(pre_poke[pre_poke['embryo_id'] == e]) > 0 else 0 for e in embryos]
-        post_means = [post_poke[post_poke['embryo_id'] == e]['area'].mean() if len(post_poke[post_poke['embryo_id'] == e]) > 0 else 0 for e in embryos]
+        # Count unique pixels per embryo for pre/post
+        pre_means = [pre_poke[pre_poke['embryo_id'] == e]['track_id'].nunique() if len(pre_poke[pre_poke['embryo_id'] == e]) > 0 else 0 for e in embryos]
+        post_means = [post_poke[post_poke['embryo_id'] == e]['track_id'].nunique() if len(post_poke[post_poke['embryo_id'] == e]) > 0 else 0 for e in embryos]
         
         axes[1].bar(x_pos - width/2, pre_means, width, label='Pre-poke', alpha=0.7, color='blue')
         axes[1].bar(x_pos + width/2, post_means, width, label='Post-poke', alpha=0.7, color='orange')
         axes[1].set_xticks(x_pos)
         axes[1].set_xticklabels(embryos)
     else:
-        pre_mean = pre_poke['area'].mean() if len(pre_poke) > 0 else 0
-        post_mean = post_poke['area'].mean() if len(post_poke) > 0 else 0
+        pre_mean = pre_poke['track_id'].nunique() if len(pre_poke) > 0 else 0
+        post_mean = post_poke['track_id'].nunique() if len(post_poke) > 0 else 0
         axes[1].bar(['Pre-poke', 'Post-poke'], [pre_mean, post_mean], alpha=0.7)
     
-    axes[1].set_ylabel('Mean Activity (pixels²)', fontsize=11)
-    axes[1].set_title('Pre-poke vs Post-poke Activity by Embryo', fontsize=12, fontweight='bold')
+    axes[1].set_ylabel('Activated Pixels', fontsize=11)
+    axes[1].set_title('Pre-poke vs Post-poke Activity by Embryo\n(Each spark = 1 pixel)', fontsize=12, fontweight='bold')
     axes[1].legend()
     axes[1].grid(True, alpha=0.3, axis='y')
     

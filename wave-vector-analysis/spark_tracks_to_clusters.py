@@ -134,10 +134,14 @@ def process_tracks_to_clusters(csv_path, output_path=None):
         mean_angle = circular_mean(angles) if len(angles) > 0 else np.nan
         angle_dispersion = circular_std(angles) if len(angles) > 0 else np.nan
         
-        # Areas
+        # Areas (legacy - kept for compatibility)
         areas = df_track['area'].dropna()
         mean_area = areas.mean() if len(areas) > 0 else np.nan
         total_area_frames = areas.sum() if len(areas) > 0 else np.nan
+        
+        # Pixel counts: each spark detection = 1 pixel
+        n_pixels = len(df_track)  # Each row is one pixel activation
+        n_unique_pixels = df_track['track_id'].nunique()  # Unique sparks = unique pixels
         
         # Distance from poke (if available)
         dist_from_poke_start = np.nan
@@ -182,6 +186,8 @@ def process_tracks_to_clusters(csv_path, output_path=None):
             'angle_dispersion_deg': angle_dispersion,
             'mean_area_px2': mean_area,
             'total_area_px2_frames': total_area_frames,
+            'n_pixels': n_pixels,
+            'n_unique_pixels': n_unique_pixels,
         }
         
         # Add optional poke distance columns if available

@@ -38,47 +38,64 @@ def plot_activity_with_std(tracks_df, output_path=None):
     """
     fig, axes = plt.subplots(3, 1, figsize=(14, 12))
     
-    # 1. Activity over time with error bars (if multiple embryos)
+    # 1. Activity over time (pixel counts)
     if 'embryo_id' in tracks_df.columns:
         for embryo_id in tracks_df['embryo_id'].dropna().unique():
             df_emb = tracks_df[tracks_df['embryo_id'] == embryo_id]
-            activity_per_time = df_emb.groupby('time_s')['area'].sum()
+            # Count unique pixels per time point
+            activity_per_time = df_emb.groupby('time_s')['track_id'].nunique()
             axes[0].plot(activity_per_time.index, activity_per_time.values, 
                         label=f'Embryo {embryo_id}', linewidth=2, alpha=0.8)
     else:
-        activity_per_time = tracks_df.groupby('time_s')['area'].sum()
+        # Count unique pixels per time point
+        activity_per_time = tracks_df.groupby('time_s')['track_id'].nunique()
         axes[0].plot(activity_per_time.index, activity_per_time.values, 
                     label='All embryos', linewidth=2, alpha=0.8)
     
     axes[0].axvline(x=0, color='r', linestyle='--', alpha=0.7, linewidth=2, label='Poke time')
     axes[0].set_xlabel('Time (seconds, relative to poke)', fontsize=12)
-    axes[0].set_ylabel('Total Activity (pixels²)', fontsize=12)
-    axes[0].set_title('Calcium Activity Over Time\n(ΔF/F₀ proxy: Total Area)', 
+    axes[0].set_ylabel('Activated Pixels', fontsize=12)
+    axes[0].set_title('Calcium Activity Over Time\n(Each spark = 1 pixel)', 
                      fontweight='bold', fontsize=13)
     axes[0].legend()
     axes[0].grid(True, alpha=0.3)
     
-    # 2. Standard deviation of activity over time
+    # 2. Standard deviation of pixel counts over time
     if 'embryo_id' in tracks_df.columns:
         for embryo_id in tracks_df['embryo_id'].dropna().unique():
             df_emb = tracks_df[tracks_df['embryo_id'] == embryo_id]
-            std_per_time = df_emb.groupby('time_s')['area'].std()
-            axes[1].plot(std_per_time.index, std_per_time.values, 
-                        label=f'Embryo {embryo_id}', linewidth=2, alpha=0.8)
+            # Count pixels per time, then calculate std
+            pixels_per_time = df_emb.groupby('time_s')['track_id'].nunique()
+            # For std, we need multiple time points - use rolling window or just show count variability
+            # Since we're counting unique pixels, std doesn't apply directly - show coefficient of variation instead
+            if len(pixels_per_time) > 1:
+                mean_pixels = pixels_per_time.mean()
+                std_pixels = pixels_per_time.std()
+                cv_per_time = std_pixels / mean_pixels if mean_pixels > 0 else 0
+                # Plot a constant line showing overall variability
+                axes[1].axhline(y=cv_per_time * pixels_per_time.mean(), 
+                              label=f'Embryo {embryo_id} (CV: {cv_per_time:.2f})', 
+                              linewidth=2, alpha=0.8)
+        # Alternative: show pixel count range over time
+        for embryo_id in tracks_df['embryo_id'].dropna().unique():
+            df_emb = tracks_df[tracks_df['embryo_id'] == embryo_id]
+            pixels_per_time = df_emb.groupby('time_s')['track_id'].nunique()
+            axes[1].plot(pixels_per_time.index, pixels_per_time.values, 
+                        label=f'Embryo {embryo_id}', linewidth=2, alpha=0.8, linestyle='--')
     else:
-        std_per_time = tracks_df.groupby('time_s')['area'].std()
-        axes[1].plot(std_per_time.index, std_per_time.values, 
-                    label='All embryos', linewidth=2, alpha=0.8)
+        pixels_per_time = tracks_df.groupby('time_s')['track_id'].nunique()
+        axes[1].plot(pixels_per_time.index, pixels_per_time.values, 
+                    label='All embryos', linewidth=2, alpha=0.8, linestyle='--')
     
     axes[1].axvline(x=0, color='r', linestyle='--', alpha=0.7, linewidth=2, label='Poke time')
     axes[1].set_xlabel('Time (seconds, relative to poke)', fontsize=12)
-    axes[1].set_ylabel('Standard Deviation (pixels²)', fontsize=12)
-    axes[1].set_title('Variability in Calcium Activity Over Time\n(Standard Deviation)', 
+    axes[1].set_ylabel('Activated Pixels', fontsize=12)
+    axes[1].set_title('Pixel Count Over Time\n(Alternative view)', 
                      fontweight='bold', fontsize=13)
     axes[1].legend()
     axes[1].grid(True, alpha=0.3)
     
-    # 3. Activity ratio (post/pre) by embryo
+    # 3. Activity ratio (post/pre) by embryo (pixel counts)
     pre_poke = tracks_df[tracks_df['time_s'] < 0]
     post_poke = tracks_df[tracks_df['time_s'] > 0]
     
@@ -87,8 +104,8 @@ def plot_activity_with_std(tracks_df, output_path=None):
         ratios = []
         labels = []
         for eid in embryos:
-            pre_total = pre_poke[pre_poke['embryo_id'] == eid]['area'].sum()
-            post_total = post_poke[post_poke['embryo_id'] == eid]['area'].sum()
+            pre_total = pre_poke[pre_poke['embryo_id'] == eid]['track_id'].nunique()
+            post_total = post_poke[post_poke['embryo_id'] == eid]['track_id'].nunique()
             if pre_total > 0:
                 ratio = post_total / pre_total
                 ratios.append(ratio)
@@ -97,7 +114,7 @@ def plot_activity_with_std(tracks_df, output_path=None):
         if ratios:
             bars = axes[2].bar(labels, ratios, alpha=0.7, color=['steelblue', 'coral'][:len(ratios)])
             axes[2].set_ylabel('Activity Ratio (Post / Pre)', fontsize=12)
-            axes[2].set_title('Activity Increase Ratio by Embryo\n(Hypothesis 1: Presence of Activity)', 
+            axes[2].set_title('Activity Increase Ratio by Embryo\n(Hypothesis 1: Presence of Activity)\n(Each spark = 1 pixel)', 
                             fontweight='bold', fontsize=13)
             axes[2].grid(True, alpha=0.3, axis='y')
             
@@ -141,9 +158,10 @@ def plot_inter_embryo_comparison(tracks_df, clusters_df, output_path=None):
         clusters_A = None
         clusters_B = None
     
-    # 1. Activity over time comparison
-    activity_A = df_A.groupby('time_s')['area'].sum()
-    activity_B = df_B.groupby('time_s')['area'].sum()
+    # 1. Activity over time comparison (pixel counts)
+    # Count unique pixels per time point
+    activity_A = df_A.groupby('time_s')['track_id'].nunique()
+    activity_B = df_B.groupby('time_s')['track_id'].nunique()
     
     axes[0, 0].plot(activity_A.index, activity_A.values, label='Embryo A', 
                    linewidth=2, alpha=0.8, color='blue')
@@ -151,12 +169,12 @@ def plot_inter_embryo_comparison(tracks_df, clusters_df, output_path=None):
                    linewidth=2, alpha=0.8, color='orange')
     axes[0, 0].axvline(x=0, color='r', linestyle='--', alpha=0.7, label='Poke time')
     axes[0, 0].set_xlabel('Time (seconds)', fontsize=11)
-    axes[0, 0].set_ylabel('Total Activity (pixels²)', fontsize=11)
-    axes[0, 0].set_title('Activity Over Time: Embryo A vs B', fontweight='bold', fontsize=12)
+    axes[0, 0].set_ylabel('Activated Pixels', fontsize=11)
+    axes[0, 0].set_title('Activity Over Time: Embryo A vs B\n(Each spark = 1 pixel)', fontweight='bold', fontsize=12)
     axes[0, 0].legend()
     axes[0, 0].grid(True, alpha=0.3)
     
-    # 2. Number of active tracks over time
+    # 2. Number of active tracks over time (same as above, but keep for consistency)
     tracks_A = df_A.groupby('time_s')['track_id'].nunique()
     tracks_B = df_B.groupby('time_s')['track_id'].nunique()
     
@@ -166,8 +184,8 @@ def plot_inter_embryo_comparison(tracks_df, clusters_df, output_path=None):
                    linewidth=2, alpha=0.8, color='orange')
     axes[0, 1].axvline(x=0, color='r', linestyle='--', alpha=0.7, label='Poke time')
     axes[0, 1].set_xlabel('Time (seconds)', fontsize=11)
-    axes[0, 1].set_ylabel('Number of Active Tracks', fontsize=11)
-    axes[0, 1].set_title('Number of Active Tracks Over Time', fontweight='bold', fontsize=12)
+    axes[0, 1].set_ylabel('Activated Pixels', fontsize=11)
+    axes[0, 1].set_title('Activated Pixels Over Time\n(Each spark = 1 pixel)', fontweight='bold', fontsize=12)
     axes[0, 1].legend()
     axes[0, 1].grid(True, alpha=0.3)
     
@@ -204,7 +222,7 @@ def plot_inter_embryo_comparison(tracks_df, clusters_df, output_path=None):
             axes[1, 0].grid(True, alpha=0.3)
             axes[1, 0].axvline(0.7, color='r', linestyle='--', alpha=0.5, label='Tail threshold')
     
-    # 5. Cumulative activity by embryo
+    # 5. Cumulative activity by embryo (cumulative pixel counts)
     cumulative_A = activity_A.cumsum()
     cumulative_B = activity_B.cumsum()
     
@@ -214,28 +232,28 @@ def plot_inter_embryo_comparison(tracks_df, clusters_df, output_path=None):
                    linewidth=2, alpha=0.8, color='orange')
     axes[1, 1].axvline(x=0, color='r', linestyle='--', alpha=0.7, label='Poke time')
     axes[1, 1].set_xlabel('Time (seconds)', fontsize=11)
-    axes[1, 1].set_ylabel('Cumulative Activity (pixels²)', fontsize=11)
-    axes[1, 1].set_title('Cumulative Activity Over Time', fontweight='bold', fontsize=12)
+    axes[1, 1].set_ylabel('Cumulative Activated Pixels', fontsize=11)
+    axes[1, 1].set_title('Cumulative Activated Pixels Over Time\n(Each spark = 1 pixel)', fontweight='bold', fontsize=12)
     axes[1, 1].legend()
     axes[1, 1].grid(True, alpha=0.3)
     
-    # 6. Summary statistics
+    # 6. Summary statistics (pixel-based)
     axes[1, 2].axis('off')
     
-    stats_text = "Summary Statistics:\n\n"
+    stats_text = "Summary Statistics (Pixel-Based):\n\n"
     stats_text += f"Embryo A:\n"
-    stats_text += f"  Total events: {len(df_A):,}\n"
-    stats_text += f"  Total clusters: {df_A['track_id'].nunique():,}\n"
+    stats_text += f"  Total detection events: {len(df_A):,}\n"
+    stats_text += f"  Total activated pixels: {df_A['track_id'].nunique():,}\n"
     if clusters_A is not None:
         stats_text += f"  Mean speed: {clusters_A['mean_speed_px_per_s'].mean():.2f} px/s\n"
-    stats_text += f"  Total activity: {df_A['area'].sum():,} px²\n\n"
+    stats_text += f"  Peak pixels per time: {activity_A.max():,}\n\n"
     
     stats_text += f"Embryo B:\n"
-    stats_text += f"  Total events: {len(df_B):,}\n"
-    stats_text += f"  Total clusters: {df_B['track_id'].nunique():,}\n"
+    stats_text += f"  Total detection events: {len(df_B):,}\n"
+    stats_text += f"  Total activated pixels: {df_B['track_id'].nunique():,}\n"
     if clusters_B is not None:
         stats_text += f"  Mean speed: {clusters_B['mean_speed_px_per_s'].mean():.2f} px/s\n"
-    stats_text += f"  Total activity: {df_B['area'].sum():,} px²\n"
+    stats_text += f"  Peak pixels per time: {activity_B.max():,}\n"
     
     axes[1, 2].text(0.1, 0.5, stats_text, fontsize=11, family='monospace',
                    verticalalignment='center', transform=axes[1, 2].transAxes)
@@ -273,18 +291,19 @@ def plot_ap_position_analysis(tracks_df, output_path=None):
     axes[0, 0].legend()
     axes[0, 0].grid(True, alpha=0.3)
     
-    # 2. Mean activity by AP position bin
+    # 2. Pixel count by AP position bin
     df_with_ap = df_with_ap.copy()
     ap_min, ap_max = df_with_ap['ap_norm'].min(), df_with_ap['ap_norm'].max()
     df_with_ap['ap_bin'] = pd.cut(df_with_ap['ap_norm'], bins=20, labels=False)
-    activity_by_bin = df_with_ap.groupby('ap_bin')['area'].mean()
+    # Count unique pixels per AP bin
+    pixels_by_bin = df_with_ap.groupby('ap_bin')['track_id'].nunique()
     
-    bin_centers = np.linspace(ap_min, ap_max, len(activity_by_bin))
-    axes[0, 1].plot(bin_centers, activity_by_bin.values, marker='o', linewidth=2, markersize=4)
+    bin_centers = np.linspace(ap_min, ap_max, len(pixels_by_bin))
+    axes[0, 1].plot(bin_centers, pixels_by_bin.values, marker='o', linewidth=2, markersize=4)
     axes[0, 1].axvline(0.7, color='r', linestyle='--', alpha=0.5, label='Tail threshold')
     axes[0, 1].set_xlabel('AP Position (0=head, 1=tail)', fontsize=11)
-    axes[0, 1].set_ylabel('Mean Activity (pixels²)', fontsize=11)
-    axes[0, 1].set_title('Mean Activity by AP Position', fontweight='bold', fontsize=12)
+    axes[0, 1].set_ylabel('Activated Pixels', fontsize=11)
+    axes[0, 1].set_title('Activated Pixels by AP Position\n(Each spark = 1 pixel)', fontweight='bold', fontsize=12)
     axes[0, 1].legend()
     axes[0, 1].grid(True, alpha=0.3)
     
@@ -297,13 +316,14 @@ def plot_ap_position_analysis(tracks_df, output_path=None):
                              ('Mid (0.3 ≤ AP < 0.7)', mid_events),
                              ('Tail (AP ≥ 0.7)', tail_events)]:
         if len(df_region) > 0:
-            activity = df_region.groupby('time_s')['area'].sum()
+            # Count pixels per time point for this region
+            activity = df_region.groupby('time_s')['track_id'].nunique()
             axes[1, 0].plot(activity.index, activity.values, label=label, linewidth=2, alpha=0.8)
     
     axes[1, 0].axvline(x=0, color='r', linestyle='--', alpha=0.7, label='Poke time')
     axes[1, 0].set_xlabel('Time (seconds)', fontsize=11)
-    axes[1, 0].set_ylabel('Total Activity (pixels²)', fontsize=11)
-    axes[1, 0].set_title('Activity Over Time by AP Region', fontweight='bold', fontsize=12)
+    axes[1, 0].set_ylabel('Activated Pixels', fontsize=11)
+    axes[1, 0].set_title('Activity Over Time by AP Region\n(Each spark = 1 pixel)', fontweight='bold', fontsize=12)
     axes[1, 0].legend()
     axes[1, 0].grid(True, alpha=0.3)
     

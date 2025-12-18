@@ -97,28 +97,40 @@ def plot_speed_distribution(df_clusters, output_path=None):
         plt.show()
 
 
-def plot_time_series(df_tracks, output_path=None):
+def plot_time_series(df_tracks, output_path=None, use_pixel_count=True):
     """Plot number of active tracks over time."""
     fig, axes = plt.subplots(2, 1, figsize=(12, 8))
     
-    # Count tracks per frame
+    # Count tracks per frame (each track = 1 activated pixel)
     tracks_per_frame = df_tracks.groupby('time_s')['track_id'].nunique()
     
     axes[0].plot(tracks_per_frame.index, tracks_per_frame.values, linewidth=1.5)
     axes[0].axvline(x=0, color='r', linestyle='--', alpha=0.5, label='Poke time')
     axes[0].set_xlabel('Time (seconds, relative to poke)')
-    axes[0].set_ylabel('Number of Active Tracks')
-    axes[0].set_title('Ca²⁺ Event Activity Over Time')
+    if use_pixel_count:
+        axes[0].set_ylabel('Number of Activated Pixels')
+        axes[0].set_title('Ca²⁺ Activated Pixels Over Time\n(Each spark = 1 pixel)')
+    else:
+        axes[0].set_ylabel('Number of Active Tracks')
+        axes[0].set_title('Ca²⁺ Event Activity Over Time')
     axes[0].grid(True, alpha=0.3)
     axes[0].legend()
     
-    # Total area per frame (proxy for Ca²⁺ signal intensity)
-    area_per_frame = df_tracks.groupby('time_s')['area'].sum()
-    axes[1].plot(area_per_frame.index, area_per_frame.values, linewidth=1.5, color='orange')
+    # Pixel count per frame (default: use pixel counting)
+    if use_pixel_count:
+        # Count unique pixels (tracks) per frame
+        pixels_per_frame = df_tracks.groupby('time_s')['track_id'].nunique()
+        axes[1].plot(pixels_per_frame.index, pixels_per_frame.values, linewidth=1.5, color='orange')
+        axes[1].set_ylabel('Activated Pixels')
+        axes[1].set_title('Activated Pixel Count Over Time\n(Each spark = 1 pixel)')
+    else:
+        # Legacy: total area per frame (deprecated - kept for backward compatibility)
+        area_per_frame = df_tracks.groupby('time_s')['area'].sum()
+        axes[1].plot(area_per_frame.index, area_per_frame.values, linewidth=1.5, color='orange')
+        axes[1].set_ylabel('Total Area (pixels²)')
+        axes[1].set_title('Integrated Ca²⁺ Signal Over Time (Legacy - Area-based)')
     axes[1].axvline(x=0, color='r', linestyle='--', alpha=0.5, label='Poke time')
     axes[1].set_xlabel('Time (seconds, relative to poke)')
-    axes[1].set_ylabel('Total Area (pixels²)')
-    axes[1].set_title('Integrated Ca²⁺ Signal Over Time')
     axes[1].grid(True, alpha=0.3)
     axes[1].legend()
     
