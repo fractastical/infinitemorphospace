@@ -254,6 +254,142 @@ class SparkTracker:
 
     # ---------- embryo geometry & poke detection ----------
 
+    def _detect_cement_gland(self, end1, end2, axis_direction, mask, raw_16bit=None, frame_bgr=None):
+        """
+        Detect cement gland (dark spot on ventral anterior/chin region) to help identify head.
+        
+        The cement gland is a dark spot located on the ventral (bottom) side of the head.
+        It should be visible even in dim images if brightness is increased.
+        
+        Args:
+            end1: First endpoint (numpy array [x, y])
+            end2: Second endpoint (numpy array [x, y])
+            axis_direction: Normalized PCA axis direction vector (numpy array [dx, dy])
+            mask: Binary mask of embryo (boolean array)
+            raw_16bit: Optional raw 16-bit grayscale image for better detection
+            frame_bgr: Optional BGR frame (fallback if raw_16bit not available)
+        
+        Returns:
+            Tuple of (end_name, location) where:
+            - end_name: 'end1' if cement gland found near end1, 'end2' if near end2, None if not found
+            - location: (x, y) coordinates of cement gland, or None if not found
+        """
+        h, w = mask.shape
+        
+        # Get grayscale image with enhanced contrast
+        if raw_16bit is not None and raw_16bit.ndim == 2:
+            # Use raw 16-bit data, enhance contrast
+            gray = raw_16bit.astype(np.float32)
+            # Apply contrast enhancement: stretch to full range
+            gray_min = gray[mask].min() if mask.sum() > 0 else gray.min()
+            gray_max = gray[mask].max() if mask.sum() > 0 else gray.max()
+            if gray_max > gray_min:
+                gray_enhanced = ((gray - gray_min) / (gray_max - gray_min) * 255).astype(np.uint8)
+            else:
+                gray_enhanced = gray.astype(np.uint8)
+        elif frame_bgr is not None:
+            gray = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2GRAY)
+            # Enhance contrast within embryo region
+            gray_float = gray.astype(np.float32)
+            gray_min = gray_float[mask].min() if mask.sum() > 0 else gray_float.min()
+            gray_max = gray_float[mask].max() if mask.sum() > 0 else gray_float.max()
+            if gray_max > gray_min:
+                gray_enhanced = ((gray_float - gray_min) / (gray_max - gray_min) * 255).astype(np.uint8)
+            else:
+                gray_enhanced = gray
+        else:
+            return None
+        
+        # Perpendicular vector (points to ventral side when rotated appropriately)
+        u_perp = np.array([-axis_direction[1], axis_direction[0]])
+        
+        # Check both ends for dark spots in ventral region
+        search_radius = min(30, np.linalg.norm(end2 - end1) * 0.15)  # 15% of embryo length, max 30px
+        ventral_search_dist = search_radius * 0.5  # Look on ventral side
+        
+        results = {}
+        
+        for end_name, end_pt in [('end1', end1), ('end2', end2)]:
+            # Define search region: ventral side near the endpoint
+            # Ventral is in the direction of u_perp (or -u_perp, we'll check both)
+            center_x, center_y = int(round(end_pt[0])), int(round(end_pt[1]))
+            
+            # Check ventral region (try both directions of perpendicular)
+            best_darkness = None
+            best_location = None
+            
+            for perp_dir in [u_perp, -u_perp]:
+                ventral_center = end_pt + perp_dir * ventral_search_dist
+                vx, vy = int(round(ventral_center[0])), int(round(ventral_center[1]))
+                
+                # Search in a small circular region around ventral center
+                dark_pixels = []
+                for dy in range(-int(search_radius), int(search_radius) + 1):
+                    for dx in range(-int(search_radius), int(search_radius) + 1):
+                        x, y = vx + dx, vy + dy
+                        if 0 <= x < w and 0 <= y < h:
+                            dist = np.hypot(dx, dy)
+                            if dist <= search_radius and mask[y, x]:
+                                # This is an embryo pixel in the search region
+                                intensity = gray_enhanced[y, x]
+                                dark_pixels.append((intensity, (x, y)))
+            
+            if dark_pixels:
+                # Find the darkest pixels (cement gland should be darker than surrounding tissue)
+                dark_pixels.sort(key=lambda p: p[0])  # Sort by intensity (darkest first)
+                
+                # Take darkest 10% of pixels in this region
+                num_dark = max(1, len(dark_pixels) // 10)
+                darkest = dark_pixels[:num_dark]
+                avg_dark_intensity = np.mean([p[0] for p in darkest])
+                
+                # Compare to average intensity in the endpoint region
+                endpoint_pixels = []
+                for dy in range(-int(search_radius), int(search_radius) + 1):
+                    for dx in range(-int(search_radius), int(search_radius) + 1):
+                        x, y = center_x + dx, center_y + dy
+                        if 0 <= x < w and 0 <= y < h and mask[y, x]:
+                            dist = np.hypot(dx, dy)
+                            if dist <= search_radius:
+                                endpoint_pixels.append(gray_enhanced[y, x])
+                
+                if endpoint_pixels:
+                    avg_endpoint_intensity = np.mean(endpoint_pixels)
+                    # Cement gland should be significantly darker (at least 25% darker)
+                    # This ensures we're detecting a real dark spot, not just noise
+                    darkness_ratio = avg_dark_intensity / (avg_endpoint_intensity + 1e-9)
+                    if darkness_ratio < 0.75:  # Darker than 75% of endpoint average (25% darker)
+                        results[end_name] = {
+                            'found': True,
+                            'darkness_ratio': darkness_ratio,
+                            'avg_dark_intensity': avg_dark_intensity,
+                            'location': darkest[0][1]  # Location of darkest pixel
+                        }
+                        continue
+            
+            results[end_name] = {'found': False}
+        
+        # Determine which end has the cement gland
+        end1_found = results.get('end1', {}).get('found', False)
+        end2_found = results.get('end2', {}).get('found', False)
+        
+        if end1_found and not end2_found:
+            location = results['end1'].get('location')
+            return ('end1', location)
+        elif end2_found and not end1_found:
+            location = results['end2'].get('location')
+            return ('end2', location)
+        elif end1_found and end2_found:
+            # Both found - use the darker one
+            ratio1 = results['end1'].get('darkness_ratio', 1.0)
+            ratio2 = results['end2'].get('darkness_ratio', 1.0)
+            if ratio1 < ratio2:
+                return ('end1', results['end1'].get('location'))
+            else:
+                return ('end2', results['end2'].get('location'))
+        else:
+            return (None, None)
+
     def _detect_embryos_count(self, frame_bgr, raw_16bit=None, verbose=False):
         """
         Quickly detect and count embryos without modifying state.
@@ -442,7 +578,21 @@ class SparkTracker:
                 cy = M["m01"] / M["m00"]
             centroid_pt = np.array([cx, cy])
 
-            # Determine head vs tail using morphological features instead of orientation
+            # Step 1: Check for cement gland (dark spot on ventral anterior/chin) as sanity check
+            # This is the FIRST step in head identification
+            cement_gland_end, cement_gland_location = self._detect_cement_gland(
+                end1, end2, v_norm, mask == 255, 
+                raw_16bit=raw_16bit, frame_bgr=frame_bgr
+            )
+            
+            if cement_gland_end == 'end1':
+                print(f"  [Embryo {label}] ✓ Cement gland detected near end1 (head candidate)")
+            elif cement_gland_end == 'end2':
+                print(f"  [Embryo {label}] ✓ Cement gland detected near end2 (head candidate)")
+            else:
+                print(f"  [Embryo {label}] ⚠ Cement gland not detected (will use width analysis)")
+
+            # Step 2: Determine head vs tail using morphological features
             # Head is typically wider/rounder than tail
             # Calculate width profile along the axis to identify which end is wider
             proj_normalized = (proj - proj.min()) / (proj.max() - proj.min() + 1e-9)
@@ -465,29 +615,53 @@ class SparkTracker:
                 avg_width1 = dist1.mean() if len(dist1) > 0 else 0
                 avg_width2 = dist2.mean() if len(dist2) > 0 else 0
                 
-                # Wider end = head (more bulbous/rounded)
-                # Use a threshold to avoid noise: only flip if difference is significant
-                width_diff_ratio = abs(avg_width1 - avg_width2) / (max(avg_width1, avg_width2) + 1e-9)
-                if width_diff_ratio > 0.1:  # At least 10% difference
-                    if avg_width1 > avg_width2:
-                        head = end1
-                        initial_tail = end2
-                    else:
-                        head = end2
-                        initial_tail = end1
+                # Determine head based on cement gland first, then width analysis
+                if cement_gland_end == 'end1':
+                    # Cement gland found at end1, so end1 is head
+                    head = end1
+                    initial_tail = end2
+                    if avg_width1 < avg_width2:
+                        print(f"    → Note: Width analysis suggests end2 is wider, but cement gland at end1 confirms head")
+                elif cement_gland_end == 'end2':
+                    # Cement gland found at end2, so end2 is head
+                    head = end2
+                    initial_tail = end1
+                    if avg_width2 < avg_width1:
+                        print(f"    → Note: Width analysis suggests end1 is wider, but cement gland at end2 confirms head")
                 else:
-                    # Widths too similar, use area near endpoint as fallback
-                    # Can't determine from width, keep as-is but warn
-                    head = end1  # Default assignment
+                    # No cement gland found, use width analysis
+                    # Wider end = head (more bulbous/rounded)
+                    # Use a threshold to avoid noise: only flip if difference is significant
+                    width_diff_ratio = abs(avg_width1 - avg_width2) / (max(avg_width1, avg_width2) + 1e-9)
+                    if width_diff_ratio > 0.1:  # At least 10% difference
+                        if avg_width1 > avg_width2:
+                            head = end1
+                            initial_tail = end2
+                        else:
+                            head = end2
+                            initial_tail = end1
+                    else:
+                        # Widths too similar, use area near endpoint as fallback
+                        # Can't determine from width, keep as-is but warn
+                        head = end1  # Default assignment
+                        initial_tail = end2
+                        print(f"  ⚠ Warning: Cannot determine head/tail from morphology for embryo {label}. "
+                              f"Using default assignment. Consider manual specification.")
+            else:
+                # Not enough points in regions, use cement gland if available, otherwise default
+                if cement_gland_end == 'end1':
+                    head = end1
+                    initial_tail = end2
+                    print(f"    → Using cement gland detection (insufficient points for width analysis)")
+                elif cement_gland_end == 'end2':
+                    head = end2
+                    initial_tail = end1
+                    print(f"    → Using cement gland detection (insufficient points for width analysis)")
+                else:
+                    head = end1
                     initial_tail = end2
                     print(f"  ⚠ Warning: Cannot determine head/tail from morphology for embryo {label}. "
-                          f"Using default assignment. Consider manual specification.")
-            else:
-                # Not enough points in regions, use default
-                head = end1
-                initial_tail = end2
-                print(f"  ⚠ Warning: Cannot determine head/tail from morphology for embryo {label}. "
-                      f"Insufficient points. Using default assignment.")
+                          f"Insufficient points. Using default assignment.")
 
             # Validate that head and initial tail are different points
             head_tail_dist = np.linalg.norm(head - initial_tail)
@@ -512,6 +686,7 @@ class SparkTracker:
                 "centroid": (float(cx), float(cy)),
                 "axis_direction": v_norm.copy(),  # PCA axis direction
                 "head_tail_dist": head_tail_dist,
+                "cement_gland_location": cement_gland_location,  # Store cement gland location
             })
 
         # Step 2: Calculate consistent head-tail distance
@@ -559,6 +734,7 @@ class SparkTracker:
                 "head": (float(head[0]), float(head[1])),
                 "tail": (float(tail[0]), float(tail[1])),
                 "centroid": emb_data["centroid"],
+                "cement_gland": emb_data.get("cement_gland_location"),  # Store cement gland location
             }
             self.embryo_labels.append(label)
             embryo_masks.append(emb_data["mask"])
@@ -1046,6 +1222,9 @@ class SparkTracker:
         print(f"Processing TIFF sequence from: {folder_path}")
         print(f"{'='*60}\n")
         
+        # Extract folder name for filename prefix
+        folder_name = os.path.basename(os.path.normpath(folder_path))
+        
         # Collect TIFF files recursively from folder and all subfolders
         paths = []
         for root, dirs, files in os.walk(folder_path):
@@ -1411,6 +1590,9 @@ class SparkTracker:
         try:
             for frame_idx, (path, page_idx, use_tifffile) in enumerate(frame_mapping):
                 rel_path = os.path.relpath(path, folder_path)
+                # Prepend folder name to filename for visualization script matching
+                if rel_path and not rel_path.startswith(folder_name):
+                    rel_path = f"{folder_name}/{rel_path}"
                 
                 # Show progress for large files and when processing poke frame
                 if frame_idx % 100 == 0 or frame_idx == total_frames - 1 or frame_idx == poke_frame_idx:
