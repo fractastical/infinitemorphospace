@@ -728,6 +728,106 @@ class SparkTracker:
                 tail = emb_data["initial_tail"]
                 print(f"  ⚠ Warning: Using initial tail for embryo {label} (standard length invalid)")
 
+            # CRITICAL VALIDATION: Enforce spatial constraints
+            # A should NEVER be on the right side, B should NEVER be on the left side
+            image_center_x = w / 2
+            head_x = head[0]
+            tail_x = tail[0]
+            
+            # Get contour points for corrections
+            contour_pts = contour.reshape(-1, 2).astype(np.float32)
+            
+            # Try corrections first, then validate
+            corrections_made = False
+            
+            # Validation rule 1: A head/tail must be on left side (x < center)
+            if label == 'A':
+                if head_x >= image_center_x:
+                    print(f"  ⚠ CRITICAL: Embryo A head at x={head_x:.1f} is on RIGHT side (center={image_center_x:.1f})")
+                    print(f"    → Correcting: using leftmost point of contour as head")
+                    leftmost_idx = np.argmin(contour_pts[:, 0])
+                    head = contour_pts[leftmost_idx].copy()
+                    head_x = head[0]
+                    corrections_made = True
+                
+                if tail_x >= image_center_x:
+                    print(f"  ⚠ CRITICAL: Embryo A tail at x={tail_x:.1f} is on RIGHT side (center={image_center_x:.1f})")
+                    print(f"    → Correcting: using rightmost point on LEFT side as tail")
+                    left_side_pts = contour_pts[contour_pts[:, 0] < image_center_x]
+                    if len(left_side_pts) > 0:
+                        rightmost_left_idx = np.argmax(left_side_pts[:, 0])
+                        tail = left_side_pts[rightmost_left_idx].copy()
+                        tail_x = tail[0]
+                        corrections_made = True
+                    else:
+                        print(f"    → No left-side points found - REJECTING this detection")
+                        continue
+            
+            # Validation rule 2: B head/tail must be on right side (x >= center)
+            elif label == 'B':
+                if head_x < image_center_x:
+                    print(f"  ⚠ CRITICAL: Embryo B head at x={head_x:.1f} is on LEFT side (center={image_center_x:.1f})")
+                    print(f"    → Correcting: using rightmost point of contour as head")
+                    rightmost_idx = np.argmax(contour_pts[:, 0])
+                    head = contour_pts[rightmost_idx].copy()
+                    head_x = head[0]
+                    corrections_made = True
+                    # After correcting head, ensure tail is also on right side
+                    if tail_x < image_center_x:
+                        print(f"    → Tail also needs correction after head fix")
+                        right_side_pts = contour_pts[contour_pts[:, 0] >= image_center_x]
+                        if len(right_side_pts) > 0:
+                            # Use leftmost point on right side as tail (closest to center but still on right)
+                            leftmost_right_idx = np.argmin(right_side_pts[:, 0])
+                            tail = right_side_pts[leftmost_right_idx].copy()
+                            tail_x = tail[0]
+                        else:
+                            print(f"    → No right-side points available - REJECTING this detection")
+                            continue
+                
+                if tail_x < image_center_x:
+                    print(f"  ⚠ CRITICAL: Embryo B tail at x={tail_x:.1f} is on LEFT side (center={image_center_x:.1f})")
+                    print(f"    → Correcting: using leftmost point on RIGHT side as tail")
+                    right_side_pts = contour_pts[contour_pts[:, 0] >= image_center_x]
+                    if len(right_side_pts) > 0:
+                        leftmost_right_idx = np.argmin(right_side_pts[:, 0])
+                        tail = right_side_pts[leftmost_right_idx].copy()
+                        tail_x = tail[0]
+                        corrections_made = True
+                    else:
+                        print(f"    → No right-side points found - REJECTING this detection")
+                        continue
+            
+            # FINAL VALIDATION: After corrections, ensure constraints are still met
+            head_x = head[0]
+            tail_x = tail[0]
+            head_tail_dist = np.linalg.norm(head - tail)
+            min_head_tail_length = max(w * 0.05, 50)  # 5% of image width or 50 pixels, whichever is larger
+            
+            # Check spatial constraints again after corrections
+            if label == 'A':
+                if head_x >= image_center_x or tail_x >= image_center_x:
+                    print(f"  ⚠ CRITICAL: Embryo A still violates spatial constraints after correction")
+                    print(f"    → Head x={head_x:.1f}, Tail x={tail_x:.1f}, Center={image_center_x:.1f}")
+                    print(f"    → REJECTING this detection")
+                    continue
+            elif label == 'B':
+                if head_x < image_center_x or tail_x < image_center_x:
+                    print(f"  ⚠ CRITICAL: Embryo B still violates spatial constraints after correction")
+                    print(f"    → Head x={head_x:.1f}, Tail x={tail_x:.1f}, Center={image_center_x:.1f}")
+                    print(f"    → REJECTING this detection")
+                    continue
+            
+            # Validation rule 3: Head-tail distance must be above minimum threshold
+            if head_tail_dist < min_head_tail_length:
+                print(f"  ⚠ CRITICAL: Embryo {label} head-tail distance too short ({head_tail_dist:.1f}px < {min_head_tail_length:.1f}px)")
+                print(f"    → REJECTING this detection")
+                continue
+            
+            # If corrections were made, warn but accept
+            if corrections_made:
+                print(f"    → Corrections applied - final: head x={head_x:.1f}, tail x={tail_x:.1f}, distance={head_tail_dist:.1f}px")
+            
             self.embryos[label] = {
                 "id": label,
                 "mask": emb_data["mask"],

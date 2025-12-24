@@ -59,10 +59,91 @@ def extract_folder_and_video(filename):
     return folder, video_name
 
 
+def _detect_cement_gland_for_visualization(end1, end2, axis_direction, mask, gray_enhanced):
+    """
+    Detect cement gland location for visualization purposes.
+    Uses same logic as parser's _detect_cement_gland function.
+    
+    Returns: (x, y) location or None if not found
+    """
+    h, w = mask.shape
+    u_perp = np.array([-axis_direction[1], axis_direction[0]])
+    search_radius = min(30, np.linalg.norm(end2 - end1) * 0.15)  # 15% of embryo length, max 30px
+    ventral_search_dist = search_radius * 0.5  # Look on ventral side
+    
+    results = {}
+    
+    for end_name, end_pt in [('end1', end1), ('end2', end2)]:
+        center_x, center_y = int(round(end_pt[0])), int(round(end_pt[1]))
+        
+        # Skip if endpoint is outside image bounds
+        if center_x < 0 or center_x >= w or center_y < 0 or center_y >= h:
+            continue
+        
+        # Check ventral region (try both directions of perpendicular)
+        for perp_dir in [u_perp, -u_perp]:
+            ventral_center = end_pt + perp_dir * ventral_search_dist
+            vx, vy = int(round(ventral_center[0])), int(round(ventral_center[1]))
+            
+            # Skip if ventral center is outside bounds
+            if vx < 0 or vx >= w or vy < 0 or vy >= h:
+                continue
+            
+            # Search in a small circular region around ventral center
+            dark_pixels = []
+            for dy in range(-int(search_radius), int(search_radius) + 1):
+                for dx in range(-int(search_radius), int(search_radius) + 1):
+                    x, y = vx + dx, vy + dy
+                    if 0 <= x < w and 0 <= y < h:
+                        dist = np.hypot(dx, dy)
+                        if dist <= search_radius and mask[y, x]:
+                            # This is an embryo pixel in the search region
+                            intensity = gray_enhanced[y, x]
+                            dark_pixels.append((intensity, (x, y)))
+            
+            if dark_pixels:
+                # Find the darkest pixels (cement gland should be darker than surrounding tissue)
+                dark_pixels.sort(key=lambda p: p[0])  # Sort by intensity (darkest first)
+                
+                # Take darkest 10% of pixels in this region
+                num_dark = max(1, len(dark_pixels) // 10)
+                darkest = dark_pixels[:num_dark]
+                avg_dark_intensity = np.mean([p[0] for p in darkest])
+                
+                # Compare to average intensity in the endpoint region
+                endpoint_pixels = []
+                for dy in range(-int(search_radius), int(search_radius) + 1):
+                    for dx in range(-int(search_radius), int(search_radius) + 1):
+                        x, y = center_x + dx, center_y + dy
+                        if 0 <= x < w and 0 <= y < h and mask[y, x]:
+                            dist = np.hypot(dx, dy)
+                            if dist <= search_radius:
+                                endpoint_pixels.append(gray_enhanced[y, x])
+                
+                if endpoint_pixels:
+                    avg_endpoint_intensity = np.mean(endpoint_pixels)
+                    # Cement gland should be darker than surrounding tissue
+                    # Use more lenient threshold for visualization (0.9 = 10% darker)
+                    # Also accept if darkest pixels are significantly below average
+                    darkness_ratio = avg_dark_intensity / (avg_endpoint_intensity + 1e-9)
+                    intensity_diff = avg_endpoint_intensity - avg_dark_intensity
+                    # Accept if: (1) 10% darker ratio, OR (2) absolute difference > 20 intensity units
+                    if darkness_ratio < 0.9 or intensity_diff > 20:
+                        if end_name not in results or results[end_name][1] > darkness_ratio:
+                            results[end_name] = (darkest[0][1], darkness_ratio)
+    
+    # Determine which end has the cement gland
+    if results:
+        # Return location from the darker detection (most confident)
+        best = min(results.items(), key=lambda x: x[1][1])
+        return best[1][0]  # Return location tuple (x, y)
+    return None
+
+
 def detect_embryo_from_tiff(tiff_path, embryo_id=None, logger=None):
     """
     Detect embryo boundaries directly from TIFF file using the same method as the parser.
-    Returns dict with 'contour', 'mask', 'head', 'tail', 'centroid' for each embryo.
+    Returns dict with 'contour', 'mask', 'head', 'tail', 'centroid', 'cement_gland' for each embryo.
     
     Args:
         tiff_path: Path to TIFF file
@@ -633,6 +714,46 @@ def detect_embryo_from_tiff(tiff_path, embryo_id=None, logger=None):
             head = end1
             tail = end2
         
+        # Detect cement gland location for visualization
+        cement_gland_location = None
+        try:
+            # Create a proper mask from the contour
+            mask_image = np.zeros((h, w), dtype=np.uint8)
+            cv2.drawContours(mask_image, [contour], -1, 255, thickness=-1)
+            mask_bool = mask_image == 255
+            
+            # Create enhanced grayscale for cement gland detection (within embryo region only)
+            if mask_bool.sum() > 0:
+                gray_min = gray[mask_bool].min()
+                gray_max = gray[mask_bool].max()
+                if gray_max > gray_min:
+                    gray_enhanced = ((gray - gray_min) / (gray_max - gray_min) * 255).astype(np.uint8)
+                else:
+                    gray_enhanced = gray.astype(np.uint8)
+            else:
+                # Fallback if mask is empty
+                gray_min = gray.min()
+                gray_max = gray.max()
+                if gray_max > gray_min:
+                    gray_enhanced = ((gray - gray_min) / (gray_max - gray_min) * 255).astype(np.uint8)
+                else:
+                    gray_enhanced = gray.astype(np.uint8)
+            
+            # Detect cement gland near the HEAD position (where it should be)
+            # Use head position instead of both endpoints
+            cement_gland_location = _detect_cement_gland_for_visualization(
+                head, tail, v_norm, mask_bool, gray_enhanced
+            )
+            if cement_gland_location:
+                if logger:
+                    logger(f"    ✓ Cement gland detected at ({cement_gland_location[0]:.1f}, {cement_gland_location[1]:.1f})")
+        except Exception as e:
+            if logger:
+                logger(f"    ⚠ Could not detect cement gland: {e}")
+            import traceback
+            if logger:
+                logger(f"    Traceback: {traceback.format_exc()}")
+        
         # Find matching old and intermediate contours (by centroid proximity)
         old_contour = None
         intermediate_contour = None
@@ -659,6 +780,89 @@ def detect_embryo_from_tiff(tiff_path, embryo_id=None, logger=None):
                 if dist < 100:  # Close enough to be the same embryo
                     intermediate_contour = intermediate_candidate.reshape(-1, 2).astype(np.float32)
         
+        # CRITICAL VALIDATION: Enforce spatial constraints before storing results
+        image_center_x = w / 2
+        head_x = head[0]
+        tail_x = tail[0]
+        head_tail_dist = np.sqrt((head[0] - tail[0])**2 + (head[1] - tail[1])**2)
+        min_head_tail_length = max(w * 0.05, 50)  # 5% of image width or 50 pixels
+        
+        corrections_made = False
+        
+        # Validation rule 1: A head/tail must NEVER be on right side
+        if label == 'A':
+            if head_x >= image_center_x:
+                print(f"    [Embryo A] ⚠ CRITICAL: Head at x={head_x:.1f} is on RIGHT side (center={image_center_x:.1f})")
+                print(f"    → Correcting: using leftmost point of contour as head")
+                leftmost_idx = np.argmin(contour_points[:, 0])
+                head = contour_points[leftmost_idx]
+                head_x = head[0]
+                corrections_made = True
+            
+            if tail_x >= image_center_x:
+                print(f"    [Embryo A] ⚠ CRITICAL: Tail at x={tail_x:.1f} is on RIGHT side (center={image_center_x:.1f})")
+                print(f"    → Correcting: using rightmost point on LEFT side as tail")
+                left_side_pts = contour_points[contour_points[:, 0] < image_center_x]
+                if len(left_side_pts) > 0:
+                    rightmost_left_idx = np.argmax(left_side_pts[:, 0])
+                    tail = left_side_pts[rightmost_left_idx]
+                    tail_x = tail[0]
+                    corrections_made = True
+                else:
+                    print(f"    → No left-side points available - REJECTING this detection")
+                    continue  # Skip this embryo
+        
+        # Validation rule 2: B head/tail must NEVER be on left side
+        elif label == 'B':
+            if head_x < image_center_x:
+                print(f"    [Embryo B] ⚠ CRITICAL: Head at x={head_x:.1f} is on LEFT side (center={image_center_x:.1f})")
+                print(f"    → Correcting: using rightmost point of contour as head")
+                rightmost_idx = np.argmax(contour_points[:, 0])
+                head = contour_points[rightmost_idx]
+                head_x = head[0]
+                corrections_made = True
+            
+            if tail_x < image_center_x:
+                print(f"    [Embryo B] ⚠ CRITICAL: Tail at x={tail_x:.1f} is on LEFT side (center={image_center_x:.1f})")
+                print(f"    → Correcting: using leftmost point on RIGHT side as tail")
+                right_side_pts = contour_points[contour_points[:, 0] >= image_center_x]
+                if len(right_side_pts) > 0:
+                    leftmost_right_idx = np.argmin(right_side_pts[:, 0])
+                    tail = right_side_pts[leftmost_right_idx]
+                    tail_x = tail[0]
+                    corrections_made = True
+                else:
+                    print(f"    → No right-side points available - REJECTING this detection")
+                    continue  # Skip this embryo
+        
+        # FINAL VALIDATION: After corrections, ensure constraints are still met
+        head_x = head[0]
+        tail_x = tail[0]
+        head_tail_dist = np.sqrt((head[0] - tail[0])**2 + (head[1] - tail[1])**2)
+        
+        # Re-check spatial constraints after corrections
+        if label == 'A':
+            if head_x >= image_center_x or tail_x >= image_center_x:
+                print(f"    [Embryo A] ⚠ CRITICAL: Still violates spatial constraints after correction")
+                print(f"    → Head x={head_x:.1f}, Tail x={tail_x:.1f}, Center={image_center_x:.1f}")
+                print(f"    → REJECTING this detection")
+                continue  # Skip this embryo
+        elif label == 'B':
+            if head_x < image_center_x or tail_x < image_center_x:
+                print(f"    [Embryo B] ⚠ CRITICAL: Still violates spatial constraints after correction")
+                print(f"    → Head x={head_x:.1f}, Tail x={tail_x:.1f}, Center={image_center_x:.1f}")
+                print(f"    → REJECTING this detection")
+                continue  # Skip this embryo
+        
+        # Validation rule 3: Head-tail distance must be above minimum threshold
+        if head_tail_dist < min_head_tail_length:
+            print(f"    [Embryo {label}] ⚠ CRITICAL: Head-tail distance too short ({head_tail_dist:.1f}px < {min_head_tail_length:.1f}px)")
+            print(f"    → REJECTING this detection")
+            continue  # Skip this embryo
+        
+        if corrections_made:
+            print(f"    → Corrections applied - final: head x={head_x:.1f}, tail x={tail_x:.1f}, distance={head_tail_dist:.1f}px")
+        
         results[label] = {
             'contour': contour_points,  # New (inclusive) contour
             'contour_intermediate': intermediate_contour,  # Intermediate contour for middle outline
@@ -666,6 +870,7 @@ def detect_embryo_from_tiff(tiff_path, embryo_id=None, logger=None):
             'head': (float(head[0]), float(head[1])),
             'tail': (float(tail[0]), float(tail[1])),
             'centroid': (float(cx), float(cy)),
+            'cement_gland': cement_gland_location,  # Cement gland location if detected
             'split_info': None  # Will be set if this was split from a connected pair
         }
     
@@ -1469,32 +1674,66 @@ def detect_embryos_vector_first(df_tracks, tiff_path=None, image_width=None, ima
             end1 = contour_points[min_idx]
             end2 = contour_points[max_idx]
             
-            # Simple: for A, leftmost = head; for B, rightmost = head
+            # Simple: for A, leftmost = head, rightmost on left side = tail
+            # For B, rightmost = head, leftmost on right side = tail
             x_coords = contour_points[:, 0]
+            image_center_x = image_width / 2
+            
             if label == 'A':
+                # A: head is leftmost, tail is rightmost point on LEFT side
                 head = contour_points[np.argmin(x_coords)]
-                tail = contour_points[np.argmax(x_coords)]
+                left_side_pts = contour_points[contour_points[:, 0] < image_center_x]
+                if len(left_side_pts) > 0:
+                    tail = left_side_pts[np.argmax(left_side_pts[:, 0])]
+                else:
+                    tail = head.copy()  # Fallback
             else:
+                # B: head is rightmost, tail is leftmost point on RIGHT side
                 head = contour_points[np.argmax(x_coords)]
-                tail = contour_points[np.argmin(x_coords)]
+                right_side_pts = contour_points[contour_points[:, 0] >= image_center_x]
+                if len(right_side_pts) > 0:
+                    tail = right_side_pts[np.argmin(right_side_pts[:, 0])]
+                else:
+                    tail = head.copy()  # Fallback
             
             results[label]['head'] = (float(head[0]), float(head[1]))
             results[label]['tail'] = (float(tail[0]), float(tail[1]))
     
-    # Validate head-tail distances - filter out detections that are too short
-    # Minimum head-tail length should be at least 5% of image width or 50 pixels, whichever is larger
-    min_head_tail_length = max(image_width * 0.05, 50)
+    # CRITICAL VALIDATION: Enforce spatial constraints and distance requirements
+    image_center_x = image_width / 2
+    min_head_tail_length = max(image_width * 0.05, 50)  # 5% of image width or 50 pixels, whichever is larger
     
     for label in list(results.keys()):
         head = results[label].get('head')
         tail = results[label].get('tail')
         
         if head and tail:
+            head_x = head[0]
+            tail_x = tail[0]
             head_tail_dist = np.sqrt((head[0] - tail[0])**2 + (head[1] - tail[1])**2)
             
+            # Validation rule 1: A head/tail must NEVER be on right side
+            if label == 'A':
+                if head_x >= image_center_x or tail_x >= image_center_x:
+                    print(f"    [Embryo A] ⚠ CRITICAL: Violates spatial constraints")
+                    print(f"    → Head x={head_x:.1f}, Tail x={tail_x:.1f}, Center={image_center_x:.1f}")
+                    print(f"    → REJECTING detection - A must be entirely on left side")
+                    del results[label]
+                    continue
+            
+            # Validation rule 2: B head/tail must NEVER be on left side
+            elif label == 'B':
+                if head_x < image_center_x or tail_x < image_center_x:
+                    print(f"    [Embryo B] ⚠ CRITICAL: Violates spatial constraints")
+                    print(f"    → Head x={head_x:.1f}, Tail x={tail_x:.1f}, Center={image_center_x:.1f}")
+                    print(f"    → REJECTING detection - B must be entirely on right side")
+                    del results[label]
+                    continue
+            
+            # Validation rule 3: Head-tail distance must be above minimum threshold
             if head_tail_dist < min_head_tail_length:
-                print(f"    [Embryo {label}] ⚠ CRITICAL: Head-tail distance too short ({head_tail_dist:.1f}px < {min_head_tail_length:.1f}px threshold) - removing detection")
-                # Remove this embryo from results
+                print(f"    [Embryo {label}] ⚠ CRITICAL: Head-tail distance too short ({head_tail_dist:.1f}px < {min_head_tail_length:.1f}px threshold)")
+                print(f"    → REJECTING detection")
                 del results[label]
             else:
                 # Log if it's close to the threshold
@@ -2377,6 +2616,7 @@ def create_embryo_visualization(df_tracks, output_dir, folder_video_key, global_
         boundary = None
         tiff_head = None
         tiff_tail = None
+        tiff_cement_gland = None
         used_tiff_detection = False
         
         # Use matched TIFF detection if available
@@ -2456,13 +2696,19 @@ def create_embryo_visualization(df_tracks, output_dir, folder_video_key, global_
                                 # Coordinates already in spark coordinate system, use as-is
                                 tiff_head = detection.get('head')
                                 tiff_tail = detection.get('tail')
+                                cement_gland_raw = detection.get('cement_gland')
+                                if cement_gland_raw:
+                                    tiff_cement_gland = (cement_gland_raw[0] * scale_x + spark_x_min, 
+                                                        cement_gland_raw[1] * scale_y + spark_y_min)
                     except Exception as e:
                         print(f"    {folder_video_prefix} [Embryo {embryo_id}] ⚠ Error transforming TIFF coordinates: {e}")
                         tiff_head = detection.get('head')
                         tiff_tail = detection.get('tail')
+                        tiff_cement_gland = detection.get('cement_gland')
                 else:
                     tiff_head = detection.get('head')
                     tiff_tail = detection.get('tail')
+                    tiff_cement_gland = detection.get('cement_gland')
                 
                 if boundary is not None:
                     # Close the contour
@@ -2563,17 +2809,24 @@ def create_embryo_visualization(df_tracks, output_dir, folder_video_key, global_
                                         print(f"    {folder_video_prefix} [Embryo {embryo_id}] → TIFF coordinates already in spark system (no transform needed)")
                                         tiff_head = detection.get('head')
                                         tiff_tail = detection.get('tail')
+                                        cement_gland_raw = detection.get('cement_gland')
+                                        if cement_gland_raw:
+                                            tiff_cement_gland = (cement_gland_raw[0] * scale_x + spark_x_min, 
+                                                                cement_gland_raw[1] * scale_y + spark_y_min)
                             except Exception as e:
                                 print(f"    {folder_video_prefix} [Embryo {embryo_id}] ⚠ Error transforming TIFF coordinates: {e}")
                                 tiff_head = detection.get('head')
                                 tiff_tail = detection.get('tail')
+                                tiff_cement_gland = detection.get('cement_gland')
                         else:
                             print(f"    {folder_video_prefix} [Embryo {embryo_id}] ⚠ Boundary found but TIFF path missing (tiff_path={tiff_path})")
                             tiff_head = detection.get('head')
                             tiff_tail = detection.get('tail')
+                            tiff_cement_gland = detection.get('cement_gland')
                     else:
                         tiff_head = detection.get('head')
                         tiff_tail = detection.get('tail')
+                        tiff_cement_gland = detection.get('cement_gland')
                     
                     if boundary is not None:
                         boundary = np.vstack([boundary, boundary[0:1]])
@@ -2668,19 +2921,26 @@ def create_embryo_visualization(df_tracks, output_dir, folder_video_key, global_
                                             print(f"    {folder_video_prefix} [Embryo {embryo_id}] → TIFF coordinates already in spark system (no transform needed)")
                                             tiff_head = detection.get('head')
                                             tiff_tail = detection.get('tail')
+                                            cement_gland_raw = detection.get('cement_gland')
+                                            if cement_gland_raw:
+                                                tiff_cement_gland = (cement_gland_raw[0] * scale_x + spark_x_min, 
+                                                                    cement_gland_raw[1] * scale_y + spark_y_min)
                                 except Exception as e:
                                     print(f"    {folder_video_prefix} [Embryo {embryo_id}] ⚠ Error transforming TIFF coordinates: {e}")
                                     tiff_head = detection.get('head')
                                     tiff_tail = detection.get('tail')
+                                    tiff_cement_gland = detection.get('cement_gland')
                             else:
                                 # No TIFF path available - use coordinates as-is
                                 print(f"    {folder_video_prefix} [Embryo {embryo_id}] ⚠ No TIFF path for coordinate transformation")
                                 tiff_head = detection.get('head')
                                 tiff_tail = detection.get('tail')
+                                tiff_cement_gland = detection.get('cement_gland')
                         else:
                             # No boundary from detection
                             tiff_head = detection.get('head')
                             tiff_tail = detection.get('tail')
+                            tiff_cement_gland = detection.get('cement_gland')
                         
                         if boundary is not None:
                             boundary = np.vstack([boundary, boundary[0:1]])
@@ -2778,6 +3038,102 @@ def create_embryo_visualization(df_tracks, output_dir, folder_video_key, global_
         else:
             head_pos, tail_pos = get_head_tail_positions(df_embryo)
         
+        # CRITICAL VALIDATION: Enforce spatial constraints before visualization
+        if head_pos and tail_pos:
+            # Get image bounds (use global bounds if available, otherwise from data)
+            if global_bounds:
+                x_min, x_max, y_min, y_max = global_bounds
+                image_width = x_max - x_min
+                image_center_x = (x_min + x_max) / 2
+            else:
+                # Estimate from spark data
+                x_min = df_file['x'].min()
+                x_max = df_file['x'].max()
+                image_width = x_max - x_min
+                image_center_x = (x_min + x_max) / 2
+            
+            head_x = head_pos[0]
+            tail_x = tail_pos[0]
+            
+            # Validation rule 1: A head/tail must NEVER be on right side
+            if embryo_id == 'A':
+                if head_x >= image_center_x:
+                    print(f"    {folder_video_prefix} [Embryo A] ⚠ CRITICAL: Head at x={head_x:.1f} is on RIGHT side (center={image_center_x:.1f})")
+                    print(f"    → Correcting: finding leftmost point in A's data")
+                    # Use leftmost spark point as head
+                    if len(df_embryo) > 0:
+                        leftmost_idx = df_embryo['x'].idxmin()
+                        head_pos = (df_embryo.loc[leftmost_idx, 'x'], df_embryo.loc[leftmost_idx, 'y'])
+                        head_x = head_pos[0]
+                
+                if tail_x >= image_center_x:
+                    print(f"    {folder_video_prefix} [Embryo A] ⚠ CRITICAL: Tail at x={tail_x:.1f} is on RIGHT side (center={image_center_x:.1f})")
+                    print(f"    → Correcting: finding rightmost point on LEFT side in A's data")
+                    # Use rightmost point on left side as tail
+                    if len(df_embryo) > 0:
+                        left_side_data = df_embryo[df_embryo['x'] < image_center_x]
+                        if len(left_side_data) > 0:
+                            rightmost_left_idx = left_side_data['x'].idxmax()
+                            tail_pos = (left_side_data.loc[rightmost_left_idx, 'x'], left_side_data.loc[rightmost_left_idx, 'y'])
+                            tail_x = tail_pos[0]
+                        else:
+                            # No left side data - use leftmost as tail
+                            leftmost_idx = df_embryo['x'].idxmin()
+                            tail_pos = (df_embryo.loc[leftmost_idx, 'x'], df_embryo.loc[leftmost_idx, 'y'])
+                            tail_x = tail_pos[0]
+            
+            # Validation rule 2: B head/tail must NEVER be on left side
+            elif embryo_id == 'B':
+                if head_x < image_center_x:
+                    print(f"    {folder_video_prefix} [Embryo B] ⚠ CRITICAL: Head at x={head_x:.1f} is on LEFT side (center={image_center_x:.1f})")
+                    print(f"    → Correcting: finding rightmost point in B's data")
+                    # Use rightmost spark point as head
+                    if len(df_embryo) > 0:
+                        rightmost_idx = df_embryo['x'].idxmax()
+                        head_pos = (df_embryo.loc[rightmost_idx, 'x'], df_embryo.loc[rightmost_idx, 'y'])
+                        head_x = head_pos[0]
+                
+                if tail_x < image_center_x:
+                    print(f"    {folder_video_prefix} [Embryo B] ⚠ CRITICAL: Tail at x={tail_x:.1f} is on LEFT side (center={image_center_x:.1f})")
+                    print(f"    → Correcting: finding leftmost point on RIGHT side in B's data")
+                    # Use leftmost point on right side as tail
+                    if len(df_embryo) > 0:
+                        right_side_data = df_embryo[df_embryo['x'] >= image_center_x]
+                        if len(right_side_data) > 0:
+                            leftmost_right_idx = right_side_data['x'].idxmin()
+                            tail_pos = (right_side_data.loc[leftmost_right_idx, 'x'], right_side_data.loc[leftmost_right_idx, 'y'])
+                            tail_x = tail_pos[0]
+                        else:
+                            print(f"    → No right-side data available - REJECTING this detection")
+                            continue  # Skip this embryo
+            
+            # FINAL VALIDATION: After corrections, ensure constraints are still met
+            head_x = head_pos[0]
+            tail_x = tail_pos[0]
+            
+            # Re-check spatial constraints after corrections
+            if embryo_id == 'A':
+                if head_x >= image_center_x or tail_x >= image_center_x:
+                    print(f"    {folder_video_prefix} [Embryo A] ⚠ CRITICAL: Still violates spatial constraints after correction")
+                    print(f"    → Head x={head_x:.1f}, Tail x={tail_x:.1f}, Center={image_center_x:.1f}")
+                    print(f"    → REJECTING this detection - skipping visualization")
+                    continue  # Skip this embryo
+            elif embryo_id == 'B':
+                if head_x < image_center_x or tail_x < image_center_x:
+                    print(f"    {folder_video_prefix} [Embryo B] ⚠ CRITICAL: Still violates spatial constraints after correction")
+                    print(f"    → Head x={head_x:.1f}, Tail x={tail_x:.1f}, Center={image_center_x:.1f}")
+                    print(f"    → REJECTING this detection - skipping visualization")
+                    continue  # Skip this embryo
+            
+            # Validation rule 3: Head-tail distance must be above minimum threshold
+            head_tail_dist = np.sqrt((head_pos[0] - tail_pos[0])**2 + (head_pos[1] - tail_pos[1])**2)
+            min_head_tail_length = max(image_width * 0.05, 50)  # 5% of image width or 50 pixels
+            
+            if head_tail_dist < min_head_tail_length:
+                print(f"    {folder_video_prefix} [Embryo {embryo_id}] ⚠ CRITICAL: Head-tail distance too short ({head_tail_dist:.1f}px < {min_head_tail_length:.1f}px)")
+                print(f"    → REJECTING this detection - skipping visualization")
+                continue  # Skip this embryo
+        
         # Draw head
         if head_pos:
             ax.plot(head_pos[0], head_pos[1], 'o', color=colors['head'], markersize=12, 
@@ -2798,6 +3154,37 @@ def create_embryo_visualization(df_tracks, output_dir, folder_video_key, global_
         if head_pos and tail_pos:
             ax.plot([head_pos[0], tail_pos[0]], [head_pos[1], tail_pos[1]], 
                    color=colors['axis'], linestyle='--', linewidth=1.5, alpha=0.6)
+        
+        # Draw cement gland location if detected
+        cement_gland_pos = tiff_cement_gland if tiff_cement_gland else None
+        if cement_gland_pos:
+            # Draw cement gland as a distinctive marker (purple/magenta circle)
+            ax.plot(cement_gland_pos[0], cement_gland_pos[1], 'o', color='magenta', markersize=10,
+                   markeredgecolor='white', markeredgewidth=1.5, label=f'Embryo {embryo_id} Cement Gland',
+                   zorder=10, alpha=0.9)
+            ax.annotate(f'{embryo_id} CG', cement_gland_pos, xytext=(10, -15), 
+                       textcoords='offset points', color='magenta', fontsize=10, fontweight='bold',
+                       bbox=dict(boxstyle='round', facecolor='black', alpha=0.8, edgecolor='magenta', linewidth=1.5))
+        elif head_pos:
+            # If cement gland not detected but we have head position, draw a marker near head
+            # This helps visualize where cement gland should be (on ventral side of head)
+            # Calculate ventral direction from head-tail axis
+            if tail_pos:
+                axis_vec = np.array([tail_pos[0] - head_pos[0], tail_pos[1] - head_pos[1]])
+                axis_len = np.linalg.norm(axis_vec)
+                if axis_len > 0:
+                    axis_norm = axis_vec / axis_len
+                    perp_vec = np.array([-axis_norm[1], axis_norm[0]])  # Perpendicular (ventral direction)
+                    # Place marker slightly ventral to head (about 5% of embryo length)
+                    marker_offset = perp_vec * (axis_len * 0.05)
+                    cg_marker_pos = (head_pos[0] + marker_offset[0], head_pos[1] + marker_offset[1])
+                    # Draw as a smaller, lighter marker to indicate "expected location"
+                    ax.plot(cg_marker_pos[0], cg_marker_pos[1], 'o', color='magenta', markersize=6,
+                           markeredgecolor='white', markeredgewidth=1, label=f'Embryo {embryo_id} CG (expected)',
+                           zorder=9, alpha=0.6)
+                    ax.annotate(f'{embryo_id} CG?', cg_marker_pos, xytext=(8, -12), 
+                               textcoords='offset points', color='magenta', fontsize=9, 
+                               bbox=dict(boxstyle='round', facecolor='black', alpha=0.6, edgecolor='magenta', linewidth=1))
         
         # Plot extreme spark points for fact-checking
         extreme_points = find_extreme_spark_points(df_embryo)
