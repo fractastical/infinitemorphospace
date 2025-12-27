@@ -2326,7 +2326,49 @@ def find_tiff_file(folder, video, base_path=None):
     return None
 
 
-def create_embryo_visualization(df_tracks, output_dir, folder_video_key, global_bounds=None, tiff_base_path=None):
+def find_mask_file(tiff_path, mask_base_path=None):
+    """
+    Find the corresponding mask PNG file for a TIFF file.
+    
+    Args:
+        tiff_path: Path to TIFF file
+        mask_base_path: Base path where masks are stored (default: looks in embryo_masks_final/)
+    
+    Returns:
+        Path to mask file if found, None otherwise
+    """
+    if tiff_path is None:
+        return None
+    
+    tiff_path_obj = Path(tiff_path)
+    tiff_stem = tiff_path_obj.stem  # e.g., "B - Substack (1-301)"
+    
+    # Try default location first
+    if mask_base_path is None:
+        mask_base_path = Path(__file__).parent / "embryo_masks_final"
+    else:
+        mask_base_path = Path(mask_base_path)
+    
+    # Look for mask file: {tiff_stem}_mask_frame0.png
+    mask_path = mask_base_path / f"{tiff_stem}_mask_frame0.png"
+    
+    if mask_path.exists():
+        return mask_path
+    
+    # Try alternative naming (without extension variations)
+    alternatives = [
+        mask_base_path / f"{tiff_stem}_mask_frame0.png",
+        mask_base_path / f"{tiff_path_obj.name.replace('.tif', '').replace('.tiff', '')}_mask_frame0.png",
+    ]
+    
+    for alt_path in alternatives:
+        if alt_path.exists():
+            return alt_path
+    
+    return None
+
+
+def create_embryo_visualization(df_tracks, output_dir, folder_video_key, global_bounds=None, tiff_base_path=None, mask_base_path=None):
     """
     Create visualization for a specific folder/video combination.
     
@@ -2336,6 +2378,7 @@ def create_embryo_visualization(df_tracks, output_dir, folder_video_key, global_
         folder_video_key: (folder, video) tuple
         global_bounds: Optional (x_min, x_max, y_min, y_max) to use consistent dimensions
         tiff_base_path: Optional base path to search for TIFF files
+        mask_base_path: Optional base path to search for mask PNG files
     """
     folder, video = folder_video_key
     
@@ -2352,6 +2395,13 @@ def create_embryo_visualization(df_tracks, output_dir, folder_video_key, global_
     
     # Try to find the actual TIFF file for embryo detection
     tiff_path = find_tiff_file(folder, video, tiff_base_path)
+    
+    # Try to find corresponding mask file
+    mask_path = None
+    if tiff_path:
+        mask_path = find_mask_file(tiff_path, mask_base_path)
+        if mask_path:
+            print(f"    ✓ Found mask file: {mask_path.name}")
     
     # Use consistent figure size (fixed dimensions for all images)
     # Use fixed size for all images to ensure they're identical in the PDF
@@ -2395,6 +2445,8 @@ def create_embryo_visualization(df_tracks, output_dir, folder_video_key, global_
     ax.set_ylim(y_min, y_max)
     ax.set_aspect('equal')
     ax.set_facecolor('black')
+    
+    # Mask overlay will be added after all other elements are drawn
     
     # Detect all embryos from TIFF once (if available)
     # NEW APPROACH: Use vector-first detection
@@ -3345,10 +3397,77 @@ def create_embryo_visualization(df_tracks, output_dir, folder_video_key, global_
                    fontweight='bold', ha='center',
                    bbox=dict(boxstyle='round', facecolor='white', alpha=0.8))
     
+    # Overlay mask if available - do this LAST so it appears behind all other elements
+    if mask_path and mask_path.exists() and tiff_path and tiff_path.exists():
+        try:
+            import cv2
+            mask_img = cv2.imread(str(mask_path), cv2.IMREAD_GRAYSCALE)
+            if mask_img is not None:
+                mask_h, mask_w = mask_img.shape
+                
+                # Get TIFF dimensions for coordinate transformation
+                with tiff.TiffFile(tiff_path) as tif:
+                    tiff_img = tif.pages[0].asarray()
+                    tiff_h, tiff_w = tiff_img.shape[:2]
+                    
+                    # Resize mask to match TIFF dimensions if they differ
+                    if mask_w != tiff_w or mask_h != tiff_h:
+                        mask_img = cv2.resize(mask_img, (tiff_w, tiff_h), interpolation=cv2.INTER_NEAREST)
+                        print(f"    → Resized mask from {mask_w}x{mask_h} to {tiff_w}x{tiff_h} to match TIFF")
+                    
+                    # Get spark coordinate bounds
+                    spark_x_min = df_file['x'].min()
+                    spark_x_max = df_file['x'].max()
+                    spark_y_min = df_file['y'].min()
+                    spark_y_max = df_file['y'].max()
+                    
+                    # Create extent for imshow: [left, right, bottom, top] in spark coordinates
+                    # Mask now matches TIFF size, so use spark bounds directly
+                    extent = [
+                        spark_x_min,  # left
+                        spark_x_max,  # right
+                        spark_y_max,  # bottom (note: y-axis is flipped for images)
+                        spark_y_min   # top
+                    ]
+                    
+                    # Create bright green overlay using filled contours (more reliable than imshow)
+                    # Find contours in the mask
+                    contours_mask, _ = cv2.findContours(mask_img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+                    
+                    if len(contours_mask) > 0:
+                        # Transform contours from mask pixel coordinates to spark coordinates
+                        scale_x = (spark_x_max - spark_x_min) / tiff_w
+                        scale_y = (spark_y_max - spark_y_min) / tiff_h
+                        
+                        for contour in contours_mask:
+                            # Transform contour points
+                            contour_transformed = contour.reshape(-1, 2).astype(np.float32)
+                            contour_transformed[:, 0] = contour_transformed[:, 0] * scale_x + spark_x_min
+                            contour_transformed[:, 1] = contour_transformed[:, 1] * scale_y + spark_y_min
+                            
+                            # Close the contour
+                            if len(contour_transformed) > 0:
+                                contour_closed = np.vstack([contour_transformed, contour_transformed[0:1]])
+                                
+                                # Draw filled polygon with bright green
+                                poly = Polygon(contour_closed, facecolor='lime', edgecolor='lime', 
+                                             linewidth=0, alpha=0.5, zorder=1)
+                                ax.add_patch(poly)
+                        
+                        print(f"    ✓ Overlaid mask: {mask_path.name} ({len(contours_mask)} contours, extent: {spark_x_min:.1f}-{spark_x_max:.1f}, {spark_y_min:.1f}-{spark_y_max:.1f})")
+                    else:
+                        print(f"    ⚠ No contours found in mask: {mask_path.name}")
+        except Exception as e:
+            print(f"    ⚠ Error overlaying mask: {e}")
+            import traceback
+            traceback.print_exc()
+    
     ax.set_xlabel('X (pixels)', color='white', fontsize=12)
     ax.set_ylabel('Y (pixels)', color='white', fontsize=12)
-    ax.set_title(f'Folder {folder} - {video}\nEmbryo Detection & Poke Location', 
-                color='white', fontsize=14, fontweight='bold')
+    title_text = f'Folder {folder} - {video}\nEmbryo Detection & Poke Location'
+    if mask_path and mask_path.exists():
+        title_text += ' [Mask Overlay]'
+    ax.set_title(title_text, color='white', fontsize=14, fontweight='bold')
     ax.tick_params(colors='white')
     ax.grid(True, alpha=0.3, color='gray')
     
@@ -3834,6 +3953,8 @@ def main():
                        help='Skip generating visualization images (only create table)')
     parser.add_argument('--tiff-base-path', default='/Users/jdietz/Documents/Levin/Embryos',
                        help='Base path to search for TIFF files (default: /Users/jdietz/Documents/Levin/Embryos)')
+    parser.add_argument('--mask-base-path', default=None,
+                       help='Base path to search for mask PNG files (default: wave-vector-analysis/embryo_masks_final)')
     
     args = parser.parse_args()
     
@@ -3966,7 +4087,9 @@ def main():
                     pass
             
             try:
-                output_path = create_embryo_visualization(df_tracks, output_dir, folder_video_key, global_bounds, args.tiff_base_path)
+                # Determine mask base path (default to embryo_masks_final)
+                mask_base = args.mask_base_path if hasattr(args, 'mask_base_path') and args.mask_base_path else None
+                output_path = create_embryo_visualization(df_tracks, output_dir, folder_video_key, global_bounds, args.tiff_base_path, mask_base)
                 if output_path:
                     print(f"    ✓ Saved: {output_path.name}")
                     image_paths_dict[(folder, video)] = output_path
