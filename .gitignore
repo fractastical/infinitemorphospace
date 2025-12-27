@@ -37,6 +37,7 @@ ENV/
 spark_tracks.csv
 vector_clusters.csv
 *.mp4
+*.png
 wave-vector-analysis/plots/
 wave-vector-analysis/*.csv
 

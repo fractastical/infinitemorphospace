@@ -22,7 +22,7 @@ import csv
 
 def create_size_constrained_mask(gray, min_area_ratio=0.005, max_area_ratio=0.15, 
                                  percentile_low=5, background_percentile=10,
-                                 min_intensity_ratio=0.3):
+                                 min_intensity_ratio=0.3, expand_percent=10.0):
     """
     Create mask using size constraints to identify embryo-sized regions.
     
@@ -86,6 +86,21 @@ def create_size_constrained_mask(gray, min_area_ratio=0.005, max_area_ratio=0.15
         if min_area <= area <= max_area:
             embryo_contours.append(contour)
     
+    # If no contours found with strict size filter, try more lenient approach
+    # This handles cases where embryos might be slightly larger or smaller than expected
+    if not embryo_contours and len(contours) > 0:
+        # Try with more lenient min_area (half of original)
+        lenient_min_area = max(min_area * 0.5, 100)  # At least 100 pixels
+        lenient_max_area = max_area * 1.5  # Allow up to 1.5x max
+        
+        for contour in contours:
+            area = cv2.contourArea(contour)
+            if lenient_min_area <= area <= lenient_max_area:
+                embryo_contours.append(contour)
+        
+        if embryo_contours:
+            print(f"    ⚠ Using lenient size filter: {lenient_min_area:.0f} - {lenient_max_area:.0f} pixels")
+    
     # Create final mask from filtered contours
     final_mask = np.zeros_like(initial_mask)
     if embryo_contours:
@@ -106,6 +121,37 @@ def create_size_constrained_mask(gray, min_area_ratio=0.005, max_area_ratio=0.15
             
             # Combine
             final_mask = cv2.bitwise_or(final_mask, filled)
+    
+    # Expand mask by specified percentage using dilation
+    # Calculate dilation kernel size based on mask dimensions
+    if np.sum(final_mask > 0) > 0 and expand_percent > 0:
+        # Estimate average dimension of mask regions
+        mask_area_before = np.sum(final_mask > 0)
+        
+        # To increase area by expand_percent%, we need to increase radius by sqrt(1 + expand_percent/100) - 1
+        # For area = πr²: new_area = (1 + expand_percent/100) * old_area
+        # => new_r = sqrt(1 + expand_percent/100) * old_r
+        # => dilation_radius ≈ (sqrt(1 + expand_percent/100) - 1) * old_r
+        radius_factor = np.sqrt(1 + expand_percent / 100.0) - 1
+        
+        # Estimate average radius of mask regions
+        if embryo_contours:
+            # Use average of contour bounding box dimensions
+            avg_radius = 0
+            for contour in embryo_contours:
+                (x, y), (w, h), angle = cv2.minAreaRect(contour)
+                avg_radius += np.sqrt(w * h) / 2
+            avg_radius = avg_radius / len(embryo_contours)
+        else:
+            # Fallback: estimate from total area
+            avg_radius = np.sqrt(mask_area_before / np.pi)
+        
+        dilation_radius = max(2, int(avg_radius * radius_factor))  # At least 2 pixels
+        
+        # Create circular kernel for dilation
+        kernel_size = dilation_radius * 2 + 1
+        dilation_kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (kernel_size, kernel_size))
+        final_mask = cv2.dilate(final_mask, dilation_kernel, iterations=1)
     
     # Final cleanup
     final_mask = cv2.morphologyEx(final_mask, cv2.MORPH_CLOSE, kernel, iterations=1)
@@ -133,7 +179,8 @@ def create_size_constrained_mask(gray, min_area_ratio=0.005, max_area_ratio=0.15
 
 
 def process_tiff_file(tiff_path, output_dir=None, min_area_ratio=0.005, max_area_ratio=0.15,
-                      percentile_low=5, visualize=True, save_mask=True, frame_idx=0):
+                      percentile_low=5, expand_percent=10.0, visualize=True, save_mask=True, 
+                      frame_idx=0, skip_blank=False):
     """Process a single TIFF file and create size-constrained embryo masks."""
     print(f"\n{'='*60}")
     print(f"Processing: {Path(tiff_path).name}")
@@ -164,7 +211,8 @@ def process_tiff_file(tiff_path, output_dir=None, min_area_ratio=0.005, max_area
         gray, 
         min_area_ratio=min_area_ratio,
         max_area_ratio=max_area_ratio,
-        percentile_low=percentile_low
+        percentile_low=percentile_low,
+        expand_percent=expand_percent
     )
     
     print(f"\n  Mask Statistics:")
@@ -174,17 +222,26 @@ def process_tiff_file(tiff_path, output_dir=None, min_area_ratio=0.005, max_area
     print(f"    Contours after filter: {stats['num_contours_after_filter']}")
     print(f"    Mask area: {stats['mask_area']:,} pixels ({stats['coverage']:.2f}% of image)")
     
-    # Save mask
+    # Save mask (only if not blank, or if skip_blank is False)
+    mask_area_check = np.sum(mask > 0)
+    is_blank = mask_area_check == 0
+    
     if save_mask:
-        if output_dir is None:
-            output_dir = os.path.dirname(tiff_path)
+        if skip_blank and is_blank:
+            print(f"    ⚠ Skipping blank mask (0% coverage)")
+            mask_path = None
         else:
-            os.makedirs(output_dir, exist_ok=True)
-        
-        base_name = Path(tiff_path).stem
-        mask_path = os.path.join(output_dir, f"{base_name}_mask_frame{frame_idx}.png")
-        cv2.imwrite(mask_path, mask)
-        print(f"    ✓ Saved mask to: {mask_path}")
+            if output_dir is None:
+                output_dir = os.path.dirname(tiff_path)
+            else:
+                os.makedirs(output_dir, exist_ok=True)
+            
+            base_name = Path(tiff_path).stem
+            mask_path = os.path.join(output_dir, f"{base_name}_mask_frame{frame_idx}.png")
+            cv2.imwrite(mask_path, mask)
+            print(f"    ✓ Saved mask to: {mask_path}")
+    else:
+        mask_path = None
     
     # Create visualization
     if visualize:
@@ -243,6 +300,7 @@ def process_tiff_file(tiff_path, output_dir=None, min_area_ratio=0.005, max_area
         'stats': stats,
         'gray': gray,
         'mask_path': mask_path if save_mask else None,
+        'tiff_path': str(tiff_path),
     }
 
 
@@ -272,12 +330,16 @@ Examples:
                        help='Maximum embryo area as fraction of image (default: 0.15 = 15%%)')
     parser.add_argument('--percentile-low', type=float, default=5.0,
                        help='Lower percentile for thresholding (default: 5.0)')
+    parser.add_argument('--expand-percent', type=float, default=10.0,
+                       help='Expand mask size by this percentage (default: 10.0%%)')
     parser.add_argument('--frame-idx', type=int, default=0,
                        help='Frame index to use (default: 0)')
     parser.add_argument('--no-visualize', action='store_true',
                        help='Skip visualization generation')
     parser.add_argument('--no-save', action='store_true',
                        help='Skip saving mask files')
+    parser.add_argument('--skip-blank', action='store_true',
+                       help='Skip saving masks that are blank (0%% coverage)')
     
     args = parser.parse_args()
     
@@ -304,9 +366,11 @@ Examples:
                 min_area_ratio=args.min_area,
                 max_area_ratio=args.max_area,
                 percentile_low=args.percentile_low,
+                expand_percent=args.expand_percent,
                 visualize=not args.no_visualize,
                 save_mask=not args.no_save,
-                frame_idx=args.frame_idx
+                frame_idx=args.frame_idx,
+                skip_blank=args.skip_blank
             )
             if result:
                 results.append(result)
@@ -328,11 +392,15 @@ Examples:
                 stats = result['stats']
                 coverages.append(stats['coverage'])
                 
-                mask_path = result.get('mask_path', 'N/A')
-                if mask_path != 'N/A':
+                mask_path = result.get('mask_path')
+                if mask_path and mask_path != 'N/A':
                     filename = Path(mask_path).name.replace('_mask_frame0.png', '')
                 else:
-                    filename = "Unknown"
+                    # Extract filename from tiff path if available
+                    if 'tiff_path' in result:
+                        filename = Path(result['tiff_path']).name
+                    else:
+                        filename = "Unknown"
                 
                 print(f"{filename:<50} {stats['coverage']:>10.2f}%  {stats['mask_area']:>13,}  {stats['num_contours_after_filter']:>8}")
             
@@ -344,7 +412,7 @@ Examples:
                 print(f"  Min coverage:     {np.min(coverages):.2f}%")
                 print(f"  Max coverage:     {np.max(coverages):.2f}%")
             
-            # Save summary CSV
+            # Save summary CSV (only include files with masks if skip_blank is True)
             if args.output_dir:
                 summary_path = os.path.join(args.output_dir, 'size_constrained_coverage_summary.csv')
             else:
@@ -359,13 +427,22 @@ Examples:
                 ])
                 for result in results:
                     stats = result['stats']
+                    
+                    # Skip blank masks in CSV if skip_blank is enabled
+                    if args.skip_blank and stats['coverage'] == 0.0:
+                        continue
+                    
                     gray_shape = result['gray'].shape
                     
-                    mask_path = result.get('mask_path', 'N/A')
-                    if mask_path != 'N/A':
+                    mask_path = result.get('mask_path')
+                    if mask_path and mask_path != 'N/A':
                         filename = Path(mask_path).name.replace('_mask_frame0.png', '')
                     else:
-                        filename = "Unknown"
+                        # Extract filename from tiff path if available
+                        if 'tiff_path' in result:
+                            filename = Path(result['tiff_path']).name
+                        else:
+                            filename = "Unknown"
                     
                     writer.writerow([
                         filename,
@@ -395,9 +472,11 @@ Examples:
             min_area_ratio=args.min_area,
             max_area_ratio=args.max_area,
             percentile_low=args.percentile_low,
+            expand_percent=args.expand_percent,
             visualize=not args.no_visualize,
             save_mask=not args.no_save,
-            frame_idx=args.frame_idx
+            frame_idx=args.frame_idx,
+            skip_blank=args.skip_blank
         )
         
         if result is None:
