@@ -2341,7 +2341,7 @@ def find_mask_file(tiff_path, mask_base_path=None):
         return None
     
     tiff_path_obj = Path(tiff_path)
-    tiff_stem = tiff_path_obj.stem  # e.g., "B - Substack (1-301)"
+    tiff_stem = tiff_path_obj.stem  # e.g., "folder_1_C_-_Substack__1-301_" or "B - Substack (1-301)"
     
     # Try default location first
     if mask_base_path is None:
@@ -2355,6 +2355,34 @@ def find_mask_file(tiff_path, mask_base_path=None):
     if mask_path.exists():
         return mask_path
     
+    # Try to extract video name from TIFF path (handle "folder_X_" prefix)
+    # Pattern: "folder_X_VideoName.tif" -> "VideoName"
+    import re
+    video_name_match = re.search(r'(?:folder_\d+_)?(.+)', tiff_stem)
+    if video_name_match:
+        video_name = video_name_match.group(1)
+        # Normalize: "C_-_Substack__1-301_" -> "C - Substack (1-301)"
+        # Step 1: Replace double underscores with single space
+        normalized = video_name.replace('__', ' ')
+        # Step 2: Replace single underscores with spaces
+        normalized = normalized.replace('_', ' ')
+        # Step 3: Clean up multiple spaces
+        normalized = re.sub(r'\s+', ' ', normalized)
+        # Step 4: Handle number ranges at end: "1-301" -> "(1-301)"
+        normalized = re.sub(r'\s+(\d+-\d+)\s*$', r' (\1)', normalized)
+        # Step 5: Remove trailing spaces/underscores
+        normalized = normalized.strip()
+        
+        # Try normalized video name
+        mask_path_normalized = mask_base_path / f"{normalized}_mask_frame0.png"
+        if mask_path_normalized.exists():
+            return mask_path_normalized
+        
+        # Also try with original video_name (in case it matches exactly)
+        mask_path_original = mask_base_path / f"{video_name}_mask_frame0.png"
+        if mask_path_original.exists():
+            return mask_path_original
+    
     # Try alternative naming (without extension variations)
     alternatives = [
         mask_base_path / f"{tiff_stem}_mask_frame0.png",
@@ -2364,6 +2392,25 @@ def find_mask_file(tiff_path, mask_base_path=None):
     for alt_path in alternatives:
         if alt_path.exists():
             return alt_path
+    
+    # Last resort: search all masks and try fuzzy matching
+    if mask_base_path.exists():
+        all_masks = list(mask_base_path.glob("*_mask_frame0.png"))
+        # Extract base name from TIFF (remove folder prefix)
+        tiff_base = re.sub(r'^folder_\d+_', '', tiff_stem)
+        # Normalize TIFF base name
+        tiff_normalized = tiff_base.replace('__', ' - ').replace('_', ' ')
+        tiff_normalized = re.sub(r'\s+(\d+-\d+)\s*$', r' (\1)', tiff_normalized).strip()
+        
+        # Try to find a mask whose base name matches
+        for mask_file in all_masks:
+            mask_base_name = mask_file.stem.replace('_mask_frame0', '')
+            # Compare normalized versions
+            if tiff_normalized.lower() == mask_base_name.lower():
+                return mask_file
+            # Also try partial matching (in case of minor differences)
+            if tiff_normalized.lower().replace(' ', '') == mask_base_name.lower().replace(' ', ''):
+                return mask_file
     
     return None
 
