@@ -2730,7 +2730,7 @@ def create_embryo_visualization(df_tracks, output_dir, folder_video_key, global_
                                     boundary_old[:, 0] = boundary_old[:, 0] * scale_x + spark_x_min
                                     boundary_old[:, 1] = boundary_old[:, 1] * scale_y + spark_y_min
                                 
-                                # Also transform head/tail
+                                # Also transform head/tail and cement gland
                                 if detection.get('head'):
                                     head = detection.get('head')
                                     tiff_head = (head[0] * scale_x + spark_x_min, head[1] * scale_y + spark_y_min)
@@ -2742,6 +2742,14 @@ def create_embryo_visualization(df_tracks, output_dir, folder_video_key, global_
                                     tiff_tail = (tail[0] * scale_x + spark_x_min, tail[1] * scale_y + spark_y_min)
                                 else:
                                     tiff_tail = None
+                                
+                                # Transform cement gland location
+                                cement_gland_raw = detection.get('cement_gland')
+                                if cement_gland_raw:
+                                    tiff_cement_gland = (cement_gland_raw[0] * scale_x + spark_x_min, 
+                                                        cement_gland_raw[1] * scale_y + spark_y_min)
+                                else:
+                                    tiff_cement_gland = None
                                 
                                 print(f"    {folder_video_prefix} [Embryo {embryo_id}] → Transformed TIFF coordinates (scale: {scale_x:.3f}x, {scale_y:.3f}y)")
                             else:
@@ -2967,16 +2975,21 @@ def create_embryo_visualization(df_tracks, output_dir, folder_video_key, global_
                                             else:
                                                 tiff_tail = None
                                             
+                                            # Transform cement gland location
+                                            cement_gland_raw = detection.get('cement_gland')
+                                            if cement_gland_raw:
+                                                tiff_cement_gland = (cement_gland_raw[0] * scale_x + spark_x_min, 
+                                                                    cement_gland_raw[1] * scale_y + spark_y_min)
+                                            else:
+                                                tiff_cement_gland = None
+                                            
                                             print(f"    {folder_video_prefix} [Embryo {embryo_id}] → Transformed TIFF coordinates (scale: {scale_x:.3f}x, {scale_y:.3f}y)")
                                         else:
                                             # Coordinates already in spark coordinate system
                                             print(f"    {folder_video_prefix} [Embryo {embryo_id}] → TIFF coordinates already in spark system (no transform needed)")
                                             tiff_head = detection.get('head')
                                             tiff_tail = detection.get('tail')
-                                            cement_gland_raw = detection.get('cement_gland')
-                                            if cement_gland_raw:
-                                                tiff_cement_gland = (cement_gland_raw[0] * scale_x + spark_x_min, 
-                                                                    cement_gland_raw[1] * scale_y + spark_y_min)
+                                            tiff_cement_gland = detection.get('cement_gland')
                                 except Exception as e:
                                     print(f"    {folder_video_prefix} [Embryo {embryo_id}] ⚠ Error transforming TIFF coordinates: {e}")
                                     tiff_head = detection.get('head')
