@@ -29,7 +29,14 @@ A simulation of the Gray-Scott reaction-diffusion model, implementing Alan Turin
 
 ### [1966-raup.py](./1966-raup.py)
 
-Implements David Raup's classic model of shell coiling from "Geometric Analysis of Shell Coiling" (1966). This parametric model generates a variety of 3D shell forms by controlling whorl expansion rate, distance from coiling axis, translation rate, and generating curve shape.
+Implements David Raup's classic model of shell coiling from "Geometric Analysis of Shell Coiling" (1966). This parametric model generates a variety of 3D shell forms by controlling whorl expansion rate (W), distance from coiling axis (D), translation rate (T), and generating curve shape (S). The model demonstrates how three core parameters can generate the vast diversity of mollusk shell morphologies observed in nature.
+
+![Raup shell coiling animation](raup_shell_animation.gif)
+
+Run `python create_raup_animations.py` to generate:
+- Animated GIF showing shells morphing through parameter space
+- Parameter space visualization exploring W, D, and T
+- Comparison with empirical shell forms (Nautilus, Turritella, Ammonite, etc.)
 
 ### [2021-Cervera–Levin–Mafe.py](./2021-Cervera–Levin–Mafe.py)
 

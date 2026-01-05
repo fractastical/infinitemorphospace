@@ -1,6 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
+import json
+from pathlib import Path
 
 def raup_shell(W=3, D=0.2, T=0.5, S=1, turns=6, res=100):
     # theta: Array of angles for coiling along the spiral path (from 0 to full turns)
@@ -60,14 +62,49 @@ def raup_shell(W=3, D=0.2, T=0.5, S=1, turns=6, res=100):
     
     return X, Y, Z
 
-# Grid parameters: Vary W and T to sample a slice of the morphospace.
-# Ws: Range of whorl expansion rates (rows in the plot grid).
-# Ts: Range of translation rates (columns in the plot grid).
-# D_fixed and S_fixed: Held constant for this 2D slice; vary them for fuller exploration.
-Ws = [1.5, 2.5, 4.0]
-Ts = [0.1, 0.5, 1.0]
-D_fixed = 0.1
-S_fixed = 1
+# Load parameter ranges from raup_dataset/variables.json
+def load_raup_parameters():
+    """Load Raup model parameters from data file."""
+    script_dir = Path(__file__).parent
+    data_file = script_dir / 'raup_dataset' / 'variables.json'
+    
+    if data_file.exists():
+        with open(data_file, 'r') as f:
+            data = json.load(f)
+        return data
+    else:
+        # Fallback to default values if file not found
+        print(f"Warning: {data_file} not found, using default parameters")
+        return None
+
+# Load parameters from data file
+raup_data = load_raup_parameters()
+
+if raup_data:
+    # Use parameter ranges from data file
+    W_range = raup_data['core_variables']['W']['typical_range']
+    D_range = raup_data['core_variables']['D']['typical_range']
+    T_range = raup_data['core_variables']['T']['typical_range']
+    
+    # Grid parameters: Vary W and T to sample a slice of the morphospace.
+    # Ws: Range of whorl expansion rates (rows in the plot grid).
+    # Ts: Range of translation rates (columns in the plot grid).
+    # D_fixed and S_fixed: Held constant for this 2D slice; vary them for fuller exploration.
+    Ws = [W_range['min'], (W_range['min'] + W_range['max']) / 2, W_range['max']]
+    Ts = [T_range['min'], (T_range['min'] + T_range['max']) / 2, T_range['max']]
+    D_fixed = (D_range['min'] + D_range['max']) / 2
+    S_fixed = 1.0
+    
+    print(f"Loaded parameters from raup_dataset/variables.json")
+    print(f"  W range: {W_range['min']:.2f} - {W_range['max']:.2f}")
+    print(f"  D range: {D_range['min']:.2f} - {D_range['max']:.2f}")
+    print(f"  T range: {T_range['min']:.2f} - {T_range['max']:.2f}")
+else:
+    # Fallback defaults
+    Ws = [1.5, 2.5, 4.0]
+    Ts = [0.1, 0.5, 1.0]
+    D_fixed = 0.1
+    S_fixed = 1
 
 # Plot grid: Create subplots to visualize multiple parameter combinations.
 # This illustrates how changing W and T affects shell morphology,

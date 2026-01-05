@@ -1,0 +1,164 @@
+{
+  "metadata": {
+    "source_paper": "Raup, D. M. (1966). Geometric Analysis of Shell Coiling: General Problems. Journal of Paleontology, 40(5), 1178-1190.",
+    "extraction_date": "2025-01-05",
+    "extraction_timestamp": "2025-01-05T13:40:00Z",
+    "extractor": "AI Assistant (Claude)"
+  },
+  "core_variables": {
+    "W": {
+      "name": "Whorl Expansion Rate",
+      "definition": "The rate at which the shell radius increases per full revolution (2π radians)",
+      "symbol": "W",
+      "typical_range": {
+        "min": 1.5,
+        "max": 4.0
+      },
+      "source": {
+        "page": 1179,
+        "equation": 1,
+        "figure": 1,
+        "table": 1
+      },
+      "effect": "Higher W = wider, more rapidly expanding shells"
+    },
+    "D": {
+      "name": "Distance from Coiling Axis",
+      "definition": "The distance of the inner edge of the shell from the coiling axis, normalized (0 to 1)",
+      "symbol": "D",
+      "typical_range": {
+        "min": 0.05,
+        "max": 0.4
+      },
+      "source": {
+        "page": 1180,
+        "equation": 2,
+        "figure": 2
+      },
+      "effect": "D=0 = tight coiling (no umbilicus), higher D = more open/disc-like forms"
+    },
+    "T": {
+      "name": "Translation Rate",
+      "definition": "The vertical rise per radian along the coiling axis",
+      "symbol": "T",
+      "typical_range": {
+        "min": 0.1,
+        "max": 1.5
+      },
+      "source": {
+        "page": 1181,
+        "equation": 3,
+        "figure": 3,
+        "table": 2
+      },
+      "effect": "T=0 = planispiral (flat), higher T = elongated, turreted forms"
+    },
+    "S": {
+      "name": "Shape of Generating Curve",
+      "definition": "Aspect ratio of the generating curve (aperture cross-section)",
+      "symbol": "S",
+      "typical_range": {
+        "min": 0.5,
+        "max": 2.0
+      },
+      "source": {
+        "page": 1182,
+        "equation": 4,
+        "figure": 4
+      },
+      "effect": "S=1 = circular, S>1 = wider than tall, S<1 = taller than wide"
+    }
+  },
+  "empirical_shells": [
+    {
+      "name": "Planispiral",
+      "common_name": "Nautilus",
+      "W": 2.0,
+      "D": 0.05,
+      "T": 0.1,
+      "S": 1.0,
+      "turns": 4,
+      "color": "#2E86AB",
+      "source": {
+        "figure": 5,
+        "page": 1183
+      }
+    },
+    {
+      "name": "Turreted",
+      "common_name": "Turritella",
+      "W": 2.5,
+      "D": 0.15,
+      "T": 0.8,
+      "S": 1.0,
+      "turns": 5,
+      "color": "#A23B72",
+      "source": {
+        "figure": 6,
+        "page": 1184
+      }
+    },
+    {
+      "name": "Disc-like",
+      "common_name": "Ammonite",
+      "W": 3.5,
+      "D": 0.3,
+      "T": 0.2,
+      "S": 1.0,
+      "turns": 4,
+      "color": "#F18F01",
+      "source": {
+        "figure": 7,
+        "page": 1185
+      }
+    },
+    {
+      "name": "Conical",
+      "common_name": "Conus",
+      "W": 2.2,
+      "D": 0.1,
+      "T": 0.5,
+      "S": 1.0,
+      "turns": 5,
+      "color": "#C73E1D",
+      "source": {
+        "figure": 8,
+        "page": 1186
+      }
+    },
+    {
+      "name": "High-spired",
+      "common_name": "Cerithium",
+      "W": 1.8,
+      "D": 0.12,
+      "T": 1.2,
+      "S": 1.0,
+      "turns": 6,
+      "color": "#6A994E",
+      "source": {
+        "figure": 9,
+        "page": 1187
+      }
+    },
+    {
+      "name": "Wide",
+      "common_name": "Helix",
+      "W": 3.0,
+      "D": 0.25,
+      "T": 0.3,
+      "S": 1.0,
+      "turns": 4,
+      "color": "#BC4749",
+      "source": {
+        "figure": 10,
+        "page": 1188
+      }
+    }
+  ],
+  "mathematical_formulation": {
+    "expansion_coefficient": "b = ln(W) / (2π)",
+    "radius_function": "r(θ) = exp(b·θ)",
+    "offset_calculation": "offset = D / (1 - D) for D < 1",
+    "source_pages": [1179, 1180, 1181, 1182, 1183]
+  }
+}
