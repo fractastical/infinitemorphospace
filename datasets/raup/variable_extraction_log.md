@@ -111,7 +111,7 @@
 
 ## Implementation Notes
 
-The Python implementation in `../1966-raup.py` follows the mathematical formulation from pages 1179-1183, with the following key equations:
+The Python implementation in `../../1966-raup.py` follows the mathematical formulation from pages 1179-1183, with the following key equations:
 
 1. **Expansion coefficient:** b = ln(W) / (2π)
 2. **Radius function:** r(θ) = exp(b·θ)

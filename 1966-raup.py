@@ -66,7 +66,7 @@ def raup_shell(W=3, D=0.2, T=0.5, S=1, turns=6, res=100):
 def load_raup_parameters():
     """Load Raup model parameters from data file."""
     script_dir = Path(__file__).parent
-    data_file = script_dir / 'raup_dataset' / 'variables.json'
+    data_file = script_dir / 'datasets' / 'raup' / 'variables.json'
     
     if data_file.exists():
         with open(data_file, 'r') as f:
@@ -95,7 +95,7 @@ if raup_data:
     D_fixed = (D_range['min'] + D_range['max']) / 2
     S_fixed = 1.0
     
-    print(f"Loaded parameters from raup_dataset/variables.json")
+    print(f"Loaded parameters from datasets/raup/variables.json")
     print(f"  W range: {W_range['min']:.2f} - {W_range['max']:.2f}")
     print(f"  D range: {D_range['min']:.2f} - {D_range['max']:.2f}")
     print(f"  T range: {T_range['min']:.2f} - {T_range['max']:.2f}")

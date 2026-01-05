@@ -42,7 +42,7 @@ To complete the comparisons with actual paper figures:
 
 4. **Regenerate comparisons:**
    ```bash
-   python3 raup_dataset/generate_paper_comparisons.py
+   python3 datasets/raup/generate_paper_comparisons.py
    ```
 
 The script will automatically detect scanned images and display them side-by-side with our implementations.

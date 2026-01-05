@@ -61,7 +61,7 @@ def raup_shell(W=3, D=0.2, T=0.5, S=1, turns=6, res=100):
 def load_raup_data():
     """Load Raup model variables and empirical shell data from JSON file."""
     script_dir = Path(__file__).parent
-    data_file = script_dir / 'raup_dataset' / 'variables.json'
+    data_file = script_dir / 'datasets' / 'raup' / 'variables.json'
     
     if not data_file.exists():
         raise FileNotFoundError(f"Raup data file not found: {data_file}")
@@ -73,9 +73,10 @@ def load_raup_data():
 
 
 def create_animated_gif(output_path='raup_shell_animation.gif', 
-                        num_frames=120, fps=12, turns=5, res=60):
+                        num_frames=240, fps=15, turns=5, res=60):
     """
-    Create an animated GIF showing six realistic shell forms side by side, rotating in 3D.
+    Create an animated GIF showing six realistic shell forms side by side.
+    Each shell is shown from two angles: side view and overhead view.
     Based on Raup's original paper, showing how parameter variation produces
     different shell morphologies observed in nature.
     """
@@ -98,20 +99,33 @@ def create_animated_gif(output_path='raup_shell_animation.gif',
             'color': shell['color']
         })
     
-    print(f"  Loaded {len(shell_forms)} shell forms from raup_dataset/variables.json")
+    print(f"  Loaded {len(shell_forms)} shell forms from datasets/raup/variables.json")
     
-    # Create figure with 2x3 grid of 3D subplots
+    # Create figure with 2x3 grid of 3D subplots (6 shells)
     fig = plt.figure(figsize=(18, 12))
     axes = []
     for i in range(6):
         ax = fig.add_subplot(2, 3, i + 1, projection='3d')
         axes.append(ax)
     
+    # Two view modes: side angle and overhead
+    # Alternate between them: first half of frames = side view, second half = overhead
+    frames_per_view = num_frames // 2
+    
     def animate(frame):
         """Update function for each frame."""
-        # Rotate view smoothly (360 degrees over all frames)
-        azim = (frame / num_frames) * 360
-        elev = 25
+        # Determine which view mode (side or overhead)
+        view_mode = 'side' if frame < frames_per_view else 'overhead'
+        
+        # Rotate view smoothly within each view mode
+        frame_in_view = frame % frames_per_view
+        azim = (frame_in_view / frames_per_view) * 360
+        
+        # Set elevation based on view mode
+        if view_mode == 'side':
+            elev = 32  # Side angle view
+        else:
+            elev = 90  # Overhead view (looking straight down)
         
         for idx, (ax, shell) in enumerate(zip(axes, shell_forms)):
             ax.clear()
@@ -120,40 +134,48 @@ def create_animated_gif(output_path='raup_shell_animation.gif',
             X, Y, Z = raup_shell(W=shell['W'], D=shell['D'], T=shell['T'], 
                                 S=shell.get('S', 1.0), turns=shell['turns'], res=res)
             
-            # Plot wireframe with shell-specific color
-            ax.plot_wireframe(X, Y, Z, rstride=5, cstride=5, 
-                             color=shell['color'], linewidth=0.7, alpha=0.85)
+            # Plot wireframe with shell-specific color (finer mesh)
+            ax.plot_wireframe(X, Y, Z, rstride=3, cstride=3, 
+                             color=shell['color'], linewidth=0.6, alpha=0.8)
             
-            # Set limits based on shell type (zoomed out 50% = 2x the range)
-            if shell['T'] > 0.7:  # High-spired shells need more vertical space
-                z_max = 24  # Doubled from 12
-            else:
-                z_max = 12  # Doubled from 6
+            # Calculate dynamic limits based on actual shell size (same as comparison script)
+            x_range = X.max() - X.min()
+            y_range = Y.max() - Y.min()
+            z_range = Z.max() - Z.min()
+            max_range = max(x_range, y_range, z_range)
             
-            ax.set_xlim([-8, 8])  # Doubled from [-4, 4]
-            ax.set_ylim([-8, 8])  # Doubled from [-4, 4]
-            ax.set_zlim([0, z_max])
+            # Set limits with generous padding (zoom out 50% more)
+            padding = max_range * 0.5
+            center_x = (X.max() + X.min()) / 2
+            center_y = (Y.max() + Y.min()) / 2
+            center_z = (Z.max() + Z.min()) / 2
             
-            # Apply same rotation to all shells
+            ax.set_xlim([center_x - max_range/2 - padding, center_x + max_range/2 + padding])
+            ax.set_ylim([center_y - max_range/2 - padding, center_y + max_range/2 + padding])
+            ax.set_zlim([center_z - max_range/2 - padding, center_z + max_range/2 + padding])
+            
+            # Apply view based on mode
             ax.view_init(elev=elev, azim=azim)
             
-            # Set title with parameters
-            ax.set_title('{}\nW={:.2f}, D={:.2f}, T={:.2f}'.format(
-                shell['name'], shell['W'], shell['D'], shell['T']),
+            # Set title with parameters and view mode
+            view_label = "Side View" if view_mode == 'side' else "Overhead View"
+            ax.set_title('{} [{}]\nW={:.2f}, D={:.2f}, T={:.2f}'.format(
+                shell['name'], view_label, shell['W'], shell['D'], shell['T']),
                 fontsize=10, fontweight='bold', pad=10)
             
             # Remove axis labels for cleaner look
             ax.set_axis_off()
         
-        # Overall title
-        fig.suptitle('Raup Shell Coiling Model: Parameter Variation Produces Diverse Forms',
+        # Overall title with view mode indicator
+        view_title = "Side Angle View" if view_mode == 'side' else "Overhead View"
+        fig.suptitle(f'Raup Shell Coiling Model: Parameter Variation Produces Diverse Forms - {view_title}',
                     fontsize=14, fontweight='bold', y=0.98)
     
     # Create animation
     anim = FuncAnimation(fig, animate, frames=num_frames, interval=1000/fps, blit=False)
     
     # Save as GIF
-    print(f"  Saving {num_frames} frames (6 shell forms side by side) at {fps} fps...")
+    print(f"  Saving {num_frames} frames (6 shells × 2 views: side + overhead) at {fps} fps...")
     anim.save(output_path, writer=PillowWriter(fps=fps))
     print(f"  ✓ Saved: {output_path}")
     plt.close()
@@ -177,7 +199,7 @@ def create_parameter_space_visualization(output_path='raup_parameter_space.png')
     D_values = np.linspace(D_range['min'], D_range['max'], 5).tolist()
     T_values = np.linspace(T_range['min'], T_range['max'], 6).tolist()
     
-    print(f"  Using parameter ranges from raup_dataset/variables.json:")
+    print(f"  Using parameter ranges from datasets/raup/variables.json:")
     print(f"    W: {W_range['min']:.2f} - {W_range['max']:.2f}")
     print(f"    D: {D_range['min']:.2f} - {D_range['max']:.2f}")
     print(f"    T: {T_range['min']:.2f} - {T_range['max']:.2f}")
@@ -263,7 +285,7 @@ def create_empirical_comparison(output_path='raup_empirical_comparison.png'):
             'color': shell['color']
         })
     
-    print(f"  Loaded {len(empirical_shells)} empirical shell forms from raup_dataset/variables.json")
+    print(f"  Loaded {len(empirical_shells)} empirical shell forms from datasets/raup/variables.json")
     
     fig = plt.figure(figsize=(18, 10))
     
@@ -307,8 +329,8 @@ def main():
     print("="*60)
     print()
     
-    # Create animated GIF (all 6 shells side by side, rotating together)
-    create_animated_gif('raup_shell_animation.gif', num_frames=120, fps=12)
+    # Create animated GIF (all 6 shells side by side, showing side view then overhead view)
+    create_animated_gif('raup_shell_animation.gif', num_frames=240, fps=15)
     print()
     
     # Create parameter space visualization

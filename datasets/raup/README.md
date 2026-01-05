@@ -103,7 +103,7 @@ Machine-readable JSON file containing:
 - Mathematical formulation references
 - Extraction metadata and timestamps
 
-**Used by:** `../1966-raup.py` and `../create_raup_animations.py`
+**Used by:** `../../1966-raup.py` and `../../create_raup_animations.py`
 
 ### `variable_extraction_log.md`
 Detailed log of variable extraction with page references and timestamps.
@@ -113,7 +113,7 @@ BibTeX citations for Raup papers.
 
 ## Implementation
 
-See `../1966-raup.py` for the Python implementation of the Raup model.
+See `../../1966-raup.py` for the Python implementation of the Raup model.
 
 **Note:** All scripts now load parameters from `variables.json` instead of hardcoded values. This ensures consistency and makes it easy to update parameters based on new analyses or corrections.
 

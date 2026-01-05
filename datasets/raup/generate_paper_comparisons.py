@@ -15,7 +15,7 @@ from pathlib import Path
 import sys
 
 # Import the raup_shell function
-sys.path.insert(0, str(Path(__file__).parent.parent))
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 from create_raup_animations import raup_shell
 
 
@@ -72,24 +72,28 @@ def create_variable_comparison(variable_name, variable_data, output_dir):
                             T=params['T'], S=params['S'], 
                             turns=4, res=50)
         
-        # Plot wireframe
-        ax.plot_wireframe(X, Y, Z, rstride=4, cstride=4, 
-                         color='steelblue', linewidth=0.6, alpha=0.8)
+        # Plot wireframe with finer mesh
+        ax.plot_wireframe(X, Y, Z, rstride=3, cstride=3, 
+                         color='steelblue', linewidth=0.5, alpha=0.75)
         
-        # Calculate appropriate limits based on shell size
+        # Calculate appropriate limits based on actual shell size
         x_range = X.max() - X.min()
         y_range = Y.max() - Y.min()
         z_range = Z.max() - Z.min()
         max_range = max(x_range, y_range, z_range)
         
-        # Set limits with padding (zoom out more)
-        padding = max_range * 0.3
-        ax.set_xlim([X.min() - padding, X.max() + padding])
-        ax.set_ylim([Y.min() - padding, Y.max() + padding])
-        ax.set_zlim([Z.min() - padding, Z.max() + padding])
+        # Set limits with generous padding (zoom out 50% more)
+        padding = max_range * 0.5
+        center_x = (X.max() + X.min()) / 2
+        center_y = (Y.max() + Y.min()) / 2
+        center_z = (Z.max() + Z.min()) / 2
         
-        # Better viewing angle for shell recognition
-        ax.view_init(elev=20, azim=45)
+        ax.set_xlim([center_x - max_range/2 - padding, center_x + max_range/2 + padding])
+        ax.set_ylim([center_y - max_range/2 - padding, center_y + max_range/2 + padding])
+        ax.set_zlim([center_z - max_range/2 - padding, center_z + max_range/2 + padding])
+        
+        # Better viewing angle - adjusted by 20 degrees
+        ax.view_init(elev=32, azim=70)
         ax.set_title(titles[idx], fontsize=11, fontweight='bold')
         ax.set_axis_off()
     
@@ -125,10 +129,11 @@ def create_empirical_shell_comparison(shell_data, output_dir, paper_figure_ref):
     ax1 = fig.add_subplot(1, 2, 1, projection='3d')
     X, Y, Z = raup_shell(W=shell_data['W'], D=shell_data['D'], 
                         T=shell_data['T'], S=shell_data.get('S', 1.0),
-                        turns=shell_data['turns'], res=60)
+                        turns=shell_data['turns'], res=70)
     
-    ax1.plot_wireframe(X, Y, Z, rstride=4, cstride=4,
-                      color=shell_data['color'], linewidth=0.7, alpha=0.85)
+    # Finer wireframe for better shell appearance
+    ax1.plot_wireframe(X, Y, Z, rstride=3, cstride=3,
+                      color=shell_data['color'], linewidth=0.6, alpha=0.8)
     
     # Calculate appropriate limits based on actual shell dimensions
     x_range = X.max() - X.min()
@@ -136,17 +141,18 @@ def create_empirical_shell_comparison(shell_data, output_dir, paper_figure_ref):
     z_range = Z.max() - Z.min()
     max_range = max(x_range, y_range, z_range)
     
-    # Set limits with generous padding (zoom out significantly)
-    padding = max_range * 0.4
+    # Set limits with very generous padding (zoom out 50% more)
+    padding = max_range * 0.5  # Increased padding
     center_x = (X.max() + X.min()) / 2
     center_y = (Y.max() + Y.min()) / 2
+    center_z = (Z.max() + Z.min()) / 2
     
     ax1.set_xlim([center_x - max_range/2 - padding, center_x + max_range/2 + padding])
     ax1.set_ylim([center_y - max_range/2 - padding, center_y + max_range/2 + padding])
-    ax1.set_zlim([Z.min() - padding, Z.max() + padding])
+    ax1.set_zlim([center_z - max_range/2 - padding, center_z + max_range/2 + padding])
     
-    # Better viewing angle - lower elevation shows shell shape better
-    ax1.view_init(elev=15, azim=45)
+    # Better viewing angle - adjusted by 20 degrees
+    ax1.view_init(elev=32, azim=70)
     ax1.set_title(f'Our Implementation\n{shell_name} ({shell_data["common_name"]})\n'
                  f'W={shell_data["W"]}, D={shell_data["D"]:.2f}, T={shell_data["T"]:.2f}',
                  fontsize=12, fontweight='bold')
@@ -215,10 +221,11 @@ def create_paper_figure_comparison(figure_num, description, params_list, output_
         
         X, Y, Z = raup_shell(W=params['W'], D=params['D'], 
                             T=params['T'], S=params.get('S', 1.0),
-                            turns=params.get('turns', 4), res=50)
+                            turns=params.get('turns', 4), res=60)
         
-        ax.plot_wireframe(X, Y, Z, rstride=4, cstride=4,
-                         color='steelblue', linewidth=0.6, alpha=0.8)
+        # Finer wireframe for better shell appearance
+        ax.plot_wireframe(X, Y, Z, rstride=3, cstride=3,
+                         color='steelblue', linewidth=0.5, alpha=0.75)
         
         # Calculate appropriate limits based on shell size
         x_range = X.max() - X.min()
@@ -226,17 +233,18 @@ def create_paper_figure_comparison(figure_num, description, params_list, output_
         z_range = Z.max() - Z.min()
         max_range = max(x_range, y_range, z_range)
         
-        # Set limits with padding (zoom out more)
-        padding = max_range * 0.3
+        # Set limits with generous padding (zoom out 50% more)
+        padding = max_range * 0.5  # Increased padding
         center_x = (X.max() + X.min()) / 2
         center_y = (Y.max() + Y.min()) / 2
+        center_z = (Z.max() + Z.min()) / 2
         
         ax.set_xlim([center_x - max_range/2 - padding, center_x + max_range/2 + padding])
         ax.set_ylim([center_y - max_range/2 - padding, center_y + max_range/2 + padding])
-        ax.set_zlim([Z.min() - padding, Z.max() + padding])
+        ax.set_zlim([center_z - max_range/2 - padding, center_z + max_range/2 + padding])
         
-        # Better viewing angle
-        ax.view_init(elev=15, azim=45)
+        # Better viewing angle - side view shows shell spiral
+        ax.view_init(elev=12, azim=50)
         ax.set_title(f"W={params['W']}, D={params['D']:.2f}, T={params['T']:.2f}",
                     fontsize=10, fontweight='bold')
         ax.set_axis_off()
