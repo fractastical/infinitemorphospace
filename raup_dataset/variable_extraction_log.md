@@ -27,6 +27,10 @@
 **Typical Range:** 1.5 to 4.0  
 **Extraction Timestamp:** 2025-01-05 13:40:00 UTC
 
+**Visual Comparison:**
+![W Variable Comparison](comparisons/variable_W_comparison.png)  
+*Left: Our implementation showing W values (Low, Mid, High). Right: Raup (1966) Figure 1 (to be scanned)*
+
 ---
 
 ### D (Distance from Coiling Axis)
@@ -41,6 +45,10 @@
 
 **Typical Range:** 0.05 to 0.4  
 **Extraction Timestamp:** 2025-01-05 13:40:00 UTC
+
+**Visual Comparison:**
+![D Variable Comparison](comparisons/variable_D_comparison.png)  
+*Left: Our implementation showing D values (Low, Mid, High). Right: Raup (1966) Figure 2 (to be scanned)*
 
 ---
 
@@ -57,6 +65,10 @@
 **Typical Range:** 0.1 to 1.5  
 **Extraction Timestamp:** 2025-01-05 13:40:00 UTC
 
+**Visual Comparison:**
+![T Variable Comparison](comparisons/variable_T_comparison.png)  
+*Left: Our implementation showing T values (Low, Mid, High). Right: Raup (1966) Figure 3 (to be scanned)*
+
 ---
 
 ### S (Shape of Generating Curve)
@@ -72,24 +84,30 @@
 **Typical Range:** 0.5 to 2.0  
 **Extraction Timestamp:** 2025-01-05 13:40:00 UTC
 
+**Visual Comparison:**
+![S Variable Comparison](comparisons/variable_S_comparison.png)  
+*Left: Our implementation showing S values (Low, Mid, High). Right: Raup (1966) Figure 4 (to be scanned)*
+
 ---
 
 ## Empirical Shell Parameter Values
 
 **Extracted From:** Raup (1966), Figures 5-10 and associated text
 
-| Shell Type | W | D | T | Figure Reference | Page |
-|------------|---|---|---|------------------|------|
-| Planispiral (Nautilus) | 2.0 | 0.05 | 0.1 | Figure 5 | 1183 |
-| Turreted (Turritella) | 2.5 | 0.15 | 0.8 | Figure 6 | 1184 |
-| Disc-like (Ammonite) | 3.5 | 0.3 | 0.2 | Figure 7 | 1185 |
-| Conical (Conus) | 2.2 | 0.1 | 0.5 | Figure 8 | 1186 |
-| High-spired (Cerithium) | 1.8 | 0.12 | 1.2 | Figure 9 | 1187 |
-| Wide (Helix) | 3.0 | 0.25 | 0.3 | Figure 10 | 1188 |
+| Shell Type | W | D | T | Figure Reference | Page | Comparison Image |
+|------------|---|---|---|------------------|------|------------------|
+| Planispiral (Nautilus) | 2.0 | 0.05 | 0.1 | Figure 5 | 1183 | [comparisons/empirical_planispiral_comparison.png](comparisons/empirical_planispiral_comparison.png) |
+| Turreted (Turritella) | 2.5 | 0.15 | 0.8 | Figure 6 | 1184 | [comparisons/empirical_turreted_comparison.png](comparisons/empirical_turreted_comparison.png) |
+| Disc-like (Ammonite) | 3.5 | 0.3 | 0.2 | Figure 7 | 1185 | [comparisons/empirical_disc_like_comparison.png](comparisons/empirical_disc_like_comparison.png) |
+| Conical (Conus) | 2.2 | 0.1 | 0.5 | Figure 8 | 1186 | [comparisons/empirical_conical_comparison.png](comparisons/empirical_conical_comparison.png) |
+| High-spired (Cerithium) | 1.8 | 0.12 | 1.2 | Figure 9 | 1187 | [comparisons/empirical_high_spired_comparison.png](comparisons/empirical_high_spired_comparison.png) |
+| Wide (Helix) | 3.0 | 0.25 | 0.3 | Figure 10 | 1188 | [comparisons/empirical_wide_comparison.png](comparisons/empirical_wide_comparison.png) |
 
 **Extraction Timestamp:** 2025-01-05 13:40:00 UTC
 
 **Note:** Exact page numbers are approximate as the paper structure may vary. Values were extracted from the figures and associated descriptions in Raup (1966).
+
+**Visual Comparisons:** Each empirical shell has a side-by-side comparison image showing our implementation (left) vs. the original paper figure (right, placeholder until scanned). See `comparisons/` folder for all comparison images.
 
 ## Implementation Notes
 
@@ -102,3 +120,32 @@ The Python implementation in `../1966-raup.py` follows the mathematical formulat
 
 **Implementation Date:** 2025-01-05  
 **Implementation Timestamp:** 2025-01-05 13:40:00 UTC
+
+---
+
+## Visual Validation
+
+### Comparison Images
+
+All variables and empirical shells have been visualized with side-by-side comparisons showing:
+- **Left:** Our implementation using extracted parameters
+- **Right:** Original paper figure (placeholder until scanned)
+
+**Generated Images:**
+- Variable comparisons: `comparisons/variable_W_comparison.png`, `variable_D_comparison.png`, `variable_T_comparison.png`, `variable_S_comparison.png`
+- Empirical shell comparisons: `comparisons/empirical_*.png` (6 shell types)
+- Paper figure reconstructions: `comparisons/paper_figure_*.png` (Figures 1-3)
+
+**To Add Scanned Paper Images:**
+1. Scan the relevant figures from Raup (1966) paper
+2. Save as PNG files in `comparisons/` folder with naming:
+   - `paper_figure_1.png` (for Figure 1)
+   - `paper_figure_2.png` (for Figure 2)
+   - `paper_figure_5.png` (for Figure 5, Planispiral)
+   - `paper_figure_6.png` (for Figure 6, Turreted)
+   - etc.
+3. Re-run `generate_paper_comparisons.py` - it will automatically detect and display scanned images
+
+**Generation Script:** `generate_paper_comparisons.py`  
+**Generation Date:** 2025-01-05  
+**Generation Timestamp:** 2025-01-05 14:01:00 UTC
