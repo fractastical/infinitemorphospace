@@ -1,9 +1,12 @@
 {
   "metadata": {
-    "source_paper": "Raup, D. M. (1966). Geometric Analysis of Shell Coiling: General Problems. Journal of Paleontology, 40(5), 1178-1190.",
+    "primary_source_paper": "Raup, D. M. (1966). Geometric Analysis of Shell Coiling: General Problems. Journal of Paleontology, 40(5), 1178-1190.",
+    "original_introduction": "Raup, D. M. (1962). Computer as Aid in Describing Form in Gastropod Shells. Science, 138(3537), 150-152.",
+    "ammonoid_application": "Raup, D. M. (1967). Geometric Analysis of Shell Coiling: Coiling in Ammonoids. Journal of Paleontology, 41(1), 43-65.",
     "extraction_date": "2025-01-05",
     "extraction_timestamp": "2025-01-05T13:40:00Z",
-    "extractor": "AI Assistant (Claude)"
+    "extractor": "AI Assistant (Claude)",
+    "note": "The three-parameter model (W, D, T) was first introduced in Raup (1962). The 1966 paper provides the detailed mathematical formulation. The 1967 paper applies the model to ammonoids."
   },
   "core_variables": {
     "W": {

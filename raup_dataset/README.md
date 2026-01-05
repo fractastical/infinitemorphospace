@@ -2,12 +2,23 @@
 
 This folder contains documentation and data related to David M. Raup's classic model of shell coiling from "Geometric Analysis of Shell Coiling" (1966).
 
-## Source Paper
+## Source Papers
 
+### Primary Paper (Detailed Formulation)
 **Raup, D. M. (1966).** "Geometric Analysis of Shell Coiling: General Problems." *Journal of Paleontology*, 40(5), 1178-1190.
 
 **DOI:** Not available (pre-DOI era)  
 **JSTOR:** https://www.jstor.org/stable/1301573
+
+### Original Introduction
+**Raup, D. M. (1962).** "Computer as Aid in Describing Form in Gastropod Shells." *Science*, 138(3537), 150-152.
+
+**Note:** The 1962 paper first introduced the three-parameter model (W, D, T). The 1966 paper provided the detailed mathematical formulation used in this implementation.
+
+### Ammonoid Application
+**Raup, D. M. (1967).** "Geometric Analysis of Shell Coiling: Coiling in Ammonoids." *Journal of Paleontology*, 41(1), 43-65.
+
+**Note:** Applied the model specifically to ammonoid shells, introducing refinements for this group.
 
 ## Core Variables
 
